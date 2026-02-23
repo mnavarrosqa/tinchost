@@ -28,8 +28,10 @@
     .btn-secondary:hover { background: #5c636a; }
     .btn-success { background: #198754; }
     .btn-success:hover { background: #157347; }
-    .step-actions { margin-top: 1.5rem; }
-    .step-actions .btn { margin-right: 0.5rem; }
+    .step-actions { margin-top: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+    .step-actions .btn { margin-right: 0; }
+    .btn-back { color: #6c757d; text-decoration: none; font-size: 0.95rem; }
+    .btn-back:hover { color: #495057; text-decoration: underline; }
     .result-log { white-space: pre-wrap; max-height: 320px; overflow-y: auto; }
     .result-success { color: #198754; font-weight: 600; }
     .result-error { color: #dc3545; font-weight: 600; }
@@ -40,6 +42,13 @@
     .install-log-status.result-error { color: #dc3545; font-weight: 600; }
     h1 { margin-top: 0; color: #1a1d23; }
     .wizard-step { margin-bottom: 1rem; }
+    .wizard-subhead { font-size: 1rem; margin: 1.5rem 0 0.5rem 0; color: #212529; }
+    .radio-group { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; }
+    .radio-option { display: block; padding: 0.75rem 1rem; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; }
+    .radio-option:has(input:checked) { border-color: #0d6efd; background: #f8f9fa; }
+    .radio-option input { margin-right: 0.5rem; }
+    .radio-label { font-weight: 600; display: block; margin-bottom: 0.25rem; }
+    .radio-desc { font-size: 0.9rem; color: #495057; display: block; }
   </style>
 </head>
 <body>
@@ -54,11 +63,12 @@
 
     <% const phpList = (state.php_versions || '').split(',').map(s => s.trim()).filter(Boolean); %>
     <% const hasDb = state.database_choice; %>
+    <% const phpConfigLabel = state.php_fpm_config === 'optimized' ? ' (optimized)' : ''; %>
     <% const opts = [ state.email_installed && 'Mail (Postfix + Dovecot)', state.ftp_installed && 'FTP (ProFTPD)', state.certbot_installed && 'Certbot (SSL)' ].filter(Boolean); %>
     <section class="stack <%= (phpList.length || hasDb || opts.length) ? '' : 'empty' %>" aria-label="Selected stack">
       <h2>Your stack</h2>
       <ul>
-        <% if (phpList.length) { phpList.forEach(v => { %><li>PHP <%= v %></li><% }); } %>
+        <% if (phpList.length) { phpList.forEach(v => { %><li>PHP-FPM <%= v %><%= phpConfigLabel %></li><% }); } %>
         <% if (hasDb) { %><li><%= hasDb === 'mariadb' ? 'MariaDB' : 'MySQL' %></li><% } %>
         <% opts.forEach(name => { %><li><%= name %></li><% }); %>
         <% if (!phpList.length && !hasDb && !opts.length) { %><li>Nothing selected yet</li><% } %>
@@ -66,13 +76,31 @@
     </section>
 
     <% if (step === 'welcome' || !step) { %>
+    <% const phpFpmConfig = state.php_fpm_config || 'default'; %>
     <div class="wizard-step">
-      <h2>PHP versions</h2>
-      <p>Select which PHP versions to install (sites can use different versions).</p>
+      <h2>PHP-FPM versions</h2>
+      <p>Select which PHP-FPM versions to install (sites can use different versions). Nginx will use the matching FastCGI socket for each site.</p>
       <form method="post" action="/wizard/php">
-        <label><input type="checkbox" name="versions" value="8.1" <%= phpList.includes('8.1') ? 'checked' : '' %>> PHP 8.1</label>
-        <label><input type="checkbox" name="versions" value="8.2" <%= phpList.includes('8.2') ? 'checked' : '' %>> PHP 8.2</label>
-        <label><input type="checkbox" name="versions" value="8.3" <%= phpList.includes('8.3') ? 'checked' : '' %>> PHP 8.3</label>
+        <label><input type="checkbox" name="versions" value="7.4" <%= phpList.includes('7.4') ? 'checked' : '' %>> PHP-FPM 7.4</label>
+        <label><input type="checkbox" name="versions" value="8.1" <%= phpList.includes('8.1') ? 'checked' : '' %>> PHP-FPM 8.1</label>
+        <label><input type="checkbox" name="versions" value="8.2" <%= phpList.includes('8.2') ? 'checked' : '' %>> PHP-FPM 8.2</label>
+        <label><input type="checkbox" name="versions" value="8.3" <%= phpList.includes('8.3') ? 'checked' : '' %>> PHP-FPM 8.3</label>
+
+        <h3 class="wizard-subhead">PHP-FPM configuration</h3>
+        <p>Choose how PHP-FPM is tuned for this server.</p>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="php_fpm_config" value="default" <%= phpFpmConfig === 'default' ? 'checked' : '' %>>
+            <span class="radio-label">Default</span>
+            <span class="radio-desc">Use the package defaults. Lower memory use, good for development or low-traffic sites.</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="php_fpm_config" value="optimized" <%= phpFpmConfig === 'optimized' ? 'checked' : '' %>>
+            <span class="radio-label">Optimized</span>
+            <span class="radio-desc">Production-oriented tuning: larger worker pool (pm.max_children 50, dynamic pm), worker recycling (pm.max_requests 500), and OPcache with 128MB, 10k cached scripts and no runtime file checks for best throughput.</span>
+          </label>
+        </div>
+
         <div class="step-actions">
           <button type="submit">Next: Database</button>
         </div>
@@ -88,6 +116,7 @@
         <label><input type="radio" name="choice" value="mysql" <%= state.database_choice !== 'mariadb' ? 'checked' : '' %>> MySQL 8</label>
         <label><input type="radio" name="choice" value="mariadb" <%= state.database_choice === 'mariadb' ? 'checked' : '' %>> MariaDB 10</label>
         <div class="step-actions">
+          <a href="/wizard/step/welcome" class="btn-back">← Back to PHP-FPM</a>
           <button type="submit">Next: Optional services</button>
         </div>
       </form>
@@ -103,6 +132,7 @@
         <label><input type="checkbox" name="install_ftp" value="1" <%= state.ftp_installed ? 'checked' : '' %>> FTP (ProFTPD)</label><br>
         <label><input type="checkbox" name="install_certbot" value="1" <%= state.certbot_installed ? 'checked' : '' %>> Certbot (Let's Encrypt)</label>
         <div class="step-actions">
+          <a href="/wizard/step/database" class="btn-back">← Back to Database</a>
           <button type="submit">Next: Review &amp; install</button>
         </div>
       </form>
@@ -112,10 +142,10 @@
     <% if (step === 'review') { %>
     <div class="wizard-step">
       <h2>Review &amp; install</h2>
-      <p>Everything in <strong>Your stack</strong> will be installed on this server when you click <strong>Install all</strong>. A live log will appear below; installation may take several minutes.</p>
+      <p>Everything in <strong>Your stack</strong> will be installed on this server when you click <strong>Install all</strong>. A live log will appear below; installation may take several minutes. You can go back to change your choices until you start the installation.</p>
       <div class="step-actions">
+        <a href="/wizard/step/options" class="btn-back">← Back to Optional services</a>
         <button type="button" id="wizard-install-btn" class="btn-success">Install all</button>
-        <a href="/wizard" class="btn btn-secondary">Back to wizard</a>
       </div>
       <div id="wizard-log-container" class="install-log-container" hidden>
         <pre id="wizard-log" class="install-log"></pre>

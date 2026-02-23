@@ -26,6 +26,7 @@ db.exec(`
     step TEXT DEFAULT 'welcome',
     completed INTEGER DEFAULT 0,
     php_versions TEXT,
+    php_fpm_config TEXT DEFAULT 'default',
     web_server TEXT,
     database_choice TEXT,
     email_installed INTEGER DEFAULT 0,
@@ -34,6 +35,11 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
   INSERT OR IGNORE INTO wizard_state (id) VALUES (1);
+`);
+try {
+  db.exec("ALTER TABLE wizard_state ADD COLUMN php_fpm_config TEXT DEFAULT 'default'");
+} catch (_) { /* column may already exist */ }
+db.exec(`
 
   CREATE TABLE IF NOT EXISTS sites (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

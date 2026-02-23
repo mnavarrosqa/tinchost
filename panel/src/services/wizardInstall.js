@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const { execSync, spawn } = require('child_process');
 
 const env = { ...process.env, DEBIAN_FRONTEND: 'noninteractive' };
@@ -40,12 +42,51 @@ function aptUpdate() {
 }
 
 /**
- * Install PHP versions (e.g. ['8.1','8.2']). Adds ondrej/php PPA then installs each version.
+ * Write performance-optimized PHP-FPM pool and opcache config for a given version.
+ * Pool: dynamic pm with sensible children/spare; opcache: enabled with production tuning.
  */
-function installPhp(versions) {
+function applyPhpFpmPerformance(version) {
+  const base = path.join('/etc/php', version, 'fpm');
+  const poolDir = path.join(base, 'pool.d');
+  const confDir = path.join(base, 'conf.d');
+  try {
+    if (!fs.existsSync(poolDir)) return { ok: true };
+    const poolConf = `; Tinchost performance tuning for PHP-FPM ${version}
+[www]
+pm = dynamic
+pm.max_children = 50
+pm.start_servers = 5
+pm.min_spare_servers = 5
+pm.max_spare_servers = 10
+pm.max_requests = 500
+`;
+    fs.writeFileSync(path.join(poolDir, '99-performance.conf'), poolConf, 'utf8');
+    if (!fs.existsSync(confDir)) fs.mkdirSync(confDir, { recursive: true });
+    const opcacheIni = `; Tinchost OPcache performance tuning for PHP-FPM ${version}
+opcache.enable=1
+opcache.memory_consumption=128
+opcache.interned_strings_buffer=8
+opcache.max_accelerated_files=10000
+opcache.validate_timestamps=0
+opcache.revalidate_freq=0
+`;
+    fs.writeFileSync(path.join(confDir, '99-opcache-performance.ini'), opcacheIni, 'utf8');
+    const restart = run('systemctl restart php' + version + '-fpm');
+    return restart.ok ? { ok: true } : { ok: false, out: restart.out };
+  } catch (err) {
+    return { ok: false, out: (err.message || String(err)) };
+  }
+}
+
+/**
+ * Install PHP-FPM versions (e.g. ['7.4','8.1','8.2']). Adds ondrej/php PPA, then installs phpX-fpm and extensions per version.
+ * If config === 'optimized', applies performance pool + opcache config for each version; otherwise leaves package defaults.
+ */
+function installPhp(versions, config) {
   if (!versions || versions.length === 0) return { ok: true, out: '' };
   const list = Array.isArray(versions) ? versions : (versions || '').toString().split(',').map(s => s.trim()).filter(Boolean);
   if (list.length === 0) return { ok: true, out: '' };
+  const useOptimized = config === 'optimized';
 
   let out = '';
   const addRepo = run('add-apt-repository -y ppa:ondrej/php', { stdio: 'pipe' });
@@ -61,6 +102,10 @@ function installPhp(versions) {
     const r = run(`apt-get install -y -qq ${pkg}`);
     if (!r.ok) return { ok: false, out: out + r.out };
     out += r.out;
+    if (useOptimized) {
+      const perf = applyPhpFpmPerformance(v);
+      if (!perf.ok) return { ok: false, out: out + (perf.out || '') };
+    }
   }
   return { ok: true, out };
 }
@@ -126,7 +171,8 @@ function runWizardInstall(state) {
   if (!r1.ok) return { success: false, log: log.join('\n') };
 
   if (phpVersions.length > 0) {
-    const r2 = step('PHP ' + phpVersions.join(', '), () => installPhp(phpVersions));
+    const phpFpmConfig = state.php_fpm_config || 'default';
+    const r2 = step('PHP-FPM ' + phpVersions.join(', ') + (phpFpmConfig === 'optimized' ? ' (optimized)' : ''), () => installPhp(phpVersions, phpFpmConfig));
     if (!r2.ok) return { success: false, log: log.join('\n') };
   }
 
@@ -162,6 +208,8 @@ async function runWizardInstallStreaming(state, onOutput) {
     .map(s => s.trim())
     .filter(Boolean);
   const databaseChoice = state.database_choice || 'mysql';
+  const phpFpmConfig = state.php_fpm_config || 'default';
+  const useOptimized = phpFpmConfig === 'optimized';
   const installEmail = !!state.email_installed;
   const installFtpFlag = !!state.ftp_installed;
   const installCertbotFlag = !!state.certbot_installed;
@@ -172,7 +220,7 @@ async function runWizardInstallStreaming(state, onOutput) {
     if (!r1.ok) return { success: false };
 
     if (phpVersions.length > 0) {
-      out('\n[PHP ' + phpVersions.join(', ') + ']\n');
+      out('\n[PHP-FPM ' + phpVersions.join(', ') + (useOptimized ? ' (optimized)' : '') + ']\n');
       const rRepo = await runStreaming('add-apt-repository -y ppa:ondrej/php', out);
       if (!rRepo.ok) return { success: false };
       await runStreaming('apt-get update -q', out);
@@ -180,6 +228,11 @@ async function runWizardInstallStreaming(state, onOutput) {
         const pkg = 'php' + v + '-fpm php' + v + '-mysql php' + v + '-curl php' + v + '-mbstring php' + v + '-xml php' + v + '-zip';
         const rP = await runStreaming('apt-get install -y -q ' + pkg, out);
         if (!rP.ok) return { success: false };
+        if (useOptimized) {
+          out('\n[PHP-FPM ' + v + ' performance config]\n');
+          const perf = applyPhpFpmPerformance(v);
+          if (!perf.ok) return { success: false };
+        }
       }
     }
 

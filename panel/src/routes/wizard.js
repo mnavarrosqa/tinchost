@@ -8,16 +8,28 @@ async function getState() {
   return db.prepare('SELECT * FROM wizard_state WHERE id = 1').get() || {};
 }
 
+const EDITABLE_STEPS = ['welcome', 'database', 'options', 'review'];
+
 router.get('/', async (req, res) => {
   const state = await getState();
   const step = state.step || 'welcome';
   res.render('wizard', { step, state });
 });
 
+router.get('/step/:name', async (req, res) => {
+  const name = req.params.name;
+  if (EDITABLE_STEPS.includes(name)) {
+    const db = await getDb();
+    db.prepare('UPDATE wizard_state SET step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run(name);
+  }
+  res.redirect('/wizard');
+});
+
 router.post('/php', async (req, res) => {
   const versions = (Array.isArray(req.body.versions) ? req.body.versions : [req.body.versions]).filter(Boolean).join(',');
+  const phpFpmConfig = req.body.php_fpm_config === 'optimized' ? 'optimized' : 'default';
   const db = await getDb();
-  db.prepare('UPDATE wizard_state SET php_versions = ?, step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run(versions || null, 'database');
+  db.prepare('UPDATE wizard_state SET php_versions = ?, php_fpm_config = ?, step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run(versions || null, phpFpmConfig, 'database');
   res.redirect('/wizard');
 });
 
