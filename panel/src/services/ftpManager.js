@@ -32,4 +32,14 @@ async function addFtpUser(siteId, username, password) {
   await syncFtpUsers();
 }
 
-module.exports = { syncFtpUsers, addFtpUser, hashPassword };
+async function deleteFtpUser(siteId, userId) {
+  const db = await getDb();
+  db.prepare('DELETE FROM ftp_users WHERE id = ? AND site_id = ?').run(userId, siteId);
+  await syncFtpUsers();
+}
+
+function getFtpUsersBySite(db, siteId) {
+  return db.prepare('SELECT * FROM ftp_users WHERE site_id = ? ORDER BY username').all(siteId);
+}
+
+module.exports = { syncFtpUsers, addFtpUser, deleteFtpUser, getFtpUsersBySite, hashPassword };

@@ -6,24 +6,32 @@
   <title>Sites – Tinchost Panel</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #f5f5f5; }
-    .nav { background: #222; color: #fff; padding: 0.75rem 1.5rem; }
-    .nav a { color: #fff; text-decoration: none; margin-right: 1rem; }
-    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
+    .nav { background: #2d6a4f; color: #fff; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .nav a { color: #d8f3dc; text-decoration: none; }
+    .nav a:hover { color: #fff; }
+    .nav .nav-right { margin-left: auto; }
+    .nav .nav-active { color: #fff; font-weight: 600; }
+    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
+    h1 { color: #1b4332; margin-top: 0; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #ddd; }
-    .btn { padding: 0.35rem 0.75rem; background: #007bff; color: #fff; text-decoration: none; border-radius: 4px; font-size: 0.9rem; }
-    .btn-danger { background: #dc3545; }
+    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #e8f5e9; }
+    th { color: #2d6a4f; font-weight: 600; font-size: 0.875rem; }
+    .btn { padding: 0.4rem 0.9rem; background: #2d6a4f; color: #fff; text-decoration: none; border: none; border-radius: 6px; font-size: 0.9rem; display: inline-flex; align-items: center; }
+    .btn:hover { background: #1b4332; color: #fff; }
+    .btn-secondary { background: #52796f; }
+    .btn-secondary:hover { background: #354f52; }
+    form.inline { display: inline; }
   </style>
 </head>
 <body>
   <nav class="nav">
     <a href="/">Dashboard</a>
-    <a href="/sites">Sites</a>
+    <a href="/sites" class="nav-active">Sites</a>
     <a href="/databases">Databases</a>
     <a href="/mail">Mail</a>
     <a href="/settings">Settings</a>
-    <span style="float:right"><a href="/auth/logout">Logout</a></span>
+    <span class="nav-right"><a href="/auth/logout">Logout</a></span>
   </nav>
   <main>
     <h1>Sites</h1>
@@ -41,10 +49,8 @@
           <td><%= s.ssl ? 'Yes' : 'No' %></td>
           <td><%= s.ftp_enabled ? 'Yes' : 'No' %></td>
           <td>
-            <a href="/sites/<%= s.id %>/edit" class="btn">Edit</a>
-            <form method="post" action="/sites/<%= s.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this site? This cannot be undone.');">
-              <button type="submit" class="btn btn-danger">Delete</button>
-            </form>
+            <a href="/sites/<%= s.id %>" class="btn">Manage</a>
+            <a href="/sites/<%= s.id %>/edit" class="btn btn-secondary">Edit</a>
           </td>
         </tr>
         <% }); %>

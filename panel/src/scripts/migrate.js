@@ -43,6 +43,9 @@ try {
 try {
   db.exec("ALTER TABLE wizard_state ADD COLUMN database_config TEXT DEFAULT 'default'");
 } catch (_) { /* column may already exist */ }
+try {
+  db.exec('ALTER TABLE databases ADD COLUMN site_id INTEGER REFERENCES sites(id)');
+} catch (_) { /* column may already exist */ }
 db.exec(`
 
   CREATE TABLE IF NOT EXISTS sites (
@@ -68,6 +71,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS databases (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL,
+    site_id INTEGER REFERENCES sites(id),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
