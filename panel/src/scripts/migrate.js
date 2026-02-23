@@ -46,6 +46,12 @@ try {
 try {
   db.exec('ALTER TABLE databases ADD COLUMN site_id INTEGER REFERENCES sites(id)');
 } catch (_) { /* column may already exist */ }
+try {
+  db.exec("ALTER TABLE db_grants ADD COLUMN privileges TEXT DEFAULT 'ALL'");
+} catch (_) { /* column may already exist */ }
+try {
+  db.exec('ALTER TABLE ftp_users ADD COLUMN default_route TEXT DEFAULT ""');
+} catch (_) { /* column may already exist */ }
 db.exec(`
 
   CREATE TABLE IF NOT EXISTS sites (

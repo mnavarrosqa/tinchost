@@ -25,10 +25,26 @@ async function syncFtpUsers() {
   return users.length;
 }
 
-async function addFtpUser(siteId, username, password) {
+async function addFtpUser(siteId, username, password, defaultRoute) {
   const db = await getDb();
   const hash = hashPassword(password);
-  db.prepare('INSERT INTO ftp_users (site_id, username, password_hash) VALUES (?, ?, ?)').run(siteId, username, hash);
+  const route = (defaultRoute != null && String(defaultRoute).trim() !== '') ? String(defaultRoute).trim() : '';
+  db.prepare('INSERT INTO ftp_users (site_id, username, password_hash, default_route) VALUES (?, ?, ?, ?)').run(siteId, username, hash, route);
+  await syncFtpUsers();
+}
+
+async function updateFtpUser(siteId, userId, updates) {
+  const db = await getDb();
+  const row = db.prepare('SELECT id FROM ftp_users WHERE id = ? AND site_id = ?').get(userId, siteId);
+  if (!row) return;
+  if (updates.password != null) {
+    const hash = hashPassword(updates.password);
+    db.prepare('UPDATE ftp_users SET password_hash = ? WHERE id = ? AND site_id = ?').run(hash, userId, siteId);
+  }
+  if (updates.default_route !== undefined) {
+    const route = String(updates.default_route).trim();
+    db.prepare('UPDATE ftp_users SET default_route = ? WHERE id = ? AND site_id = ?').run(route, userId, siteId);
+  }
   await syncFtpUsers();
 }
 
@@ -42,4 +58,4 @@ function getFtpUsersBySite(db, siteId) {
   return db.prepare('SELECT * FROM ftp_users WHERE site_id = ? ORDER BY username').all(siteId);
 }
 
-module.exports = { syncFtpUsers, addFtpUser, deleteFtpUser, getFtpUsersBySite, hashPassword };
+module.exports = { syncFtpUsers, addFtpUser, updateFtpUser, deleteFtpUser, getFtpUsersBySite, hashPassword };

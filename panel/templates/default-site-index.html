@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site ready – TINCHOST</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background: #eef5ef;
+      color: #1b4332;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .card {
+      max-width: 520px;
+      width: 100%;
+      background: #fff;
+      border: 1px solid #b7d4bc;
+      border-radius: 8px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(45, 106, 79, 0.08);
+    }
+    .brand {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #2d6a4f;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.25rem;
+    }
+    .tagline { font-size: 0.85rem; color: #52796f; margin-bottom: 1.5rem; }
+    .badge {
+      display: inline-block;
+      background: #2d6a4f;
+      color: #fff;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      margin-bottom: 1.25rem;
+    }
+    h1 { font-size: 1.25rem; color: #1b4332; margin: 0 0 0.5rem 0; }
+    .domain { font-size: 1rem; color: #2d6a4f; font-weight: 600; word-break: break-all; }
+    p { color: #52796f; line-height: 1.5; margin: 0 0 1rem 0; font-size: 0.95rem; }
+    .quick-start {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid #e8f5e9;
+    }
+    .quick-start h2 { font-size: 1rem; color: #2d6a4f; margin: 0 0 0.75rem 0; }
+    ol { margin: 0; padding-left: 1.25rem; color: #52796f; font-size: 0.9rem; line-height: 1.7; }
+    ol li { margin-bottom: 0.35rem; }
+    .foot { margin-top: 1.5rem; font-size: 0.8rem; color: #95b5a8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">TINCHOST</div>
+    <div class="tagline">Hosting control panel</div>
+    <div class="badge">Site created successfully</div>
+    <h1>Your site is ready</h1>
+    <p class="domain">{{domain}}</p>
+    <p>This is the default page. Replace this file with your own website when you’re ready.</p>
+    <section class="quick-start">
+      <h2>Quick start</h2>
+      <ol>
+        <li><strong>Upload your files</strong> — Use FTP (if enabled for this site) or upload files to the site docroot on the server.</li>
+        <li><strong>Create a database</strong> — In the Tinchost panel, open this site → <em>Manage</em> → add a database and optional DB user.</li>
+        <li><strong>Configure your app</strong> — Point your application to the database host (usually <code>localhost</code>) and the credentials you created.</li>
+        <li><strong>Remove this page</strong> — When you publish your site, replace <code>index.html</code> (or use <code>index.php</code>) as your homepage.</li>
+      </ol>
+    </section>
+    <p class="foot">Powered by TINCHOST</p>
+  </div>
+</body>
+</html>

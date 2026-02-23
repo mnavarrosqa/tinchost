@@ -1,12 +1,17 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
 const { getDb } = require('../config/database');
 const siteManager = require('../services/siteManager');
 const sslManager = require('../services/sslManager');
 const databaseManager = require('../services/databaseManager');
+const { PRIVILEGE_SETS } = require('../services/databaseManager');
 const ftpManager = require('../services/ftpManager');
 const { execSync } = require('child_process');
 const crypto = require('crypto');
+
+const DEFAULT_INDEX_PATH = path.join(__dirname, '..', 'templates', 'default-site-index.html');
 
 function getSettings(db) {
   const rows = db.prepare('SELECT key, value FROM settings').all();
@@ -48,7 +53,15 @@ router.post('/', async (req, res) => {
     const settings = getSettings(db);
     await siteManager.writeVhost(site, settings);
     if (create_docroot === 'on' || create_docroot === true) {
-      try { execSync(`mkdir -p ${docrootPath} && chown www-data:www-data ${docrootPath}`, { stdio: 'pipe' }); } catch (_) {}
+      try {
+        execSync(`mkdir -p ${docrootPath} && chown www-data:www-data ${docrootPath}`, { stdio: 'pipe' });
+        if (fs.existsSync(DEFAULT_INDEX_PATH)) {
+          const html = fs.readFileSync(DEFAULT_INDEX_PATH, 'utf8').replace(/\{\{domain\}\}/g, domain);
+          const indexFile = path.join(docrootPath, 'index.html');
+          fs.writeFileSync(indexFile, html, 'utf8');
+          execSync(`chown www-data:www-data ${indexFile}`, { stdio: 'pipe' });
+        }
+      } catch (_) {}
     }
     siteManager.reloadNginx();
   } catch (e) {
@@ -72,9 +85,14 @@ router.get('/:id', async (req, res) => {
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
   if (!site) return res.redirect('/sites');
   const siteDatabases = db.prepare('SELECT * FROM databases WHERE site_id = ? ORDER BY name').all(site.id);
+  const databaseGrants = db.prepare(`
+    SELECT g.database_id, g.privileges, u.username FROM db_grants g
+    JOIN db_users u ON u.id = g.db_user_id
+    JOIN databases d ON d.id = g.database_id WHERE d.site_id = ?
+  `).all(site.id);
   const ftpUsers = ftpManager.getFtpUsersBySite(db, site.id);
   const settings = getSettings(db);
-  res.render('sites/show', { site, siteDatabases, ftpUsers, hasMysqlPassword: !!(settings && settings.mysql_root_password), error: req.query.error, user: req.session.user });
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!(settings && settings.mysql_root_password), error: req.query.error, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS) });
 });
 
 router.post('/:id', async (req, res) => {
@@ -113,13 +131,14 @@ router.post('/:id/delete', async (req, res) => {
 });
 
 router.post('/:id/databases', async (req, res) => {
-  const { name, db_username, db_password } = req.body || {};
+  const { name, db_username, db_password, privileges } = req.body || {};
   const siteId = req.params.id;
   const db = await getDb();
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(siteId);
   if (!site || !name) return res.redirect('/sites/' + siteId);
   const settings = getSettings(db);
   if (!settings.mysql_root_password) return res.redirect('/sites/' + siteId + '?error=mysql_password');
+  const priv = (privileges === 'READ_ONLY' || privileges === 'READ_WRITE') ? privileges : 'ALL';
   try {
     const safeName = name.replace(/[^a-z0-9_]/gi, '');
     if (safeName !== name) throw new Error('Invalid database name');
@@ -127,15 +146,17 @@ router.post('/:id/databases', async (req, res) => {
     await databaseManager.createDatabase(settings, safeName);
     if (db_username && db_password) {
       const safeUser = db_username.replace(/[^a-z0-9_]/gi, '');
-      if (safeUser === db_username) {
+      if (safeUser !== db_username) throw new Error('Invalid username');
+      let uid = db.prepare('SELECT id FROM db_users WHERE username = ?').get(safeUser)?.id;
+      if (!uid) {
         const hash = crypto.createHash('sha256').update(db_password).digest('hex');
         db.prepare('INSERT INTO db_users (username, password_hash, host) VALUES (?, ?, ?)').run(safeUser, hash, 'localhost');
         await databaseManager.createUser(settings, safeUser, db_password, 'localhost');
-        await databaseManager.grantDatabase(settings, safeUser, safeName, 'localhost');
-        const uid = db.prepare('SELECT id FROM db_users WHERE username = ?').get(safeUser).id;
-        const did = db.prepare('SELECT id FROM databases WHERE name = ?').get(safeName).id;
-        db.prepare('INSERT OR IGNORE INTO db_grants (database_id, db_user_id) VALUES (?, ?)').run(did, uid);
+        uid = db.prepare('SELECT id FROM db_users WHERE username = ?').get(safeUser).id;
       }
+      await databaseManager.grantDatabase(settings, safeUser, safeName, 'localhost', priv);
+      const did = db.prepare('SELECT id FROM databases WHERE name = ?').get(safeName).id;
+      db.prepare('INSERT OR IGNORE INTO db_grants (database_id, db_user_id, privileges) VALUES (?, ?, ?)').run(did, uid, priv);
     }
   } catch (e) {
     return res.redirect('/sites/' + siteId + '?error=' + encodeURIComponent(e.message || 'Database creation failed'));
@@ -165,15 +186,28 @@ router.post('/:id/databases/:dbId/delete', async (req, res) => {
 });
 
 router.post('/:id/ftp-users', async (req, res) => {
-  const { username, password } = req.body || {};
+  const { username, password, default_route } = req.body || {};
   const siteId = req.params.id;
   const db = await getDb();
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(siteId);
   if (!site || !username || !password) return res.redirect('/sites/' + siteId);
   try {
-    await ftpManager.addFtpUser(siteId, username, password);
+    await ftpManager.addFtpUser(siteId, username, password, default_route);
   } catch (e) {
     return res.redirect('/sites/' + siteId + '?error=' + encodeURIComponent(e.message || 'FTP user creation failed'));
+  }
+  res.redirect('/sites/' + siteId);
+});
+
+router.post('/:id/ftp-users/:uid/reset-password', async (req, res) => {
+  const { password } = req.body || {};
+  const siteId = req.params.id;
+  const uid = req.params.uid;
+  if (!password) return res.redirect('/sites/' + siteId + '?error=password_required');
+  try {
+    await ftpManager.updateFtpUser(siteId, uid, { password });
+  } catch (e) {
+    return res.redirect('/sites/' + siteId + '?error=' + encodeURIComponent(e.message || 'Failed to update password'));
   }
   res.redirect('/sites/' + siteId);
 });

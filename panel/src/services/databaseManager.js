@@ -38,14 +38,21 @@ async function createUser(settings, username, password, host) {
   await conn.end();
 }
 
-async function grantDatabase(settings, username, databaseName, host) {
+const PRIVILEGE_SETS = {
+  ALL: 'ALL PRIVILEGES',
+  READ_WRITE: 'SELECT, INSERT, UPDATE, DELETE',
+  READ_ONLY: 'SELECT'
+};
+
+async function grantDatabase(settings, username, databaseName, host, privileges) {
   const conn = await getConnection(settings);
   if (!conn) throw new Error('MySQL root password not set in Settings');
   const safeDb = databaseName.replace(/[^a-z0-9_]/gi, '');
   const safeUser = username.replace(/[^a-z0-9_]/gi, '');
-  await conn.execute('GRANT ALL PRIVILEGES ON ??.* TO ??@??', [safeDb, safeUser, host || 'localhost']);
+  const priv = PRIVILEGE_SETS[privileges === 'READ_ONLY' || privileges === 'READ_WRITE' ? privileges : 'ALL'] || PRIVILEGE_SETS.ALL;
+  await conn.execute(`GRANT ${priv} ON ??.* TO ??@??`, [safeDb, safeUser, host || 'localhost']);
   await conn.execute('FLUSH PRIVILEGES');
   await conn.end();
 }
 
-module.exports = { getConnection, createDatabase, createUser, grantDatabase };
+module.exports = { getConnection, createDatabase, createUser, grantDatabase, PRIVILEGE_SETS };

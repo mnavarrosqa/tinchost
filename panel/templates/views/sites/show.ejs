@@ -82,11 +82,15 @@
       <% } else { %>
       <% if (siteDatabases.length) { %>
       <table>
-        <thead><tr><th>Database</th><th></th></tr></thead>
+        <thead><tr><th>Database</th><th>User</th><th>Privileges</th><th></th></tr></thead>
         <tbody>
-          <% siteDatabases.forEach(function(d) { %>
+          <% siteDatabases.forEach(function(d) {
+            const grants = (typeof databaseGrants !== 'undefined' ? databaseGrants : []).filter(function(g) { return g.database_id === d.id; });
+          %>
           <tr>
             <td><%= d.name %></td>
+            <td><%= grants.length ? grants.map(function(g) { return g.username; }).join(', ') : '—' %></td>
+            <td><%= grants.length ? grants.map(function(g) { return (g.privileges || 'ALL').replace(/_/g, ' '); }).join(', ') : '—' %></td>
             <td>
               <form method="post" action="/sites/<%= site.id %>/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm('Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.');">
                 <button type="submit" class="btn btn-danger">Delete</button>
@@ -101,16 +105,24 @@
       <% } %>
       <form method="post" action="/sites/<%= site.id %>/databases" style="margin-top:1rem;">
         <div class="form-row">
-          <label>New database name</label>
+          <label>Database name</label>
           <input type="text" name="name" required pattern="[a-zA-Z0-9_]+" title="Letters, numbers, underscore only">
         </div>
         <div class="form-row">
-          <label>Optional: create user with access (username)</label>
-          <input type="text" name="db_username" placeholder="Leave blank for DB only">
+          <label>Database user (optional)</label>
+          <input type="text" name="db_username" placeholder="Username for DB access">
         </div>
         <div class="form-row">
-          <label>Optional: password for that user</label>
-          <input type="password" name="db_password" placeholder="Required if username set">
+          <label>Password (optional, required if user set)</label>
+          <input type="password" name="db_password" placeholder="User password">
+        </div>
+        <div class="form-row">
+          <label>Privileges</label>
+          <select name="privileges">
+            <% (typeof privilegeOptions !== 'undefined' ? privilegeOptions : ['ALL','READ_WRITE','READ_ONLY']).forEach(function(p) { %>
+            <option value="<%= p %>" <%= p === 'ALL' ? 'selected' : '' %>><%= p === 'ALL' ? 'All' : (p === 'READ_WRITE' ? 'Read / Write' : 'Read only') %></option>
+            <% }); %>
+          </select>
         </div>
         <button type="submit" class="btn">Add database</button>
       </form>
@@ -124,11 +136,16 @@
       <% } else { %>
       <% if (ftpUsers.length) { %>
       <table>
-        <thead><tr><th>Username</th><th></th></tr></thead>
+        <thead><tr><th>Username</th><th>Default route</th><th>Password</th><th></th></tr></thead>
         <tbody>
           <% ftpUsers.forEach(function(u) { %>
           <tr>
             <td><%= u.username %></td>
+            <td><%= (u.default_route && u.default_route !== '') ? u.default_route : '(docroot)' %></td>
+            <td><span class="empty-msg">••••••</span> <form method="post" action="/sites/<%= site.id %>/ftp-users/<%= u.id %>/reset-password" class="inline" style="display:inline;">
+              <input type="password" name="password" placeholder="New password" required style="max-width:10rem; margin-right:0.25rem;">
+              <button type="submit" class="btn btn-secondary">Reset</button>
+            </form></td>
             <td>
               <form method="post" action="/sites/<%= site.id %>/ftp-users/<%= u.id %>/delete" class="inline" onsubmit="return confirm('Remove FTP user <%= u.username %>?');">
                 <button type="submit" class="btn btn-danger">Remove</button>
@@ -139,20 +156,22 @@
         </tbody>
       </table>
       <% } else { %>
-      <p class="empty-msg">No FTP users yet. They will have access to the site docroot.</p>
+      <p class="empty-msg">No FTP users yet. Add one below; set the default route to restrict access to a subdirectory (e.g. / or /public).</p>
       <% } %>
       <form method="post" action="/sites/<%= site.id %>/ftp-users" style="margin-top:1rem;">
-        <div class="form-inline">
-          <div class="form-row" style="margin-bottom:0;">
-            <label>Username</label>
-            <input type="text" name="username" required>
-          </div>
-          <div class="form-row" style="margin-bottom:0;">
-            <label>Password</label>
-            <input type="password" name="password" required>
-          </div>
-          <button type="submit" class="btn">Add FTP user</button>
+        <div class="form-row">
+          <label>Username</label>
+          <input type="text" name="username" required>
         </div>
+        <div class="form-row">
+          <label>Password</label>
+          <input type="password" name="password" required>
+        </div>
+        <div class="form-row">
+          <label>Default route</label>
+          <input type="text" name="default_route" placeholder="e.g. / or /public (blank = site docroot)">
+        </div>
+        <button type="submit" class="btn">Add FTP user</button>
       </form>
       <% } %>
     </div>
