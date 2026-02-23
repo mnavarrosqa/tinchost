@@ -18,13 +18,13 @@ Then open the panel URL shown (e.g. `http://<server-ip>/`), set the admin passwo
 
 ## Updating
 
-From a clone of the repo (on the server or after copying the repo onto the server), run:
+**After `git pull` you must run the update script**—the panel runs from `/opt/tinchohost/panel` and does not reload code by itself. From the repo root on the server:
 
 ```bash
 sudo ./update.sh
 ```
 
-This pulls the latest code, syncs the panel files (without overwriting `.env`, `data/`, or `storage/`), runs migrations, and restarts the panel with PM2.
+This pulls the latest code (if you haven’t already), syncs the `panel/` files into the install directory, runs migrations, and restarts the panel with PM2. Until you run this, the wizard and panel will keep serving the old version.
 
 ## Risks (important)
 
