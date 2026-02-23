@@ -35,8 +35,9 @@ router.post('/php', async (req, res) => {
 
 router.post('/database', async (req, res) => {
   const choice = req.body.choice === 'mariadb' ? 'mariadb' : 'mysql';
+  const databaseConfig = req.body.database_config === 'optimized' ? 'optimized' : 'default';
   const db = await getDb();
-  db.prepare('UPDATE wizard_state SET database_choice = ?, step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run(choice, 'options');
+  db.prepare('UPDATE wizard_state SET database_choice = ?, database_config = ?, step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run(choice, databaseConfig, 'options');
   res.redirect('/wizard');
 });
 

@@ -111,14 +111,52 @@ function installPhp(versions, config) {
 }
 
 /**
- * Install database: 'mysql' or 'mariadb'.
+ * Write performance-optimized InnoDB config for MySQL or MariaDB.
+ * Drop-in file in the engine's conf.d; then restart mysql service.
  */
-function installDatabase(choice) {
+function applyDatabasePerformance(choice) {
+  const dir = choice === 'mariadb'
+    ? '/etc/mysql/mariadb.conf.d'
+    : '/etc/mysql/mysql.conf.d';
+  const file = path.join(dir, '99-tinchost-performance.cnf');
+  const content = `; Tinchost database performance tuning
+[mysqld]
+innodb_buffer_pool_size = 256M
+innodb_log_file_size = 64M
+innodb_flush_log_at_trx_commit = 2
+innodb_flush_method = O_DIRECT
+`;
+  try {
+    if (!fs.existsSync(dir)) return { ok: true };
+    fs.writeFileSync(file, content, 'utf8');
+    const restart = run('systemctl restart mysql');
+    return restart.ok ? { ok: true } : { ok: false, out: restart.out };
+  } catch (err) {
+    return { ok: false, out: (err.message || String(err)) };
+  }
+}
+
+/**
+ * Install database: 'mysql' or 'mariadb'. If config === 'optimized', applies InnoDB tuning after install.
+ */
+function installDatabase(choice, config) {
   if (choice === 'mysql') {
-    return run('apt-get install -y -qq mysql-server');
+    const r = run('apt-get install -y -qq mysql-server');
+    if (!r.ok) return r;
+    if (config === 'optimized') {
+      const perf = applyDatabasePerformance('mysql');
+      if (!perf.ok) return { ok: false, out: r.out + (perf.out || '') };
+    }
+    return { ok: true, out: r.out };
   }
   if (choice === 'mariadb') {
-    return run('apt-get install -y -qq mariadb-server');
+    const r = run('apt-get install -y -qq mariadb-server');
+    if (!r.ok) return r;
+    if (config === 'optimized') {
+      const perf = applyDatabasePerformance('mariadb');
+      if (!perf.ok) return { ok: false, out: r.out + (perf.out || '') };
+    }
+    return { ok: true, out: r.out };
   }
   return { ok: true, out: '' };
 }
@@ -176,7 +214,8 @@ function runWizardInstall(state) {
     if (!r2.ok) return { success: false, log: log.join('\n') };
   }
 
-  const r3 = step('Database (' + databaseChoice + ')', () => installDatabase(databaseChoice));
+  const databaseConfig = state.database_config || 'default';
+  const r3 = step('Database (' + databaseChoice + (databaseConfig === 'optimized' ? ', optimized' : '') + ')', () => installDatabase(databaseChoice, databaseConfig));
   if (!r3.ok) return { success: false, log: log.join('\n') };
 
   if (installEmail) {
@@ -208,6 +247,8 @@ async function runWizardInstallStreaming(state, onOutput) {
     .map(s => s.trim())
     .filter(Boolean);
   const databaseChoice = state.database_choice || 'mysql';
+  const databaseConfig = state.database_config || 'default';
+  const useDbOptimized = databaseConfig === 'optimized';
   const phpFpmConfig = state.php_fpm_config || 'default';
   const useOptimized = phpFpmConfig === 'optimized';
   const installEmail = !!state.email_installed;
@@ -236,10 +277,15 @@ async function runWizardInstallStreaming(state, onOutput) {
       }
     }
 
-    out('\n[Database: ' + databaseChoice + ']\n');
+    out('\n[Database: ' + databaseChoice + (useDbOptimized ? ' (optimized)' : '') + ']\n');
     const dbPkg = databaseChoice === 'mariadb' ? 'mariadb-server' : 'mysql-server';
     const r3 = await runStreaming('apt-get install -y -q ' + dbPkg, out);
     if (!r3.ok) return { success: false };
+    if (useDbOptimized) {
+      out('\n[Database performance config]\n');
+      const perf = applyDatabasePerformance(databaseChoice);
+      if (!perf.ok) return { success: false };
+    }
 
     if (installEmail) {
       out('\n[Mail: Postfix + Dovecot]\n');

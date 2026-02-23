@@ -29,6 +29,7 @@ db.exec(`
     php_fpm_config TEXT DEFAULT 'default',
     web_server TEXT,
     database_choice TEXT,
+    database_config TEXT DEFAULT 'default',
     email_installed INTEGER DEFAULT 0,
     ftp_installed INTEGER DEFAULT 0,
     certbot_installed INTEGER DEFAULT 0,
@@ -38,6 +39,9 @@ db.exec(`
 `);
 try {
   db.exec("ALTER TABLE wizard_state ADD COLUMN php_fpm_config TEXT DEFAULT 'default'");
+} catch (_) { /* column may already exist */ }
+try {
+  db.exec("ALTER TABLE wizard_state ADD COLUMN database_config TEXT DEFAULT 'default'");
 } catch (_) { /* column may already exist */ }
 db.exec(`
 

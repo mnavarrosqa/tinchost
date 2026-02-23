@@ -64,12 +64,13 @@
     <% const phpList = (state.php_versions || '').split(',').map(s => s.trim()).filter(Boolean); %>
     <% const hasDb = state.database_choice; %>
     <% const phpConfigLabel = state.php_fpm_config === 'optimized' ? ' (optimized)' : ''; %>
+    <% const dbConfigLabel = state.database_config === 'optimized' ? ' (optimized)' : ''; %>
     <% const opts = [ state.email_installed && 'Mail (Postfix + Dovecot)', state.ftp_installed && 'FTP (ProFTPD)', state.certbot_installed && 'Certbot (SSL)' ].filter(Boolean); %>
     <section class="stack <%= (phpList.length || hasDb || opts.length) ? '' : 'empty' %>" aria-label="Selected stack">
       <h2>Your stack</h2>
       <ul>
         <% if (phpList.length) { phpList.forEach(v => { %><li>PHP-FPM <%= v %><%= phpConfigLabel %></li><% }); } %>
-        <% if (hasDb) { %><li><%= hasDb === 'mariadb' ? 'MariaDB' : 'MySQL' %></li><% } %>
+        <% if (hasDb) { %><li><%= hasDb === 'mariadb' ? 'MariaDB' : 'MySQL' %><%= dbConfigLabel %></li><% } %>
         <% opts.forEach(name => { %><li><%= name %></li><% }); %>
         <% if (!phpList.length && !hasDb && !opts.length) { %><li>Nothing selected yet</li><% } %>
       </ul>
@@ -109,12 +110,29 @@
     <% } %>
 
     <% if (step === 'database') { %>
+    <% const databaseConfig = state.database_config || 'default'; %>
     <div class="wizard-step">
       <h2>Database</h2>
       <p>Choose MySQL or MariaDB. The panel can create databases and users if the root password is set in Settings.</p>
       <form method="post" action="/wizard/database">
         <label><input type="radio" name="choice" value="mysql" <%= state.database_choice !== 'mariadb' ? 'checked' : '' %>> MySQL 8</label>
         <label><input type="radio" name="choice" value="mariadb" <%= state.database_choice === 'mariadb' ? 'checked' : '' %>> MariaDB 10</label>
+
+        <h3 class="wizard-subhead">Database configuration</h3>
+        <p>Choose how the database engine is tuned.</p>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="database_config" value="default" <%= databaseConfig === 'default' ? 'checked' : '' %>>
+            <span class="radio-label">Default</span>
+            <span class="radio-desc">Use the package defaults. Suited for development or light workloads.</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="database_config" value="optimized" <%= databaseConfig === 'optimized' ? 'checked' : '' %>>
+            <span class="radio-label">Optimized</span>
+            <span class="radio-desc">InnoDB tuning for production: 256M buffer pool, 64M log file, reduced durability for throughput (innodb_flush_log_at_trx_commit=2), O_DIRECT for I/O. Same settings apply to MySQL or MariaDB.</span>
+          </label>
+        </div>
+
         <div class="step-actions">
           <a href="/wizard/step/welcome" class="btn-back">← Back to PHP-FPM</a>
           <button type="submit">Next: Optional services</button>
