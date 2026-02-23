@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Environment and secrets
+.env
+.env.local
+*.env
+
+# Panel data and storage (installed on server)
+panel/data/*.sqlite*
+panel/storage/*
+!panel/storage/.gitkeep
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+
+# OS and editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Allow empty dir placeholders
+!panel/public/.gitkeep

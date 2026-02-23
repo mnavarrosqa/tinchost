@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title : 'Tinchost Panel' %></title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f5f5f5; }
+    .nav { background: #222; color: #fff; padding: 0.75rem 1.5rem; }
+    .nav a { color: #fff; text-decoration: none; margin-right: 1rem; }
+    .nav a:hover { text-decoration: underline; }
+    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; }
+    .notice { background: #fff3cd; border: 1px solid #ffc107; padding: 0.75rem; margin-bottom: 1rem; }
+    .error { background: #f8d7da; border: 1px solid #f5c6cb; padding: 0.75rem; margin-bottom: 1rem; }
+    .risk { background: #f8d7da; border-left: 4px solid #dc3545; padding: 0.75rem; margin: 1rem 0; }
+    form label { display: block; margin-top: 0.5rem; }
+    form input[type=text], form input[type=password], form select { width: 100%; max-width: 400px; padding: 0.5rem; }
+    form button, .btn { padding: 0.5rem 1rem; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 4px; }
+    form button:hover, .btn:hover { background: #0056b3; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #ddd; }
+    .btn-danger { background: #dc3545; }
+    .btn-danger:hover { background: #c82333; }
+  </style>
+</head>
+<body>
+  <% if (typeof user !== 'undefined' && user) { %>
+  <nav class="nav">
+    <a href="/">Dashboard</a>
+    <a href="/sites">Sites</a>
+    <a href="/databases">Databases</a>
+    <a href="/mail">Mail</a>
+    <a href="/settings">Settings</a>
+    <span style="float:right"><%= user.username %> | <a href="/auth/logout">Logout</a></span>
+  </nav>
+  <% } %>
+  <main>
+    <%- body %>
+  </main>
+</body>
+</html>

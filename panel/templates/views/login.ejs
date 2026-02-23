@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login – Tinchost Panel</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 400px; }
+    input { width: 100%; padding: 0.5rem; margin: 0.25rem 0 1rem 0; }
+    button { padding: 0.5rem 1rem; background: #007bff; color: #fff; border: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Tinchost Panel</h1>
+  <p>Log in to the control panel.</p>
+  <form method="post" action="/auth/login">
+    <label>Username</label>
+    <input type="text" name="username" required autofocus>
+    <label>Password</label>
+    <input type="password" name="password" required>
+    <button type="submit">Log in</button>
+  </form>
+</body>
+</html>
