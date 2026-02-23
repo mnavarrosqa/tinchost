@@ -16,6 +16,42 @@ PORTS_FTP="21"
 PORTS_FTP_PASSIVE="40000:40100"
 PORTS_SSH="22"
 
+# UI: colors only when stdout is a TTY and NO_COLOR is not set
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+  C_RESET='\033[0m'
+  C_BOLD='\033[1m'
+  C_DIM='\033[0;90m'
+  C_OK='\033[0;32m'
+  C_HEAD='\033[1;36m'
+  C_URL='\033[1;33m'
+else
+  C_RESET= C_BOLD= C_DIM= C_OK= C_HEAD= C_URL=
+fi
+
+step()   { echo ""; echo -e "${C_HEAD}▸${C_RESET} ${C_BOLD}$1${C_RESET}"; }
+step_ok() { echo -e "  ${C_OK}✓${C_RESET} $1"; }
+info()   { echo -e "  ${C_DIM}$1${C_RESET}"; }
+
+banner() {
+  echo ""
+  echo -e "${C_HEAD}╭─────────────────────────────────────────╮${C_RESET}"
+  echo -e "${C_HEAD}│${C_RESET}  ${C_BOLD}Tinchost Panel${C_RESET} – installer"
+  echo -e "${C_HEAD}╰─────────────────────────────────────────╯${C_RESET}"
+}
+
+done_banner() {
+  local url="http://$(hostname -I | awk '{print $1}')/"
+  echo ""
+  echo -e "${C_OK}╭─────────────────────────────────────────╮${C_RESET}"
+  echo -e "${C_OK}│${C_RESET}  ${C_BOLD}Installation complete${C_RESET}"
+  echo -e "${C_OK}╰─────────────────────────────────────────╯${C_RESET}"
+  echo ""
+  echo -e "  Panel URL:  ${C_URL}${url}${C_RESET}"
+  echo -e "  ${C_DIM}• Set your admin password on first visit${C_RESET}"
+  echo -e "  ${C_DIM}• Complete the setup wizard for PHP, MySQL, mail, FTP${C_RESET}"
+  echo ""
+}
+
 if [[ $EUID -ne 0 ]]; then
   echo "This script must be run as root (or with sudo)."
   exit 1
@@ -28,11 +64,14 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
-echo "[1/9] Prerequisites..."
+banner
+
+step "Prerequisites"
 apt-get update -qq
 apt-get install -y -qq curl ca-certificates
+step_ok "curl, ca-certificates"
 
-echo "[2/9] Firewall (opening required ports if ufw or firewalld is in use)..."
+step "Firewall (opening ports if ufw/firewalld is active)"
 open_firewall_ports() {
   if command -v ufw &>/dev/null && ufw status 2>/dev/null | grep -q "Status: active"; then
     for p in $PORTS_SSH $PORTS_HTTP $PORTS_MAIL $PORTS_FTP; do
@@ -40,46 +79,47 @@ open_firewall_ports() {
     done
     ufw allow "${PORTS_FTP_PASSIVE}/tcp" 2>/dev/null || true
     ufw reload 2>/dev/null || true
-    echo "  UFW: allowed SSH, HTTP/HTTPS, mail (25/587), FTP (21 + passive ${PORTS_FTP_PASSIVE})."
+    step_ok "UFW: SSH, 80/443, 25/587, 21, passive ${PORTS_FTP_PASSIVE}"
   elif command -v firewall-cmd &>/dev/null && systemctl is-active firewalld &>/dev/null; then
     for p in $PORTS_SSH $PORTS_HTTP $PORTS_MAIL $PORTS_FTP; do
       firewall-cmd --permanent --add-port="$p/tcp" 2>/dev/null || true
     done
     firewall-cmd --permanent --add-port="${PORTS_FTP_PASSIVE//:/-}/tcp" 2>/dev/null || true
     firewall-cmd --reload 2>/dev/null || true
-    echo "  Firewalld: allowed SSH, HTTP/HTTPS, mail (25/587), FTP (21 + passive ${PORTS_FTP_PASSIVE})."
+    step_ok "Firewalld: SSH, 80/443, 25/587, 21, passive ${PORTS_FTP_PASSIVE}"
   else
-    echo "  No active firewall (ufw/firewalld) detected; skipping."
+    info "No active firewall detected; skipping."
   fi
 }
 open_firewall_ports
 
-echo "[3/9] Node.js..."
+step "Node.js"
 if ! command -v node &>/dev/null; then
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt-get install -y -qq nodejs
 fi
-node -v
+step_ok "node $(node -v)"
 
-echo "[4/9] PM2 (process manager and startup)..."
+step "PM2 (process manager + startup on boot)"
 if ! command -v pm2 &>/dev/null; then
   npm install -g pm2
 fi
-pm2 -v
 # Ensure PM2 runs on boot (idempotent; only installs if missing)
 STARTUP_CMD=$(pm2 startup systemd -u root --hp /root 2>&1 | grep -E '^sudo ' || true)
 if [[ -n "$STARTUP_CMD" ]]; then
   eval "$STARTUP_CMD"
 fi
+step_ok "pm2 $(pm2 -v | head -1)"
 
-echo "[5/9] Panel database (SQLite)..."
-# SQLite is used by the panel; no MySQL required for initial install
+step "Panel database (SQLite)"
 apt-get install -y -qq sqlite3
+step_ok "sqlite3"
 
-echo "[6/9] Nginx (minimal)..."
+step "Nginx"
 apt-get install -y -qq nginx
+step_ok "nginx"
 
-echo "[7/9] Control panel app..."
+step "Control panel app"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 mkdir -p "$(dirname "$PANEL_PATH")"
 cp -r "$SCRIPT_DIR/panel" "$PANEL_PATH"
@@ -94,8 +134,9 @@ EOF
 fi
 npm install --production
 node src/scripts/migrate.js
+step_ok "installed at $PANEL_PATH"
 
-echo "[8/9] Nginx vhost for panel..."
+step "Nginx vhost for panel"
 PANEL_HOSTNAME="${PANEL_HOSTNAME:-$(hostname)}"
 cat > /etc/nginx/sites-available/panel << NGINX_EOF
 server {
@@ -115,15 +156,13 @@ NGINX_EOF
 ln -sf /etc/nginx/sites-available/panel /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
 nginx -t && systemctl reload nginx
+step_ok "default vhost → :3000"
 
-echo "[9/9] Starting panel with PM2..."
+step "Starting panel with PM2"
 pm2 delete tinchost-panel 2>/dev/null || true
 cd "$PANEL_PATH" && pm2 start src/index.js --name tinchost-panel
 pm2 save
+step_ok "tinchost-panel running"
 
 touch "$MARKER_FILE"
-echo ""
-echo "Tinchost Panel is installed."
-echo "  Panel URL: http://$(hostname -I | awk '{print $1}')/"
-echo "  Set your admin password on first visit."
-echo "  Complete the setup wizard to install PHP, MySQL/MariaDB, and optional services."
+done_banner

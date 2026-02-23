@@ -6,14 +6,40 @@
   <title>Setup wizard – Tinchost Panel</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #f5f5f5; }
-    .nav { background: #222; color: #fff; padding: 0.75rem 1.5rem; }
-    .nav a { color: #fff; text-decoration: none; margin-right: 1rem; }
-    main { max-width: 720px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; }
-    .risk { background: #f8d7da; border-left: 4px solid #dc3545; padding: 0.75rem; margin: 1rem 0; }
-    pre { background: #f0f0f0; padding: 1rem; overflow-x: auto; }
-    input, select { padding: 0.5rem; margin: 0.25rem 0.5rem 0.25rem 0; }
-    button, .btn { padding: 0.5rem 1rem; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 4px; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f0f2f5; }
+    .nav { background: #1a1d23; color: #fff; padding: 0.75rem 1.5rem; }
+    .nav a { color: #e6e8ec; text-decoration: none; margin-right: 1rem; }
+    .nav a:hover { color: #fff; }
+    main { max-width: 720px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .stack { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+    .stack h2 { margin: 0 0 0.5rem 0; font-size: 0.875rem; font-weight: 600; color: #495057; text-transform: uppercase; letter-spacing: 0.03em; }
+    .stack ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+    .stack li { font-size: 0.9rem; color: #212529; }
+    .stack li::before { content: "✓ "; color: #198754; font-weight: bold; }
+    .stack.empty li::before { content: "— "; color: #adb5bd; }
+    .stack.empty { opacity: 0.85; }
+    .risk { background: #fff3cd; border-left: 4px solid #ffc107; padding: 0.75rem 1rem; margin: 1rem 0; border-radius: 0 4px 4px 0; font-size: 0.9rem; }
+    pre { background: #1a1d23; color: #e6e8ec; padding: 1rem; overflow-x: auto; border-radius: 6px; font-size: 0.85rem; }
+    input[type="checkbox"], input[type="radio"] { margin-right: 0.5rem; }
+    label { display: inline-block; margin-right: 1rem; margin-bottom: 0.5rem; cursor: pointer; }
+    button, .btn { padding: 0.5rem 1rem; cursor: pointer; background: #0d6efd; color: #fff; border: none; border-radius: 6px; font-size: 1rem; }
+    button:hover, .btn:hover { background: #0b5ed7; }
+    .btn-secondary { background: #6c757d; }
+    .btn-secondary:hover { background: #5c636a; }
+    .btn-success { background: #198754; }
+    .btn-success:hover { background: #157347; }
+    .step-actions { margin-top: 1.5rem; }
+    .step-actions .btn { margin-right: 0.5rem; }
+    .result-log { white-space: pre-wrap; max-height: 320px; overflow-y: auto; }
+    .result-success { color: #198754; font-weight: 600; }
+    .result-error { color: #dc3545; font-weight: 600; }
+    .install-log-container { margin-top: 1rem; border: 1px solid #e9ecef; border-radius: 6px; overflow: hidden; }
+    .install-log { margin: 0; padding: 1rem; background: #1a1d23; color: #e6e8ec; font-size: 0.8rem; max-height: 360px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+    .install-log-status { margin: 0.75rem 1rem 0; }
+    .install-log-status.result-success { color: #198754; font-weight: 600; }
+    .install-log-status.result-error { color: #dc3545; font-weight: 600; }
+    h1 { margin-top: 0; color: #1a1d23; }
+    .wizard-step { margin-bottom: 1rem; }
   </style>
 </head>
 <body>
@@ -24,62 +50,173 @@
   </nav>
   <main>
     <h1>Setup wizard</h1>
-    <p>Install the stack step by step. Run the commands below on this server (e.g. via SSH), then click Verify or Next.</p>
+    <p>Choose what to install below. Your selection is summarized in <strong>Your stack</strong>. When you click <strong>Install all</strong>, the panel will install everything on this server and show a live log—you don’t need to run any commands yourself.</p>
+
+    <% const phpList = (state.php_versions || '').split(',').map(s => s.trim()).filter(Boolean); %>
+    <% const hasDb = state.database_choice; %>
+    <% const opts = [ state.email_installed && 'Mail (Postfix + Dovecot)', state.ftp_installed && 'FTP (ProFTPD)', state.certbot_installed && 'Certbot (SSL)' ].filter(Boolean); %>
+    <section class="stack <%= (phpList.length || hasDb || opts.length) ? '' : 'empty' %>" aria-label="Selected stack">
+      <h2>Your stack</h2>
+      <ul>
+        <% if (phpList.length) { phpList.forEach(v => { %><li>PHP <%= v %></li><% }); } %>
+        <% if (hasDb) { %><li><%= hasDb === 'mariadb' ? 'MariaDB' : 'MySQL' %></li><% } %>
+        <% opts.forEach(name => { %><li><%= name %></li><% }); %>
+        <% if (!phpList.length && !hasDb && !opts.length) { %><li>Nothing selected yet</li><% } %>
+      </ul>
+    </section>
 
     <% if (step === 'welcome' || !step) { %>
-    <p>Welcome. Choose which PHP versions you want to install (e.g. 8.2, 8.3).</p>
-    <form method="post" action="/wizard/php">
-      <label><input type="checkbox" name="versions" value="8.1"> PHP 8.1</label><br>
-      <label><input type="checkbox" name="versions" value="8.2" checked> PHP 8.2</label><br>
-      <label><input type="checkbox" name="versions" value="8.3"> PHP 8.3</label><br>
-      <p>On Ubuntu/Debian run (as root):</p>
-      <pre>add-apt-repository -y ppa:ondrej/php
-apt update
-apt install -y php8.2-fpm php8.2-mysql php8.2-curl php8.2-mbstring php8.2-xml php8.2-zip</pre>
-      <button type="submit">Next: Web server</button>
-    </form>
-    <% } %>
-
-    <% if (step === 'web_server') { %>
-    <p>Nginx is already used for the panel. It will also serve your sites. No extra install needed.</p>
-    <p><a href="/wizard/step/database" class="btn">Next: Database</a></p>
+    <div class="wizard-step">
+      <h2>PHP versions</h2>
+      <p>Select which PHP versions to install (sites can use different versions).</p>
+      <form method="post" action="/wizard/php">
+        <label><input type="checkbox" name="versions" value="8.1" <%= phpList.includes('8.1') ? 'checked' : '' %>> PHP 8.1</label>
+        <label><input type="checkbox" name="versions" value="8.2" <%= phpList.includes('8.2') ? 'checked' : '' %>> PHP 8.2</label>
+        <label><input type="checkbox" name="versions" value="8.3" <%= phpList.includes('8.3') ? 'checked' : '' %>> PHP 8.3</label>
+        <div class="step-actions">
+          <button type="submit">Next: Database</button>
+        </div>
+      </form>
+    </div>
     <% } %>
 
     <% if (step === 'database') { %>
-    <p>Choose MySQL or MariaDB. Run the install on the server, then store the root password in Settings if you want the panel to create DBs.</p>
-    <form method="post" action="/wizard/database">
-      <label><input type="radio" name="choice" value="mysql" checked> MySQL 8</label>
-      <label><input type="radio" name="choice" value="mariadb"> MariaDB 10</label><br>
-      <pre># MySQL: apt install -y mysql-server
-# MariaDB: apt install -y mariadb-server
-# Then: mysql_secure_installation</pre>
-      <button type="submit">Next: Email (optional)</button>
-    </form>
+    <div class="wizard-step">
+      <h2>Database</h2>
+      <p>Choose MySQL or MariaDB. The panel can create databases and users if the root password is set in Settings.</p>
+      <form method="post" action="/wizard/database">
+        <label><input type="radio" name="choice" value="mysql" <%= state.database_choice !== 'mariadb' ? 'checked' : '' %>> MySQL 8</label>
+        <label><input type="radio" name="choice" value="mariadb" <%= state.database_choice === 'mariadb' ? 'checked' : '' %>> MariaDB 10</label>
+        <div class="step-actions">
+          <button type="submit">Next: Optional services</button>
+        </div>
+      </form>
+    </div>
     <% } %>
 
-    <% if (step === 'email') { %>
-    <p>Optional: Postfix + Dovecot for mail. Run on server:</p>
-    <pre>apt install -y postfix dovecot-core dovecot-imapd dovecot-lmtpd</pre>
-    <p><a href="/wizard/step/ftp" class="btn">Next: FTP (optional)</a></p>
+    <% if (step === 'options') { %>
+    <div class="wizard-step">
+      <h2>Optional services</h2>
+      <p>Optionally add mail (Postfix + Dovecot), FTP (ProFTPD), and Certbot for Let's Encrypt. All selected components will be installed together on the next step.</p>
+      <form method="post" action="/wizard/options">
+        <label><input type="checkbox" name="install_email" value="1" <%= state.email_installed ? 'checked' : '' %>> Mail (Postfix + Dovecot)</label><br>
+        <label><input type="checkbox" name="install_ftp" value="1" <%= state.ftp_installed ? 'checked' : '' %>> FTP (ProFTPD)</label><br>
+        <label><input type="checkbox" name="install_certbot" value="1" <%= state.certbot_installed ? 'checked' : '' %>> Certbot (Let's Encrypt)</label>
+        <div class="step-actions">
+          <button type="submit">Next: Review &amp; install</button>
+        </div>
+      </form>
+    </div>
     <% } %>
 
-    <% if (step === 'ftp') { %>
-    <p>Optional: ProFTPD for FTP access to site docroots.</p>
-    <pre>apt install -y proftpd-basic</pre>
-    <p><a href="/wizard/step/certbot" class="btn">Next: Certbot (optional)</a></p>
+    <% if (step === 'review') { %>
+    <div class="wizard-step">
+      <h2>Review &amp; install</h2>
+      <p>Everything in <strong>Your stack</strong> will be installed on this server when you click <strong>Install all</strong>. A live log will appear below; installation may take several minutes.</p>
+      <div class="step-actions">
+        <button type="button" id="wizard-install-btn" class="btn-success">Install all</button>
+        <a href="/wizard" class="btn btn-secondary">Back to wizard</a>
+      </div>
+      <div id="wizard-log-container" class="install-log-container" hidden>
+        <pre id="wizard-log" class="install-log"></pre>
+        <p id="wizard-log-status" class="install-log-status" hidden></p>
+        <div id="wizard-log-actions" class="step-actions" hidden>
+          <a href="/" class="btn btn-success">Go to dashboard</a>
+          <a href="/wizard" class="btn btn-secondary">Back to wizard</a>
+        </div>
+      </div>
+    </div>
+    <script>
+(function() {
+  var btn = document.getElementById('wizard-install-btn');
+  var container = document.getElementById('wizard-log-container');
+  var logEl = document.getElementById('wizard-log');
+  var statusEl = document.getElementById('wizard-log-status');
+  var actionsEl = document.getElementById('wizard-log-actions');
+  if (!btn || !container) return;
+  btn.addEventListener('click', function() {
+    btn.disabled = true;
+    btn.textContent = 'Installing…';
+    container.hidden = false;
+    logEl.textContent = '';
+    statusEl.hidden = true;
+    actionsEl.hidden = true;
+    var buffer = '';
+    fetch('/wizard/install/stream', { method: 'POST', headers: { 'Accept': 'text/event-stream' } })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Install request failed');
+        return res.body.getReader();
+      })
+      .then(function(reader) {
+        function read() {
+          return reader.read().then(function(r) {
+            if (r.done) return;
+            buffer += new TextDecoder().decode(r.value, { stream: true });
+            var parts = buffer.split('\n\n');
+            buffer = parts.pop() || '';
+            parts.forEach(function(block) {
+              var match = block.match(/^data:\s*(.+)/m);
+              if (match) {
+                try {
+                  var data = JSON.parse(match[1]);
+                  if (data.msg) {
+                    logEl.textContent += data.msg;
+                    logEl.scrollTop = logEl.scrollHeight;
+                  }
+                  if (data.done) {
+                    statusEl.hidden = false;
+                    statusEl.textContent = data.success ? 'Installation finished successfully.' : 'Installation finished with errors. Check the log above.';
+                    statusEl.className = 'install-log-status ' + (data.success ? 'result-success' : 'result-error');
+                    actionsEl.hidden = false;
+                    btn.hidden = true;
+                  }
+                } catch (_) {}
+              }
+            });
+            return read();
+          });
+        }
+        return read();
+      })
+      .catch(function(err) {
+        logEl.textContent += '\nError: ' + (err.message || String(err));
+        statusEl.hidden = false;
+        statusEl.textContent = 'Installation failed.';
+        statusEl.className = 'install-log-status result-error';
+        actionsEl.hidden = false;
+        btn.disabled = false;
+        btn.textContent = 'Install all';
+      });
+  });
+})();
+    </script>
     <% } %>
 
-    <% if (step === 'certbot') { %>
-    <p>Optional: Certbot for Let's Encrypt SSL.</p>
-    <pre>apt install -y certbot python3-certbot-nginx</pre>
-    <form method="post" action="/wizard/complete">
-      <button type="submit">Finish wizard</button>
-    </form>
+    <% if (step === 'result') { %>
+    <div class="wizard-step">
+      <h2>Installation result</h2>
+      <% if (typeof success !== 'undefined' && success) { %>
+        <p class="result-success">All selected components were installed successfully.</p>
+      <% } else { %>
+        <p class="result-error">Installation reported errors. Check the log below. You can fix issues and run the wizard again or install packages manually.</p>
+      <% } %>
+      <% if (typeof log !== 'undefined' && log) { %>
+        <pre class="result-log"><%= log %></pre>
+      <% } %>
+      <div class="step-actions">
+        <a href="/" class="btn btn-success">Go to dashboard</a>
+        <a href="/wizard" class="btn btn-secondary">Back to wizard</a>
+      </div>
+    </div>
     <% } %>
 
     <% if (step === 'finish') { %>
-    <p>Wizard complete. You can change paths in Settings.</p>
-    <p><a href="/" class="btn">Go to dashboard</a></p>
+    <div class="wizard-step">
+      <p>Wizard complete. You can change paths and options in Settings.</p>
+      <div class="step-actions">
+        <a href="/" class="btn btn-success">Go to dashboard</a>
+      </div>
+    </div>
     <% } %>
   </main>
 </body>
