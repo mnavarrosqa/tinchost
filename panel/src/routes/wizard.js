@@ -9,10 +9,16 @@ async function getState() {
 }
 
 const EDITABLE_STEPS = ['welcome', 'database', 'options', 'review'];
+const KNOWN_STEPS = ['welcome', 'database', 'options', 'review', 'result', 'finish'];
 
 router.get('/', async (req, res) => {
   const state = await getState();
-  const step = state.step || 'welcome';
+  let step = state.step || 'welcome';
+  if (!KNOWN_STEPS.includes(step)) {
+    step = 'welcome';
+    const db = await getDb();
+    db.prepare('UPDATE wizard_state SET step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run(step);
+  }
   res.render('wizard', { step, state });
 });
 
