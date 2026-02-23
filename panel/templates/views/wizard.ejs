@@ -20,8 +20,11 @@
     .stack.empty { opacity: 0.85; }
     .risk { background: #fff3cd; border-left: 4px solid #ffc107; padding: 0.75rem 1rem; margin: 1rem 0; border-radius: 0 4px 4px 0; font-size: 0.9rem; }
     pre { background: #1a1d23; color: #e6e8ec; padding: 1rem; overflow-x: auto; border-radius: 6px; font-size: 0.85rem; }
-    input[type="checkbox"], input[type="radio"] { margin-right: 0.5rem; }
-    label { display: inline-block; margin-right: 1rem; margin-bottom: 0.5rem; cursor: pointer; }
+    input[type="checkbox"], input[type="radio"] { margin-right: 0.5rem; vertical-align: middle; }
+    label { cursor: pointer; }
+    .checkbox-group { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.75rem 0; }
+    .checkbox-option { display: block; padding: 0.4rem 0; }
+    .checkbox-option:hover { color: #0d6efd; }
     button, .btn { padding: 0.5rem 1rem; cursor: pointer; background: #0d6efd; color: #fff; border: none; border-radius: 6px; font-size: 1rem; }
     button:hover, .btn:hover { background: #0b5ed7; }
     .btn-secondary { background: #6c757d; }
@@ -41,7 +44,8 @@
     .install-log-status.result-success { color: #198754; font-weight: 600; }
     .install-log-status.result-error { color: #dc3545; font-weight: 600; }
     h1 { margin-top: 0; color: #1a1d23; }
-    .wizard-step { margin-bottom: 1rem; }
+    .wizard-step { margin-bottom: 1rem; padding-bottom: 1rem; }
+    .wizard-step form { display: block; }
     .wizard-subhead { font-size: 1rem; margin: 1.5rem 0 0.5rem 0; color: #212529; }
     .radio-group { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; }
     .radio-option { display: block; padding: 0.75rem 1rem; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; }
@@ -78,14 +82,17 @@
 
     <% if (step === 'welcome' || !step) { %>
     <% const phpFpmConfig = state.php_fpm_config || 'default'; %>
+    <% const defaultPhp = (phpList.length === 0 ? ['8.2'] : phpList); %>
     <div class="wizard-step">
       <h2>PHP-FPM versions</h2>
-      <p>Select which PHP-FPM versions to install (sites can use different versions). Nginx will use the matching FastCGI socket for each site.</p>
+      <p>Select which PHP-FPM versions to install (sites can use different versions). Nginx will use the matching FastCGI socket for each site. You can select none, one, or several.</p>
       <form method="post" action="/wizard/php">
-        <label><input type="checkbox" name="versions" value="7.4" <%= phpList.includes('7.4') ? 'checked' : '' %>> PHP-FPM 7.4</label>
-        <label><input type="checkbox" name="versions" value="8.1" <%= phpList.includes('8.1') ? 'checked' : '' %>> PHP-FPM 8.1</label>
-        <label><input type="checkbox" name="versions" value="8.2" <%= phpList.includes('8.2') ? 'checked' : '' %>> PHP-FPM 8.2</label>
-        <label><input type="checkbox" name="versions" value="8.3" <%= phpList.includes('8.3') ? 'checked' : '' %>> PHP-FPM 8.3</label>
+        <div class="checkbox-group">
+          <label class="checkbox-option"><input type="checkbox" name="versions" value="7.4" <%= defaultPhp.includes('7.4') ? 'checked' : '' %>> PHP-FPM 7.4</label>
+          <label class="checkbox-option"><input type="checkbox" name="versions" value="8.1" <%= defaultPhp.includes('8.1') ? 'checked' : '' %>> PHP-FPM 8.1</label>
+          <label class="checkbox-option"><input type="checkbox" name="versions" value="8.2" <%= defaultPhp.includes('8.2') ? 'checked' : '' %>> PHP-FPM 8.2</label>
+          <label class="checkbox-option"><input type="checkbox" name="versions" value="8.3" <%= defaultPhp.includes('8.3') ? 'checked' : '' %>> PHP-FPM 8.3</label>
+        </div>
 
         <h3 class="wizard-subhead">PHP-FPM configuration</h3>
         <p>Choose how PHP-FPM is tuned for this server.</p>
