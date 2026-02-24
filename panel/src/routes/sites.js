@@ -157,6 +157,27 @@ router.post('/:id/ssl/delete', async (req, res) => {
   res.redirect('/sites/' + site.id + '?ssl=removed#ssl');
 });
 
+router.get('/:id/files/api/entries', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.status(404).json({ error: 'Not found' });
+  const relativePath = (req.query.path || '').replace(/^\/+/, '');
+  const dirPath = resolveDocrootPath(site.docroot, relativePath);
+  if (!dirPath || !fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) return res.json({ entries: [] });
+  const entries = [];
+  try {
+    const names = fs.readdirSync(dirPath);
+    for (const name of names) {
+      const full = path.join(dirPath, name);
+      let stat;
+      try { stat = fs.statSync(full); } catch (_) { continue; }
+      entries.push({ name, dir: stat.isDirectory(), size: stat.isFile() ? stat.size : null });
+    }
+    entries.sort((a, b) => (a.dir === b.dir) ? (a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })) : (a.dir ? -1 : 1));
+  } catch (_) {}
+  res.json({ entries });
+});
+
 router.get('/:id/files', async (req, res) => {
   const db = await getDb();
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);

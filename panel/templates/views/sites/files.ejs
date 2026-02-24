@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Files – <%= site.domain %> – Tinchost Panel</title>
+  <title>File Manager – <%= site.domain %> – Tinchost Panel</title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
@@ -14,11 +14,26 @@
     .ic { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .nav .ic { width: 18px; height: 18px; flex-shrink: 0; }
     .nav .nav-active { color: #fff; font-weight: 600; }
-    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
+    main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
     h1 { margin-top: 0; color: #1b4332; font-size: 1.5rem; }
     .breadcrumb { margin-bottom: 1rem; color: #52796f; font-size: 0.95rem; }
     .breadcrumb a { color: #2d6a4f; text-decoration: none; }
     .breadcrumb a:hover { text-decoration: underline; }
+    .file-manager-layout { display: flex; gap: 1.25rem; margin-top: 1rem; }
+    .file-manager-tree { width: 240px; flex-shrink: 0; border: 1px solid #b7d4bc; border-radius: 6px; padding: 0.75rem; background: #f1f8f2; max-height: 70vh; overflow-y: auto; }
+    .file-manager-tree h3 { margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #2d6a4f; font-weight: 600; }
+    .tree-item { display: flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.35rem; border-radius: 4px; font-size: 0.9rem; cursor: pointer; color: #1b4332; text-decoration: none; }
+    .tree-item:hover { background: #e8f5e9; }
+    .tree-item.current { background: #d8f3dc; color: #2d6a4f; font-weight: 500; }
+    .tree-item .ic { width: 16px; height: 16px; flex-shrink: 0; }
+    .tree-children { margin-left: 1rem; border-left: 1px solid #b7d4bc; padding-left: 0.5rem; }
+    .tree-toggle { width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; border: none; background: none; padding: 0; color: #52796f; font-size: 0.7rem; line-height: 1; }
+    .tree-toggle:hover { color: #2d6a4f; }
+    .tree-toggle.expanded { transform: rotate(90deg); }
+    .file-manager-content { flex: 1; min-width: 0; }
+    .drop-zone { border: 2px dashed #b7d4bc; border-radius: 8px; padding: 1.5rem; text-align: center; color: #52796f; font-size: 0.95rem; margin-bottom: 1rem; transition: border-color 0.15s, background 0.15s; }
+    .drop-zone.drag-over { border-color: #2d6a4f; background: #f1f8f2; color: #2d6a4f; }
+    .drop-zone .ic { width: 32px; height: 32px; margin: 0 auto 0.5rem; display: block; color: #2d6a4f; }
     .file-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
     .file-actions form { display: inline-flex; align-items: center; gap: 0.5rem; }
     .btn { padding: 0.4rem 0.9rem; background: #2d6a4f; color: #fff; text-decoration: none; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; font-family: inherit; }
@@ -39,6 +54,7 @@
     form.inline { display: inline; }
     .rename-inline { display: inline-flex; align-items: center; gap: 0.35rem; }
     .rename-inline input { padding: 0.25rem 0.4rem; border: 1px solid #b7d4bc; border-radius: 4px; width: 12rem; font-size: 0.9rem; }
+    @media (max-width: 768px) { .file-manager-layout { flex-direction: column; } .file-manager-tree { max-height: 200px; } }
   </style>
 </head>
 <body>
@@ -52,17 +68,27 @@
   </nav>
   <main>
     <div class="breadcrumb">
-      <a href="/sites">Sites</a> → <a href="/sites/<%= site.id %>"><%= site.domain %></a> → Files
+      <a href="/sites">Sites</a> → <a href="/sites/<%= site.id %>"><%= site.domain %></a> → File Manager
       <% if (pathSegments.length) { %> → <% pathSegments.forEach(function(seg, i) {
         var p = pathSegments.slice(0, i + 1).join(pathSep);
       %><a href="/sites/<%= site.id %>/files?path=<%= encodeURIComponent(p) %>"><%= seg %></a><% if (i < pathSegments.length - 1) { %> → <% } %><% }); %><% } %>
     </div>
-    <h1>File manager</h1>
+    <h1>File Manager</h1>
     <p style="color:#52796f;font-size:0.9rem;margin-top:0;">Path: <code style="word-break:break-all;"><%= site.docroot %><%= currentPath ? pathSep + currentPath : '' %></code></p>
     <% if (typeof error !== 'undefined' && error) { %>
     <div class="error-msg"><%= error %></div>
     <% } %>
     <% if (!error) { %>
+    <div class="file-manager-layout">
+      <aside class="file-manager-tree" id="tree-sidebar">
+        <h3>Folders</h3>
+        <div id="tree-root"></div>
+      </aside>
+      <div class="file-manager-content">
+    <div class="drop-zone" id="drop-zone">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Drop files here to upload, or use the Upload button below.
+    </div>
     <div class="file-actions">
       <a href="/sites/<%= site.id %>" class="btn btn-secondary">← Back to site</a>
       <form method="post" action="/sites/<%= site.id %>/files/mkdir">
@@ -118,14 +144,115 @@
         <% } %>
       </tbody>
     </table>
+      </div>
+    </div>
     <% } %>
   </main>
   <script>
-  document.addEventListener('submit', function(e) {
-    var form = e.target.closest('form[data-confirm]');
-    if (!form) return;
-    if (!confirm(form.getAttribute('data-confirm'))) e.preventDefault();
-  });
+  (function() {
+    var siteId = '<%= site.id %>';
+    var pathSep = '<%= pathSep %>';
+    var currentPath = '<%= (currentPath || "").replace(/'/g, "\\'") %>';
+    var baseUrl = '/sites/' + siteId + '/files';
+    var apiUrl = '/sites/' + siteId + '/files/api/entries';
+
+    document.addEventListener('submit', function(e) {
+      var form = e.target.closest('form[data-confirm]');
+      if (!form) return;
+      if (!confirm(form.getAttribute('data-confirm'))) e.preventDefault();
+    });
+
+    function pathJoin(a, b) { return a ? a + pathSep + b : b; }
+    function pathStartsWith(p, prefix) { if (!prefix) return true; return p === prefix || p.indexOf(prefix + pathSep) === 0; }
+
+    var treeCache = {};
+    function fetchEntries(relPath, cb) {
+      if (treeCache[relPath] !== undefined) return cb(treeCache[relPath]);
+      fetch(apiUrl + '?path=' + encodeURIComponent(relPath)).then(function(r) { return r.json(); }).then(function(data) {
+        treeCache[relPath] = data.entries || [];
+        cb(treeCache[relPath]);
+      }).catch(function() { cb([]); });
+    }
+
+    function renderTreeLevel(relPath, parentEl, expandToPath) {
+      fetchEntries(relPath, function(entries) {
+        var dirs = entries.filter(function(e) { return e.dir; });
+        if (dirs.length === 0) return;
+        var wrap = document.createElement('div');
+        wrap.className = 'tree-children';
+        wrap.dataset.path = relPath;
+        parentEl.appendChild(wrap);
+        dirs.forEach(function(d) {
+          var fullPath = pathJoin(relPath, d.name);
+          var isCurrent = currentPath === fullPath;
+          var shouldExpand = pathStartsWith(currentPath, fullPath) && currentPath !== fullPath;
+          var div = document.createElement('div');
+          div.className = 'tree-node';
+          var toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'tree-toggle' + (shouldExpand ? ' expanded' : '');
+          toggle.setAttribute('aria-label', shouldExpand ? 'Collapse' : 'Expand');
+          toggle.textContent = '\u25B6';
+          var link = document.createElement('a');
+          link.href = baseUrl + '?path=' + encodeURIComponent(fullPath);
+          link.className = 'tree-item' + (isCurrent ? ' current' : '');
+          link.innerHTML = '<svg class="ic" viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>' + (d.name || '');
+          div.appendChild(toggle);
+          div.appendChild(link);
+          wrap.appendChild(div);
+          if (shouldExpand) {
+            wrap.style.display = 'block';
+            renderTreeLevel(fullPath, div, expandToPath);
+          }
+          toggle.addEventListener('click', function(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            var expanded = toggle.classList.toggle('expanded');
+            var childWrap = div.querySelector('.tree-children');
+            if (expanded && !childWrap) renderTreeLevel(fullPath, div);
+            else if (childWrap) childWrap.style.display = expanded ? 'block' : 'none';
+          });
+        });
+      });
+    }
+
+    var treeRoot = document.getElementById('tree-root');
+    if (treeRoot) {
+      var rootLink = document.createElement('a');
+      rootLink.href = baseUrl;
+      rootLink.className = 'tree-item' + (currentPath === '' ? ' current' : '');
+      rootLink.innerHTML = '<svg class="ic" viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg> (root)';
+      treeRoot.appendChild(rootLink);
+      renderTreeLevel('', treeRoot, currentPath);
+    }
+
+    var dropZone = document.getElementById('drop-zone');
+    var uploadPathInput = document.querySelector('input[name="path"]');
+    if (dropZone && uploadPathInput) {
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function(ev) {
+        dropZone.addEventListener(ev, function(e) { e.preventDefault(); e.stopPropagation(); });
+      });
+      ['dragenter', 'dragover'].forEach(function(ev) {
+        dropZone.addEventListener(ev, function() { dropZone.classList.add('drag-over'); });
+      });
+      ['dragleave', 'drop'].forEach(function(ev) {
+        dropZone.addEventListener(ev, function() { dropZone.classList.remove('drag-over'); });
+      });
+      dropZone.addEventListener('drop', function(e) {
+        var files = e.dataTransfer.files;
+        if (!files.length) return;
+        var pathVal = uploadPathInput.value || '';
+        var done = 0;
+        function maybeReload() { done++; if (done >= files.length) window.location.reload(); }
+        for (var i = 0; i < files.length; i++) {
+          var fd = new FormData();
+          fd.append('path', pathVal);
+          fd.append('file', files[i]);
+          fetch(baseUrl + '/upload', { method: 'POST', body: fd }).then(maybeReload).catch(maybeReload);
+        }
+      });
+    }
+  })();
   </script>
 </body>
 </html>
