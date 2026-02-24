@@ -67,6 +67,23 @@ app.get('/', requireAuth, requireWizardComplete, (req, res) => {
   res.render('dashboard', { user: req.session.user, serverInfo });
 });
 
+function serverInfoJson() {
+  const info = getServerInfo();
+  info.memory.totalFormatted = formatBytes(info.memory.total);
+  info.memory.usedFormatted = formatBytes(info.memory.used);
+  info.disk.totalFormatted = formatBytes(info.disk.total);
+  info.disk.usedFormatted = formatBytes(info.disk.used);
+  return info;
+}
+
+app.get('/api/server-info', requireAuth, requireWizardComplete, (req, res) => {
+  try {
+    res.json(serverInfoJson());
+  } catch (_) {
+    res.status(500).json({ error: 'Failed to get server info' });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Tinchost Panel listening on http://0.0.0.0:${PORT}`);
 });

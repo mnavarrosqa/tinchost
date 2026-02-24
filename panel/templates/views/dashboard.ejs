@@ -39,6 +39,9 @@
     .bar-fill.mem, .bar-fill.disk { background: #2d6a4f; }
     .bar-fill.mem.warn, .bar-fill.disk.warn { background: #b7a53a; }
     .bar-fill.mem.high, .bar-fill.disk.high { background: #9b2226; }
+    .live-badge { font-size: 0.75rem; font-weight: normal; color: #52796f; margin-left: 0.35rem; }
+    .live-badge::before { content: ''; display: inline-block; width: 0.4rem; height: 0.4rem; border-radius: 50%; background: #2d6a4f; margin-right: 0.25rem; vertical-align: middle; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   </style>
 </head>
 <body>
@@ -55,28 +58,28 @@
     <h1>Hello, <%= user.username %></h1>
     <p class="intro">Tinchost Panel. Manage sites, databases, and mail from the menu.</p>
     <% if (typeof serverInfo !== 'undefined' && serverInfo) { %>
-    <div class="card">
-      <h2><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>Server</h2>
+    <div class="card" id="server-card">
+      <h2><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>Server <span class="live-badge" aria-live="polite">Live</span></h2>
       <div class="server-meta">
-        <span><strong>Hostname</strong> <%= serverInfo.hostname %></span>
-        <span><strong>IP</strong> <%= serverInfo.mainIp %></span>
+        <span><strong>Hostname</strong> <span id="server-hostname"><%= serverInfo.hostname %></span></span>
+        <span><strong>IP</strong> <span id="server-ip"><%= serverInfo.mainIp %></span></span>
       </div>
       <div class="metric">
-        <div class="metric-label"><span>Load average</span><span>1m: <%= serverInfo.load.one %> · 5m: <%= serverInfo.load.five %> · 15m: <%= serverInfo.load.fifteen %> (<%= serverInfo.load.cpus %> CPU<%= serverInfo.load.cpus !== 1 ? 's' : '' %>)</span></div>
+        <div class="metric-label"><span>Load average</span><span id="load-detail">1m: <%= serverInfo.load.one %> · 5m: <%= serverInfo.load.five %> · 15m: <%= serverInfo.load.fifteen %> (<%= serverInfo.load.cpus %> CPU<%= serverInfo.load.cpus !== 1 ? 's' : '' %>)</span></div>
         <div class="bar-track">
-          <div class="bar-fill load <%= serverInfo.load.onePerCpu >= 90 ? 'high' : (serverInfo.load.onePerCpu >= 70 ? 'warn' : '') %>" style="width: <%= Math.min(100, serverInfo.load.onePerCpu) %>%;"></div>
+          <div id="load-bar" class="bar-fill load <%= serverInfo.load.onePerCpu >= 90 ? 'high' : (serverInfo.load.onePerCpu >= 70 ? 'warn' : '') %>" style="width: <%= Math.min(100, serverInfo.load.onePerCpu) %>%;"></div>
         </div>
       </div>
       <div class="metric">
-        <div class="metric-label"><span>Memory</span><span><%= serverInfo.memory.usedFormatted %> of <%= serverInfo.memory.totalFormatted %> (<%= serverInfo.memory.usedPercent %>%)</span></div>
+        <div class="metric-label"><span>Memory</span><span id="memory-detail"><%= serverInfo.memory.usedFormatted %> of <%= serverInfo.memory.totalFormatted %> (<%= serverInfo.memory.usedPercent %>%)</span></div>
         <div class="bar-track">
-          <div class="bar-fill mem <%= serverInfo.memory.usedPercent >= 90 ? 'high' : (serverInfo.memory.usedPercent >= 75 ? 'warn' : '') %>" style="width: <%= serverInfo.memory.usedPercent %>%;"></div>
+          <div id="memory-bar" class="bar-fill mem <%= serverInfo.memory.usedPercent >= 90 ? 'high' : (serverInfo.memory.usedPercent >= 75 ? 'warn' : '') %>" style="width: <%= serverInfo.memory.usedPercent %>%;"></div>
         </div>
       </div>
       <div class="metric">
-        <div class="metric-label"><span>Disk (root)</span><span><%= serverInfo.disk.usedFormatted %> of <%= serverInfo.disk.totalFormatted %> (<%= serverInfo.disk.usedPercent %>%)</span></div>
+        <div class="metric-label"><span>Disk (root)</span><span id="disk-detail"><%= serverInfo.disk.usedFormatted %> of <%= serverInfo.disk.totalFormatted %> (<%= serverInfo.disk.usedPercent %>%)</span></div>
         <div class="bar-track">
-          <div class="bar-fill disk <%= serverInfo.disk.usedPercent >= 90 ? 'high' : (serverInfo.disk.usedPercent >= 85 ? 'warn' : '') %>" style="width: <%= serverInfo.disk.usedPercent %>%;"></div>
+          <div id="disk-bar" class="bar-fill disk <%= serverInfo.disk.usedPercent >= 90 ? 'high' : (serverInfo.disk.usedPercent >= 85 ? 'warn' : '') %>" style="width: <%= serverInfo.disk.usedPercent %>%;"></div>
         </div>
       </div>
     </div>
@@ -91,5 +94,53 @@
       </ul>
     </div>
   </main>
+  <% if (typeof serverInfo !== 'undefined' && serverInfo) { %>
+  <script>
+  (function() {
+    var card = document.getElementById('server-card');
+    if (!card) return;
+    var loadDetail = document.getElementById('load-detail');
+    var loadBar = document.getElementById('load-bar');
+    var memoryDetail = document.getElementById('memory-detail');
+    var memoryBar = document.getElementById('memory-bar');
+    var diskDetail = document.getElementById('disk-detail');
+    var diskBar = document.getElementById('disk-bar');
+    var hostnameEl = document.getElementById('server-hostname');
+    var ipEl = document.getElementById('server-ip');
+    function barClass(type, pct) {
+      if (type === 'load') return pct >= 90 ? 'high' : (pct >= 70 ? 'warn' : '');
+      if (type === 'mem') return pct >= 90 ? 'high' : (pct >= 75 ? 'warn' : '');
+      return pct >= 90 ? 'high' : (pct >= 85 ? 'warn' : '');
+    }
+    function update(data) {
+      if (!data) return;
+      var cpuLabel = data.load.cpus === 1 ? 'CPU' : 'CPUs';
+      if (loadDetail) loadDetail.textContent = '1m: ' + data.load.one + ' · 5m: ' + data.load.five + ' · 15m: ' + data.load.fifteen + ' (' + data.load.cpus + ' ' + cpuLabel + ')';
+      if (loadBar) {
+        var lw = Math.min(100, data.load.onePerCpu);
+        loadBar.style.width = lw + '%';
+        loadBar.className = 'bar-fill load ' + barClass('load', data.load.onePerCpu);
+      }
+      if (memoryDetail) memoryDetail.textContent = data.memory.usedFormatted + ' of ' + data.memory.totalFormatted + ' (' + data.memory.usedPercent + '%)';
+      if (memoryBar) {
+        memoryBar.style.width = data.memory.usedPercent + '%';
+        memoryBar.className = 'bar-fill mem ' + barClass('mem', data.memory.usedPercent);
+      }
+      if (diskDetail) diskDetail.textContent = data.disk.usedFormatted + ' of ' + data.disk.totalFormatted + ' (' + data.disk.usedPercent + '%)';
+      if (diskBar) {
+        diskBar.style.width = data.disk.usedPercent + '%';
+        diskBar.className = 'bar-fill disk ' + barClass('disk', data.disk.usedPercent);
+      }
+      if (hostnameEl) hostnameEl.textContent = data.hostname;
+      if (ipEl) ipEl.textContent = data.mainIp;
+    }
+    function fetchServerInfo() {
+      fetch('/api/server-info').then(function(r) { return r.ok ? r.json() : null; }).then(update).catch(function() {});
+    }
+    setInterval(fetchServerInfo, 4000);
+    setTimeout(fetchServerInfo, 1000);
+  })();
+  </script>
+  <% } %>
 </body>
 </html>
