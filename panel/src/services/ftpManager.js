@@ -13,10 +13,12 @@ function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-/** Generate crypt hash for ProFTPD AuthUserFile (SHA-512, $6$) */
+/** Generate crypt hash for ProFTPD AuthUserFile (SHA-512, $6$). Returns null if openssl fails. */
 function cryptHash(password) {
+  if (!password || typeof password !== 'string') return null;
   try {
-    return execFileSync('openssl', ['passwd', '-6', '-stdin'], { input: password + '\n', encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    const out = execFileSync('openssl', ['passwd', '-6', '-stdin'], { input: password + '\n', encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    return out && out.startsWith('$6$') ? out : null;
   } catch (_) {
     return null;
   }
@@ -62,11 +64,12 @@ RequireValidShell off
 }
 
 async function addFtpUser(siteId, username, password, defaultRoute) {
+  const crypt = cryptHash(password);
+  if (!crypt) throw new Error('Could not generate FTP password hash. Ensure openssl is installed (e.g. apt install openssl).');
   const db = await getDb();
   const hash = hashPassword(password);
-  const crypt = cryptHash(password);
   const route = (defaultRoute != null && String(defaultRoute).trim() !== '') ? String(defaultRoute).trim() : '';
-  db.prepare('INSERT INTO ftp_users (site_id, username, password_hash, default_route, crypt_hash) VALUES (?, ?, ?, ?, ?)').run(siteId, username, hash, route, crypt || '');
+  db.prepare('INSERT INTO ftp_users (site_id, username, password_hash, default_route, crypt_hash) VALUES (?, ?, ?, ?, ?)').run(siteId, username, hash, route, crypt);
   await syncFtpUsers();
 }
 
@@ -75,9 +78,10 @@ async function updateFtpUser(siteId, userId, updates) {
   const row = db.prepare('SELECT id FROM ftp_users WHERE id = ? AND site_id = ?').get(userId, siteId);
   if (!row) return;
   if (updates.password != null) {
-    const hash = hashPassword(updates.password);
     const crypt = cryptHash(updates.password);
-    db.prepare('UPDATE ftp_users SET password_hash = ?, crypt_hash = ? WHERE id = ? AND site_id = ?').run(hash, crypt || '', userId, siteId);
+    if (!crypt) throw new Error('Could not generate FTP password hash. Ensure openssl is installed.');
+    const hash = hashPassword(updates.password);
+    db.prepare('UPDATE ftp_users SET password_hash = ?, crypt_hash = ? WHERE id = ? AND site_id = ?').run(hash, crypt, userId, siteId);
   }
   if (updates.default_route !== undefined) {
     const route = String(updates.default_route).trim();

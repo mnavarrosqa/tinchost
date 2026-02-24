@@ -56,6 +56,12 @@
     <div class="risk"><strong>This panel runs as root.</strong> Protect access and use a strong password.</div>
 
     <h2>Paths &amp; credentials</h2>
+    <% if (typeof dbPath !== 'undefined' && dbPath) { %>
+    <p style="font-size:0.85rem; color:#52796f; margin:0 0 0.75rem 0;">Panel database: <code style="word-break:break-all;"><%= dbPath %></code></p>
+    <% } %>
+    <% if (typeof hasMysqlPassword !== 'undefined' && !hasMysqlPassword) { %>
+    <p style="font-size:0.9rem; color:#9b2226; margin:0 0 0.75rem 0;">MySQL root password is not set. Enter it below and click Save. If you saved it before but still see &quot;not set&quot; on other pages, set the <code>DATABASE_PATH</code> environment variable to the full path of your panel database (e.g. <code><%= typeof dbPath !== 'undefined' ? dbPath : '/opt/tinchohost/panel/data/panel.sqlite' %></code>) and restart the panel.</p>
+    <% } %>
     <form method="post" action="/settings">
       <label>Nginx sites-available path</label>
       <input type="text" name="nginx_sites_available" value="<%= nginxSites %>">
@@ -64,7 +70,7 @@
       <label>Mail path (Maildir base)</label>
       <input type="text" name="mail_path" value="<%= mailPath %>">
       <label>MySQL root password (for creating DBs/users)</label>
-      <input type="password" name="mysql_root_password" value="<%= typeof mysqlRootPassword !== 'undefined' ? mysqlRootPassword : '' %>" placeholder="Enter password to set or change; leave blank to keep current">
+      <input type="password" name="mysql_root_password" value="<%= typeof mysqlRootPassword !== 'undefined' ? mysqlRootPassword : '' %>" placeholder="Enter password to set or change; leave blank to keep current" autocomplete="new-password">
       <button type="submit">Save</button>
     </form>
 

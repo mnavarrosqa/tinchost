@@ -38,6 +38,7 @@
     .form-row input { padding: 0.4rem 0.5rem; border: 1px solid #b7d4bc; border-radius: 4px; width: 100%; max-width: 240px; }
     .form-inline { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; margin-top: 0.75rem; }
     .error-msg { background: #f8d7da; border: 1px solid #9b2226; color: #9b2226; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .success-msg { background: #d8f3dc; border: 1px solid #2d6a4f; color: #1b4332; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
     .empty-msg { color: #52796f; font-size: 0.9rem; }
     form.inline { display: inline; }
     .credential-box { background: #d8f3dc; border: 1px solid #2d6a4f; color: #1b4332; padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
@@ -63,6 +64,12 @@
 
     <% if (typeof error !== 'undefined' && error) { %>
     <div class="error-msg"><%= error %></div>
+    <% } %>
+    <% if (typeof reset !== 'undefined' && reset === 'ftp') { %>
+    <div class="success-msg">FTP password updated. Use the new password and the <strong>FTP login</strong> name below to connect.</div>
+    <% } %>
+    <% if (typeof reset !== 'undefined' && reset === 'db') { %>
+    <div class="success-msg">Database user password updated. Use the new password to connect to MySQL.</div>
     <% } %>
 
     <div class="card">
@@ -196,11 +203,15 @@
             <td><code><%= ftpLogin %></code></td>
             <td><%= (u.default_route && u.default_route !== '') ? u.default_route : '(docroot)' %></td>
             <td class="password-cell">
+              <% if (!u.crypt_hash || u.crypt_hash === '') { %>
+              <span class="show-hint">FTP login disabled — set password below to enable.</span>
+              <% } else { %>
               <span class="pwd-mask">••••••</span>
               <button type="button" class="btn btn-small btn-secondary" onclick="var c=this.closest('.password-cell'); c.querySelector('.pwd-mask').style.display='none'; c.querySelector('.show-hint').style.display='inline'; this.style.display='none';">Show</button>
               <span class="show-hint" style="display:none;">Not stored — use Reset</span>
+              <% } %>
               <form method="post" action="/sites/<%= site.id %>/ftp-users/<%= u.id %>/reset-password" class="inline">
-                <input type="password" name="password" placeholder="New password" required style="max-width:10rem;">
+                <input type="password" name="password" placeholder="New password" required style="max-width:10rem;" autocomplete="new-password">
                 <button type="submit" class="btn btn-small">Reset</button>
               </form>
             </td>

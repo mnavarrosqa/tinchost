@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getDb } = require('../config/database');
+const { getDb, getDbPath } = require('../config/database');
 const servicesManager = require('../services/servicesManager');
 
 function getSetting(db, key) {
@@ -31,7 +31,9 @@ router.get('/', async (req, res) => {
   if (req.session.settingsError) delete req.session.settingsError;
   if (req.session.serviceRestarted) delete req.session.serviceRestarted;
   if (req.session.serviceError) delete req.session.serviceError;
-  res.render('settings', { state, nginxSites, phpPoolDir, mailPath, mysqlRootPassword, saved, settingsError, installedServices, serviceRestarted, serviceError });
+  const dbPath = getDbPath();
+  const hasMysqlPassword = !!getSetting(db, 'mysql_root_password');
+  res.render('settings', { state, nginxSites, phpPoolDir, mailPath, mysqlRootPassword, saved, settingsError, installedServices, serviceRestarted, serviceError, dbPath, hasMysqlPassword });
 });
 
 router.post('/services/restart', async (req, res) => {
@@ -55,7 +57,8 @@ router.post('/', async (req, res) => {
     if (nginx_sites_available != null && nginx_sites_available !== '') setSetting(db, 'nginx_sites_available', nginx_sites_available);
     if (php_pool_dir != null && php_pool_dir !== '') setSetting(db, 'php_pool_dir', php_pool_dir);
     if (mail_path != null && mail_path !== '') setSetting(db, 'mail_path', mail_path);
-    if (mysql_root_password != null && mysql_root_password !== '' && mysql_root_password !== '********') setSetting(db, 'mysql_root_password', mysql_root_password);
+    const pw = mysql_root_password;
+    if (pw != null && String(pw).trim() !== '' && pw !== '********') setSetting(db, 'mysql_root_password', String(pw).trim());
     req.session.settingsSaved = true;
   } catch (e) {
     req.session.settingsError = (e && e.message) ? e.message : 'Failed to save settings';
