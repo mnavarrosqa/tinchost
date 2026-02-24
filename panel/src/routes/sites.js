@@ -10,8 +10,18 @@ const { PRIVILEGE_SETS } = require('../services/databaseManager');
 const ftpManager = require('../services/ftpManager');
 const { execSync, execFileSync } = require('child_process');
 const crypto = require('crypto');
+const multer = require('multer');
 
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 const DEFAULT_INDEX_PATH = path.join(__dirname, '..', '..', 'templates', 'default-site-index.html');
+
+/** Resolve path under site docroot. Returns absolute path or null if outside docroot. */
+function resolveDocrootPath(docroot, relativePath) {
+  const root = path.resolve(docroot);
+  const resolved = path.resolve(root, relativePath || '.');
+  if (resolved === root || resolved.startsWith(root + path.sep)) return resolved;
+  return null;
+}
 
 const SITE_ERROR_MESSAGES = {
   mysql_password: 'MySQL root password not set in Settings. Set it in Settings and click Save.'
@@ -145,6 +155,119 @@ router.post('/:id/ssl/delete', async (req, res) => {
     siteManager.reloadNginx();
   } catch (_) {}
   res.redirect('/sites/' + site.id + '?ssl=removed#ssl');
+});
+
+router.get('/:id/files', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  const relativePath = (req.query.path || '').replace(/^\/+/, '');
+  const dirPath = resolveDocrootPath(site.docroot, relativePath);
+  let entries = [];
+  let errorMsg = null;
+  if (!dirPath) {
+    errorMsg = 'Invalid path';
+  } else if (!fs.existsSync(dirPath)) {
+    errorMsg = 'Directory does not exist';
+  } else if (!fs.statSync(dirPath).isDirectory()) {
+    errorMsg = 'Not a directory';
+  } else {
+    try {
+      const names = fs.readdirSync(dirPath);
+      for (const name of names) {
+        const full = path.join(dirPath, name);
+        let stat;
+        try { stat = fs.statSync(full); } catch (_) { continue; }
+        entries.push({ name, dir: stat.isDirectory(), size: stat.isFile() ? stat.size : null });
+      }
+      entries.sort((a, b) => (a.dir === b.dir) ? (a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })) : (a.dir ? -1 : 1));
+    } catch (e) {
+      errorMsg = e.message || 'Cannot read directory';
+    }
+  }
+  const pathSegments = relativePath ? relativePath.split(path.sep).filter(Boolean) : [];
+  const parentPath = pathSegments.length > 0 ? pathSegments.slice(0, -1).join(path.sep) : '';
+  const queryError = req.query.error === 'invalid' ? 'Invalid path or name.' : (req.query.error === 'upload' ? 'Upload failed.' : null);
+  res.render('sites/files', { site, currentPath: relativePath, pathSegments, parentPath, entries, error: errorMsg || queryError, pathSep: path.sep, user: req.session.user });
+});
+
+router.get('/:id/files/download', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.status(404).send('Not found');
+  const relativePath = (req.query.path || '').replace(/^\/+/, '');
+  const filePath = resolveDocrootPath(site.docroot, relativePath);
+  if (!filePath || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return res.status(400).send('Invalid or not a file');
+  res.setHeader('Content-Disposition', 'attachment; filename="' + path.basename(filePath).replace(/"/g, '\\"') + '"');
+  res.sendFile(filePath);
+});
+
+router.post('/:id/files/mkdir', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  const { path: dirPath, name } = req.body || {};
+  const base = resolveDocrootPath(site.docroot, (dirPath || '').replace(/^\/+/, ''));
+  if (!base || !name || /[\/\\]/.test(name)) return res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(dirPath || '') + '&error=invalid');
+  const full = path.join(base, name);
+  if (resolveDocrootPath(site.docroot, path.relative(site.docroot, full)) === null) return res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(dirPath || '') + '&error=invalid');
+  try {
+    fs.mkdirSync(full, { recursive: false });
+    execFileSync('chown', ['www-data:www-data', full], { stdio: 'pipe' });
+  } catch (_) {}
+  res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent((dirPath ? dirPath + path.sep : '') + name));
+});
+
+router.post('/:id/files/delete', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  const relativePath = (req.body.path || '').replace(/^\/+/, '');
+  const full = resolveDocrootPath(site.docroot, relativePath);
+  if (!full || full === path.resolve(site.docroot)) return res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(path.dirname(relativePath) || '') + '&error=invalid');
+  try {
+    fs.rmSync(full, { recursive: true });
+  } catch (_) {}
+  const parent = path.dirname(relativePath);
+  res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(parent === '.' ? '' : parent));
+});
+
+router.post('/:id/files/rename', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  const { path: dirPath, name: currentName, newName } = req.body || {};
+  const dirPathNorm = (dirPath || '').replace(/^\/+/, '');
+  const base = resolveDocrootPath(site.docroot, dirPathNorm);
+  if (!base || !currentName || !newName || /[\/\\]/.test(currentName) || /[\/\\]/.test(newName)) return res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(dirPathNorm) + '&error=invalid');
+  const relOld = dirPathNorm ? dirPathNorm + path.sep + currentName : currentName;
+  const fullOld = resolveDocrootPath(site.docroot, relOld);
+  if (!fullOld) return res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(dirPathNorm) + '&error=invalid');
+  const fullNew = path.join(path.dirname(fullOld), newName);
+  if (resolveDocrootPath(site.docroot, path.relative(site.docroot, fullNew)) === null) return res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(dirPathNorm) + '&error=invalid');
+  try {
+    fs.renameSync(fullOld, fullNew);
+    if (fs.statSync(fullNew).isDirectory()) execFileSync('chown', ['-R', 'www-data:www-data', fullNew], { stdio: 'pipe' });
+    else execFileSync('chown', ['www-data:www-data', fullNew], { stdio: 'pipe' });
+  } catch (_) {}
+  res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(dirPathNorm));
+});
+
+router.post('/:id/files/upload', upload.single('file'), async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  const dirPath = (req.body.path || '').replace(/^\/+/, '');
+  const base = resolveDocrootPath(site.docroot, dirPath);
+  if (!base || !req.file) return res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(dirPath) + '&error=upload');
+  const name = (req.file.originalname || 'upload').replace(/\.\./g, '').replace(/^\/+/, '');
+  const full = path.join(base, name || 'upload');
+  if (resolveDocrootPath(site.docroot, path.relative(site.docroot, full)) === null) return res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(dirPath) + '&error=invalid');
+  try {
+    fs.writeFileSync(full, req.file.buffer);
+    execFileSync('chown', ['www-data:www-data', full], { stdio: 'pipe' });
+  } catch (_) {}
+  res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(dirPath));
 });
 
 router.post('/:id', async (req, res) => {
