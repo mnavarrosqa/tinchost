@@ -81,12 +81,22 @@
     <% if (typeof reset !== "undefined" && reset === "db") { %>
     <div class="success-msg">Database user password updated. Use the new password to connect to MySQL.</div>
     <% } %>
+    <% if (typeof renew !== "undefined" && renew === "ok") { %>
+    <div class="success-msg">SSL certificate renewed successfully.</div>
+    <% } %>
+    <% if (typeof renew !== "undefined" && renew === "error") { %>
+    <div class="error-msg">SSL renewal failed. Check that DNS points to this server and ports 80/443 are open, then try again.</div>
+    <% } %>
+    <% if (typeof sslRemoved !== "undefined" && sslRemoved) { %>
+    <div class="success-msg">SSL certificate removed. The site now serves over HTTP only. Re-enable SSL in Edit settings if needed.</div>
+    <% } %>
 
     <nav class="tabs" aria-label="Site sections">
       <ul class="tabs-list">
         <li><a href="#overview" class="tabs-trigger is-active" data-tab="overview" id="tab-overview"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Overview</a></li>
         <li><a href="#databases" class="tabs-trigger" data-tab="databases" id="tab-databases"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</a></li>
         <li><a href="#ftp" class="tabs-trigger" data-tab="ftp" id="tab-ftp"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>FTP</a></li>
+        <li><a href="#ssl" class="tabs-trigger" data-tab="ssl" id="tab-ssl"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SSL</a></li>
       </ul>
     </nav>
 
@@ -274,6 +284,42 @@
         </div>
         <button type="submit" class="btn">Add FTP user</button>
       </form>
+      <% } %>
+    </div>
+    </div>
+
+    <div id="panel-ssl" class="tabs-panel" role="tabpanel" aria-labelledby="tab-ssl">
+    <div class="card">
+      <h2><svg class="ic" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SSL certificate</h2>
+      <% if (site.ssl) { %>
+        <% if (typeof sslStatus !== "undefined" && sslStatus && sslStatus.found) { %>
+        <div class="site-meta">
+          <span><strong>Status</strong> <%= (sslStatus.valid === true) ? "Valid" : (sslStatus.valid === false ? "Expired" : "Unknown") %></span>
+          <% if (sslStatus.expiry) { %><span><strong>Expires</strong> <%= sslStatus.expiry %></span><% } %>
+          <% if (typeof sslStatus.daysLeft === "number") { %><span><strong>Days left</strong> <%= sslStatus.daysLeft %></span><% } %>
+        </div>
+        <div class="site-actions">
+          <form method="post" action="/sites/<%= site.id %>/ssl/renew" class="inline">
+            <button type="submit" class="btn">Renew certificate</button>
+          </form>
+          <form method="post" action="/sites/<%= site.id %>/ssl/delete" class="inline" data-confirm="Remove SSL for <%= site.domain %>? The site will serve over HTTP only. You can re-enable SSL in Edit settings later.">
+            <button type="submit" class="btn btn-danger">Remove SSL</button>
+          </form>
+        </div>
+        <p class="empty-msg">Renew before expiry to avoid interruption. Removing SSL deletes the Let's Encrypt certificate and switches the site to HTTP.</p>
+        <% } else { %>
+        <p class="empty-msg">Certificate is enabled but status could not be read (certificate path may be missing or not accessible).</p>
+        <div class="site-actions">
+          <form method="post" action="/sites/<%= site.id %>/ssl/renew" class="inline">
+            <button type="submit" class="btn">Renew certificate</button>
+          </form>
+          <form method="post" action="/sites/<%= site.id %>/ssl/delete" class="inline" data-confirm="Remove SSL for <%= site.domain %>? The site will serve over HTTP only.">
+            <button type="submit" class="btn btn-danger">Remove SSL</button>
+          </form>
+        </div>
+        <% } %>
+      <% } else { %>
+        <p class="empty-msg">SSL is off for this site. Enable it in <a href="/sites/<%= site.id %>/edit">Edit settings</a> to get a Let's Encrypt certificate.</p>
       <% } %>
     </div>
     </div>

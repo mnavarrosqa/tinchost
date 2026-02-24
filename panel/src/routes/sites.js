@@ -110,7 +110,41 @@ router.get('/:id', async (req, res) => {
   const errorMsg = (req.query.error && SITE_ERROR_MESSAGES[req.query.error]) || req.query.error || null;
   const panelDbPath = (req.query.error === 'mysql_password' ? getDbPath() : null) || null;
   const existingDbUsers = db.prepare('SELECT id, username FROM db_users ORDER BY username').all();
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers });
+  let sslStatus = null;
+  if (site.ssl) {
+    try { sslStatus = sslManager.getCertStatus(site.domain); } catch (_) {}
+  }
+  const renew = req.query.renew || null;
+  const sslRemoved = req.query.ssl === 'removed';
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved });
+});
+
+router.post('/:id/ssl/renew', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site || !site.ssl) return res.redirect('/sites/' + (site ? site.id : ''));
+  try {
+    await sslManager.renewCert(site.domain);
+    siteManager.reloadNginx();
+    res.redirect('/sites/' + site.id + '?renew=ok#ssl');
+  } catch (_) {
+    res.redirect('/sites/' + site.id + '?renew=error#ssl');
+  }
+});
+
+router.post('/:id/ssl/delete', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site || !site.ssl) return res.redirect('/sites/' + (site ? site.id : ''));
+  try {
+    await sslManager.deleteCert(site.domain);
+    db.prepare('UPDATE sites SET ssl = 0 WHERE id = ?').run(site.id);
+    const updated = db.prepare('SELECT * FROM sites WHERE id = ?').get(site.id);
+    const settings = getSettings(db);
+    await siteManager.writeVhost(updated, settings);
+    siteManager.reloadNginx();
+  } catch (_) {}
+  res.redirect('/sites/' + site.id + '?ssl=removed#ssl');
 });
 
 router.post('/:id', async (req, res) => {
