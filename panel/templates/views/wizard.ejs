@@ -83,16 +83,18 @@
 
     <% const phpList = (state.php_versions || '').split(',').map(s => s.trim()).filter(Boolean); %>
     <% const hasDb = state.database_choice; %>
+    <% const nodeVer = state.node_version || ''; %>
     <% const phpConfigLabel = state.php_fpm_config === 'optimized' ? ' (optimized)' : ''; %>
     <% const dbConfigLabel = state.database_config === 'optimized' ? ' (optimized)' : ''; %>
     <% const opts = [ state.email_installed && 'Mail (Postfix + Dovecot)', state.ftp_installed && 'FTP (ProFTPD)', state.certbot_installed && 'Certbot (SSL)' ].filter(Boolean); %>
-    <section class="stack <%= (phpList.length || hasDb || opts.length) ? '' : 'empty' %>" aria-label="Selected stack">
+    <section class="stack <%= (phpList.length || hasDb || nodeVer || opts.length) ? '' : 'empty' %>" aria-label="Selected stack">
       <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Your stack</h2>
       <ul>
         <% if (phpList.length) { phpList.forEach(v => { %><li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>PHP-FPM <%= v %><%= phpConfigLabel %></li><% }); } %>
+        <% if (nodeVer) { %><li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Node.js <%= nodeVer %></li><% } %>
         <% if (hasDb) { %><li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><%= hasDb === 'mariadb' ? 'MariaDB' : 'MySQL' %><%= dbConfigLabel %></li><% } %>
         <% opts.forEach(name => { %><li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><%= name %></li><% }); %>
-        <% if (!phpList.length && !hasDb && !opts.length) { %><li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>Nothing selected yet</li><% } %>
+        <% if (!phpList.length && !nodeVer && !hasDb && !opts.length) { %><li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>Nothing selected yet</li><% } %>
       </ul>
     </section>
 
@@ -122,6 +124,31 @@
             <input type="radio" name="php_fpm_config" value="optimized" <%= phpFpmConfig === 'optimized' ? 'checked' : '' %>>
             <span class="radio-label">Optimized</span>
             <span class="radio-desc">Production-oriented tuning: larger worker pool (pm.max_children 50, dynamic pm), worker recycling (pm.max_requests 500), and OPcache with 128MB, 10k cached scripts and no runtime file checks for best throughput.</span>
+          </label>
+        </div>
+
+        <h3 class="wizard-subhead">Node.js version</h3>
+        <p>Select which Node.js version to install (for Node-type sites). Choose one: latest LTS or two versions behind. You can skip Node if you only use PHP.</p>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="node_version" value="" <%= !state.node_version || state.node_version === '' ? 'checked' : '' %>>
+            <span class="radio-label">Don't install Node.js</span>
+            <span class="radio-desc">Skip Node. You can add it later or use PHP-only sites.</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="node_version" value="22" <%= state.node_version === '22' ? 'checked' : '' %>>
+            <span class="radio-label">Node.js 22 (Latest LTS)</span>
+            <span class="radio-desc">Current LTS. Recommended for new projects.</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="node_version" value="20" <%= state.node_version === '20' ? 'checked' : '' %>>
+            <span class="radio-label">Node.js 20 (One version behind)</span>
+            <span class="radio-desc">Previous LTS. Use for compatibility with existing apps.</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="node_version" value="18" <%= state.node_version === '18' ? 'checked' : '' %>>
+            <span class="radio-label">Node.js 18 (Two versions behind)</span>
+            <span class="radio-desc">Older LTS. Use only if you need this specific version.</span>
           </label>
         </div>
 

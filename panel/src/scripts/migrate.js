@@ -42,6 +42,9 @@ try {
   db.exec("ALTER TABLE wizard_state ADD COLUMN database_config TEXT DEFAULT 'default'");
 } catch (_) { /* column may already exist */ }
 try {
+  db.exec("ALTER TABLE wizard_state ADD COLUMN node_version TEXT");
+} catch (_) { /* column may already exist */ }
+try {
   db.exec('ALTER TABLE databases ADD COLUMN site_id INTEGER REFERENCES sites(id)');
 } catch (_) { /* column may already exist */ }
 try {

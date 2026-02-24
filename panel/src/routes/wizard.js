@@ -34,8 +34,9 @@ router.get('/step/:name', async (req, res) => {
 router.post('/php', async (req, res) => {
   const versions = (Array.isArray(req.body.versions) ? req.body.versions : [req.body.versions]).filter(Boolean).join(',');
   const phpFpmConfig = req.body.php_fpm_config === 'optimized' ? 'optimized' : 'default';
+  const nodeVersion = ['', '18', '20', '22'].includes(req.body.node_version) ? req.body.node_version : '';
   const db = await getDb();
-  db.prepare('UPDATE wizard_state SET php_versions = ?, php_fpm_config = ?, step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run(versions || null, phpFpmConfig, 'database');
+  db.prepare('UPDATE wizard_state SET php_versions = ?, php_fpm_config = ?, node_version = ?, step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run(versions || null, phpFpmConfig, nodeVersion || null, 'database');
   res.redirect('/wizard');
 });
 

@@ -182,6 +182,24 @@ function installCertbot() {
   return run('apt-get install -y -qq certbot python3-certbot-nginx');
 }
 
+/** Allowed Node.js major versions for wizard (NodeSource setup_XX.x). */
+const NODE_VERSIONS = ['18', '20', '22'];
+
+/**
+ * Install Node.js via NodeSource for the given major version (e.g. '22', '20', '18').
+ */
+function installNode(version) {
+  if (!version || !NODE_VERSIONS.includes(version)) return { ok: true, out: '' };
+  const setupUrl = 'https://deb.nodesource.com/setup_' + version + '.x';
+  const curl = run('curl -fsSL ' + setupUrl + ' | bash -', { stdio: 'pipe', timeout: 120000 });
+  if (!curl.ok) return { ok: false, out: curl.out || 'NodeSource setup failed' };
+  const update = run('apt-get update -qq');
+  if (!update.ok) return update;
+  const install = run('apt-get install -y -qq nodejs');
+  if (!install.ok) return { ok: false, out: install.out };
+  return { ok: true, out: (curl.out || '') + (install.out || '') };
+}
+
 /**
  * Run full wizard install from state object (from wizard_state row).
  * Returns { success, log }.
@@ -212,6 +230,12 @@ function runWizardInstall(state) {
     const phpFpmConfig = state.php_fpm_config || 'default';
     const r2 = step('PHP-FPM ' + phpVersions.join(', ') + (phpFpmConfig === 'optimized' ? ' (optimized)' : ''), () => installPhp(phpVersions, phpFpmConfig));
     if (!r2.ok) return { success: false, log: log.join('\n') };
+  }
+
+  const nodeVersion = state.node_version && NODE_VERSIONS.includes(state.node_version) ? state.node_version : null;
+  if (nodeVersion) {
+    const rNode = step('Node.js ' + nodeVersion, () => installNode(nodeVersion));
+    if (!rNode.ok) return { success: false, log: log.join('\n') };
   }
 
   const databaseConfig = state.database_config || 'default';
@@ -277,6 +301,17 @@ async function runWizardInstallStreaming(state, onOutput) {
       }
     }
 
+    const nodeVersion = state.node_version && NODE_VERSIONS.includes(state.node_version) ? state.node_version : null;
+    if (nodeVersion) {
+      out('\n[Node.js ' + nodeVersion + ']\n');
+      const setupUrl = 'https://deb.nodesource.com/setup_' + nodeVersion + '.x';
+      const rCurl = await runStreaming('curl -fsSL ' + setupUrl + ' | bash -', out);
+      if (!rCurl.ok) return { success: false };
+      await runStreaming('apt-get update -q', out);
+      const rNode = await runStreaming('apt-get install -y -q nodejs', out);
+      if (!rNode.ok) return { success: false };
+    }
+
     out('\n[Database: ' + databaseChoice + (useDbOptimized ? ' (optimized)' : '') + ']\n');
     const dbPkg = databaseChoice === 'mariadb' ? 'mariadb-server' : 'mysql-server';
     const r3 = await runStreaming('apt-get install -y -q ' + dbPkg, out);
@@ -315,6 +350,7 @@ async function runWizardInstallStreaming(state, onOutput) {
 module.exports = {
   aptUpdate,
   installPhp,
+  installNode,
   installDatabase,
   installMail,
   installFtp,
