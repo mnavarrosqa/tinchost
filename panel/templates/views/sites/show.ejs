@@ -83,7 +83,7 @@
       </div>
       <div class="site-actions">
         <a href="/sites/<%= site.id %>/edit" class="btn">Edit settings</a>
-        <form method="post" action="/sites/<%= site.id %>/delete" class="inline" onsubmit="return confirm('Delete this site? Nginx vhost and site-specific databases/FTP users will be removed. This cannot be undone.');">
+        <form method="post" action="/sites/<%= site.id %>/delete" class="inline" onsubmit="return confirm(&#39;Delete this site? Nginx vhost and site-specific databases/FTP users will be removed. This cannot be undone.&#39;);">
           <button type="submit" class="btn btn-danger">Delete site</button>
         </form>
       </div>
@@ -125,7 +125,7 @@
             </td>
             <td>
               <% if (gIdx === 0) { %>
-              <form method="post" action="/sites/<%= site.id %>/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm('Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.');">
+              <form method="post" action="/sites/<%= site.id %>/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm(&#39;Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.&#39;);">
                 <button type="submit" class="btn btn-danger">Delete DB</button>
               </form>
               <% } %>
@@ -139,7 +139,7 @@
             <td>—</td>
             <td>—</td>
             <td>
-              <form method="post" action="/sites/<%= site.id %>/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm('Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.');">
+              <form method="post" action="/sites/<%= site.id %>/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm(&#39;Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.&#39;);">
                 <button type="submit" class="btn btn-danger">Delete DB</button>
               </form>
             </td>
@@ -186,18 +186,18 @@
       </form>
       <script>
         (function(){
-          var sel = document.getElementById('assign_user');
-          var rowUser = document.getElementById('row-new-user');
-          var rowPwd = document.getElementById('row-new-password');
+          var sel = document.getElementById(&#39;assign_user&#39;);
+          var rowUser = document.getElementById(&#39;row-new-user&#39;);
+          var rowPwd = document.getElementById(&#39;row-new-password&#39;);
           if (!sel || !rowUser) return;
           function toggle(){
-            var show = sel.value === 'new';
-            rowUser.style.display = show ? 'block' : 'none';
-            rowPwd.style.display = show ? 'block' : 'none';
-            rowUser.querySelector('input').required = show;
-            rowPwd.querySelector('input').required = show;
+            var show = sel.value === &#39;new&#39;;
+            rowUser.style.display = show ? &#39;block&#39; : &#39;none&#39;;
+            rowPwd.style.display = show ? &#39;block&#39; : &#39;none&#39;;
+            rowUser.querySelector(&#39;input&#39;).required = show;
+            rowPwd.querySelector(&#39;input&#39;).required = show;
           }
-          sel.addEventListener('change', toggle);
+          sel.addEventListener(&#39;change&#39;, toggle);
           toggle();
         })();
       </script>
@@ -243,7 +243,7 @@
               </form>
             </td>
             <td>
-              <form method="post" action="/sites/<%= site.id %>/ftp-users/<%= u.id %>/delete" class="inline" onsubmit="return confirm('Remove FTP user <%= u.username %>?');">
+              <form method="post" action="/sites/<%= site.id %>/ftp-users/<%= u.id %>/delete" class="inline" onsubmit="return confirm(&#39;Remove FTP user <%= u.username %>?&#39;);">
                 <button type="submit" class="btn btn-danger">Remove</button>
               </form>
             </td>
@@ -273,17 +273,17 @@
     </div>
   </main>
   <script>
-  document.addEventListener('click', function(e) {
-    var btn = e.target.closest('.show-pwd-btn');
+  document.addEventListener(&#39;click&#39;, function(e) {
+    var btn = e.target.closest(&#39;.show-pwd-btn&#39;);
     if (!btn) return;
-    var c = btn.closest('.password-cell');
+    var c = btn.closest(&#39;.password-cell&#39;);
     if (!c) return;
-    var pwd = c.querySelector('.pwd-value');
-    var hint = c.querySelector('.show-hint');
-    if (pwd && pwd.textContent) { pwd.style.display = 'inline'; pwd.classList.add('password'); } else if (hint) { hint.style.display = 'inline'; }
-    var mask = c.querySelector('.pwd-mask');
-    if (mask) mask.style.display = 'none';
-    btn.style.display = 'none';
+    var pwd = c.querySelector(&#39;.pwd-value&#39;);
+    var hint = c.querySelector(&#39;.show-hint&#39;);
+    if (pwd && pwd.textContent) { pwd.style.display = &#39;inline&#39;; pwd.classList.add(&#39;password&#39;); } else if (hint) { hint.style.display = &#39;inline&#39;; }
+    var mask = c.querySelector(&#39;.pwd-mask&#39;);
+    if (mask) mask.style.display = &#39;none&#39;;
+    btn.style.display = &#39;none&#39;;
   });
   </script>
 </body>
