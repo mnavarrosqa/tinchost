@@ -173,6 +173,7 @@ router.post('/:id/databases', async (req, res) => {
   try {
     const safeName = name.replace(/[^a-z0-9_]/gi, '');
     if (safeName !== name) throw new Error('Invalid database name');
+    if (db.prepare('SELECT id FROM databases WHERE name = ?').get(safeName)) throw new Error('A database with this name already exists');
     db.prepare('INSERT INTO databases (name, site_id) VALUES (?, ?)').run(safeName, siteId);
     await databaseManager.createDatabase(settings, safeName);
     if (db_username && db_password) {
@@ -192,7 +193,8 @@ router.post('/:id/databases', async (req, res) => {
       if (isNewUser) newDbCredentials = { username: safeUser, password: db_password, database: safeName };
     }
   } catch (e) {
-    return res.redirect('/sites/' + siteId + '?error=' + encodeURIComponent(e.message || 'Database creation failed'));
+    const msg = (e.message && e.message.includes('UNIQUE constraint failed')) ? 'A database with this name already exists' : (e.message || 'Database creation failed');
+    return res.redirect('/sites/' + siteId + '?error=' + encodeURIComponent(msg));
   }
   const siteDatabases = db.prepare('SELECT * FROM databases WHERE site_id = ? ORDER BY name').all(site.id);
   const databaseGrants = db.prepare(`
