@@ -5,20 +5,114 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login – Tinchost Panel</title>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 400px; }
-    input { width: 100%; padding: 0.5rem; margin: 0.25rem 0 1rem 0; }
-    button { padding: 0.5rem 1rem; background: #007bff; color: #fff; border: none; cursor: pointer; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background: #eef5ef;
+      color: #1b4332;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .card {
+      max-width: 400px;
+      width: 100%;
+      background: #fff;
+      border: 1px solid #b7d4bc;
+      border-radius: 8px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(45, 106, 79, 0.08);
+    }
+    .brand {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #2d6a4f;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .brand .ic {
+      width: 28px;
+      height: 28px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .tagline {
+      font-size: 0.9rem;
+      color: #52796f;
+      margin-bottom: 1.5rem;
+    }
+    .login-form label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #1b4332;
+      margin-bottom: 0.35rem;
+    }
+    .login-form input {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+      font-family: inherit;
+      color: #1b4332;
+      background: #fff;
+      border: 1px solid #b7d4bc;
+      border-radius: 6px;
+    }
+    .login-form input:focus {
+      outline: none;
+      border-color: #2d6a4f;
+      box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15);
+    }
+    .login-form input::placeholder {
+      color: #95b5a8;
+    }
+    .login-form button {
+      width: 100%;
+      padding: 0.65rem 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      color: #fff;
+      background: #2d6a4f;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 0.25rem;
+    }
+    .login-form button:hover {
+      background: #1b4332;
+    }
+    .login-form button:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.25);
+    }
   </style>
 </head>
 <body>
-  <h1>Tinchost Panel</h1>
-  <p>Log in to the control panel.</p>
-  <form method="post" action="/auth/login">
-    <label>Username</label>
-    <input type="text" name="username" required autofocus>
-    <label>Password</label>
-    <input type="password" name="password" required>
-    <button type="submit">Log in</button>
-  </form>
+  <div class="card">
+    <h1 class="brand">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Tinchost Panel
+    </h1>
+    <p class="tagline">Log in to the control panel.</p>
+    <form class="login-form" method="post" action="/auth/login">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required autofocus placeholder="Your username">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required placeholder="Your password">
+      <button type="submit">Log in</button>
+    </form>
+  </div>
 </body>
 </html>
