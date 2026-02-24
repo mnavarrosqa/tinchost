@@ -98,7 +98,7 @@
       <div class="credential-box">
         <strong>New user created — save these credentials (shown once)</strong>
         Database: <strong><%= newDbCredentials.database %></strong> · User: <strong><%= newDbCredentials.username %></strong> · Password: <span class="password"><%= newDbCredentials.password %></span>
-        <button type="button" class="btn btn-small btn-secondary" onclick="var el=this.closest('.credential-box').querySelector('.password'); if(el && navigator.clipboard){ navigator.clipboard.writeText(el.textContent); this.textContent='Copied'; var t=this; setTimeout(function(){ t.textContent='Copy'; }, 1500); }">Copy password</button>
+        <button type="button" class="btn btn-small btn-secondary" onclick="var el=this.closest(&#39;.credential-box&#39;).querySelector(&#39;.password&#39;); if(el && navigator.clipboard){ navigator.clipboard.writeText(el.textContent); this.textContent=&#39;Copied&#39;; var t=this; setTimeout(function(){ t.textContent=&#39;Copy&#39;; }, 1500); }">Copy password</button>
       </div>
       <% } %>
       <% if (siteDatabases.length) { %>
@@ -116,7 +116,7 @@
             <td><%= (g.privileges || 'ALL').replace(/_/g, ' ') %></td>
             <td class="password-cell">
               <span class="pwd-mask">••••••</span>
-              <button type="button" class="btn btn-small btn-secondary" onclick="var c=this.closest('.password-cell'); var pwd=c.querySelector('.pwd-value'); var hint=c.querySelector('.show-hint'); if(pwd&&pwd.textContent){ pwd.style.display='inline'; pwd.classList.add('password'); } else if(hint){ hint.style.display='inline'; } c.querySelector('.pwd-mask').style.display='none'; this.style.display='none';">Show</button>
+              <button type="button" class="btn btn-small btn-secondary show-pwd-btn">Show</button>
               <% if (g.password_plain) { %><span class="pwd-value" style="display:none;"><%= g.password_plain %></span><% } else { %><span class="show-hint" style="display:none;">Not stored — use Reset</span><% } %>
               <form method="post" action="/sites/<%= site.id %>/db-users/<%= g.db_user_id %>/reset-password" class="inline">
                 <input type="password" name="password" placeholder="New password" required style="max-width:10rem;">
@@ -215,7 +215,7 @@
       <div class="credential-box">
         <strong>New FTP user created — save these credentials (shown once)</strong>
         Use <strong>FTP login</strong> in your client: <code><%= newFtpLogin %></code> · Password: <span class="password"><%= newFtpCredentials.password %></span>
-        <button type="button" class="btn btn-small btn-secondary" onclick="var el=this.closest('.credential-box').querySelector('.password'); if(el && navigator.clipboard){ navigator.clipboard.writeText(el.textContent); this.textContent='Copied'; var t=this; setTimeout(function(){ t.textContent='Copy'; }, 1500); }">Copy password</button>
+        <button type="button" class="btn btn-small btn-secondary" onclick="var el=this.closest(&#39;.credential-box&#39;).querySelector(&#39;.password&#39;); if(el && navigator.clipboard){ navigator.clipboard.writeText(el.textContent); this.textContent=&#39;Copied&#39;; var t=this; setTimeout(function(){ t.textContent=&#39;Copy&#39;; }, 1500); }">Copy password</button>
       </div>
       <% } %>
       <p class="empty-msg">Use the <strong>FTP login</strong> name (domain_username) in your FTP client, not the username alone.</p>
@@ -235,7 +235,7 @@
               <span class="show-hint">FTP login disabled — set password below to enable.</span>
               <% } else { %>
               <span class="pwd-mask">••••••</span>
-              <button type="button" class="btn btn-small btn-secondary" onclick="var c=this.closest('.password-cell'); var pwd=c.querySelector('.pwd-value'); var hint=c.querySelector('.show-hint'); if(pwd&&pwd.textContent){ pwd.style.display='inline'; pwd.classList.add('password'); } else if(hint){ hint.style.display='inline'; } c.querySelector('.pwd-mask').style.display='none'; this.style.display='none';">Show</button>
+              <button type="button" class="btn btn-small btn-secondary show-pwd-btn">Show</button>
               <% if (u.password_plain) { %><span class="pwd-value" style="display:none;"><%= u.password_plain %></span><% } else { %><span class="show-hint" style="display:none;">Not stored — use Reset</span><% } %>
               <form method="post" action="/sites/<%= site.id %>/ftp-users/<%= u.id %>/reset-password" class="inline">
                 <input type="password" name="password" placeholder="New password" required style="max-width:10rem;" autocomplete="new-password">
@@ -272,5 +272,19 @@
       <% } %>
     </div>
   </main>
+  <script>
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.show-pwd-btn');
+    if (!btn) return;
+    var c = btn.closest('.password-cell');
+    if (!c) return;
+    var pwd = c.querySelector('.pwd-value');
+    var hint = c.querySelector('.show-hint');
+    if (pwd && pwd.textContent) { pwd.style.display = 'inline'; pwd.classList.add('password'); } else if (hint) { hint.style.display = 'inline'; }
+    var mask = c.querySelector('.pwd-mask');
+    if (mask) mask.style.display = 'none';
+    btn.style.display = 'none';
+  });
+  </script>
 </body>
 </html>
