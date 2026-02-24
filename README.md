@@ -30,7 +30,7 @@ This pulls the latest code (if you haven’t already), syncs the `panel/` files 
 
 - **Panel runs as root.** If the panel is compromised, the server can be fully controlled. Use a strong password and restrict access (firewall, VPN, or bind panel to localhost and use Nginx in front).
 - **SSL (Let's Encrypt):** Issuance fails if the domain’s DNS does not point to this server or ports 80/443 are blocked.
-- **FTP:** May not work from some networks if the FTP passive port range is not open in the firewall.
+- **FTP:** May not work from some networks if the FTP passive port range is not open in the firewall. In the FTP client, use the **FTP login** shown in the panel (e.g. `example_com_myuser` for site example.com and username myuser), not the username alone. The panel and ProFTPD must run on the same host.
 - **Mail:** Mail may not be delivered or may be marked as spam without SPF/DKIM/DMARC and open ports 25/587.
 - **Destructive actions** (delete site, database, mailbox) cannot be undone. Ensure you have backups.
 
@@ -53,6 +53,11 @@ The install script installs **PM2**, starts the panel with it, and configures it
 - `install/` – Nginx/PHP/mail config templates used by the script
 - `panel/` – Node.js control panel (Express, SQLite, runs as root)
 - `templates/` – Nginx vhost / PHP-FPM templates used by the panel
+
+## License
+
+MIT
+emplates used by the panel
 
 ## License
 

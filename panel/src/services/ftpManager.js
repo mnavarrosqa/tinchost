@@ -36,7 +36,8 @@ async function syncFtpUsers() {
     fs.mkdirSync(path.dirname(PROFTPD_PASSWD_FILE), { recursive: true });
   } catch (_) {}
   const lines = users.map((u) => {
-    const homedir = (u.default_route && u.default_route !== '') ? path.join(u.docroot, u.default_route) : u.docroot;
+    const route = (u.default_route && String(u.default_route).trim() !== '') ? String(u.default_route).trim().replace(/^\/+/, '') : '';
+    const homedir = route !== '' ? path.join(u.docroot, route) : u.docroot;
     const loginName = `${String(u.domain).replace(/\./g, '_')}_${u.username}`;
     return `${loginName}:${u.crypt_hash}:${FTP_UID}:${FTP_GID}::${homedir}:/sbin/nologin`;
   });
@@ -52,10 +53,16 @@ async function syncFtpUsers() {
 function writeProftpdConf() {
   try {
     fs.mkdirSync(PROFTPD_CONF_DIR, { recursive: true });
-    const conf = `# Tinchost panel – virtual FTP users from panel
-AuthOrder mod_auth_file.c mod_auth_unix.c
+    const conf = `# Tinchost panel – virtual FTP users (AuthUserFile only)
+# Panel must run on the same host as ProFTPD so this file and passwd file exist here.
+<IfModule mod_auth_pam.c>
+  AuthPAM off
+</IfModule>
+AuthOrder mod_auth_file.c
 AuthUserFile ${PROFTPD_PASSWD_FILE}
 RequireValidShell off
+UseFtpUsers off
+DefaultRoot ~
 `;
     const confPath = path.join(PROFTPD_CONF_DIR, 'tinchost.conf');
     fs.writeFileSync(confPath, conf, 'utf8');
