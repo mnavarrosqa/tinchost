@@ -51,6 +51,9 @@
     .table-wrap th, .table-wrap td { padding: 0.6rem 0.75rem; }
     .table-wrap thead th { background: #f1f8f2; }
     .empty-msg { color: #52796f; font-size: 0.95rem; padding: 0.75rem 0; }
+    .success-msg { background: #d8f3dc; border: 1px solid #2d6a4f; color: #1b4332; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .error-msg { background: #f8d7da; border: 1px solid #9b2226; color: #9b2226; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .action-group { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
   </style>
 </head>
 <body>
@@ -68,6 +71,12 @@
     <p class="intro">Create MySQL/MariaDB databases and users for your applications.</p>
     <% if (typeof hasMysqlPassword !== 'undefined' && !hasMysqlPassword) { %>
     <div class="risk">Set the MySQL root password in <a href="/settings">Settings</a> so the panel can create databases and users on the server.</div>
+    <% } %>
+    <% if (typeof repair !== 'undefined' && repair === 'ok') { %>
+    <div class="success-msg">Database repair completed.</div>
+    <% } %>
+    <% if (typeof repair !== 'undefined' && repair === 'error') { %>
+    <div class="error-msg">Repair failed.<% if (typeof repairMsg !== 'undefined' && repairMsg) { %> <%= repairMsg %><% } %></div>
     <% } %>
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Create database</h2>
@@ -159,9 +168,15 @@
               </div>
             </td>
             <td>
-              <form method="post" action="/databases/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm('Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.');">
-                <button type="submit" class="btn btn-small btn-danger">Delete</button>
-              </form>
+              <div class="action-group">
+                <a href="/databases/databases/<%= d.id %>/download" class="btn btn-small">Download .sql.gz</a>
+                <form method="post" action="/databases/databases/<%= d.id %>/repair" class="inline">
+                  <button type="submit" class="btn btn-small btn-secondary">Repair</button>
+                </form>
+                <form method="post" action="/databases/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm('Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.');">
+                  <button type="submit" class="btn btn-small btn-danger">Delete</button>
+                </form>
+              </div>
             </td>
           </tr>
           <% }); %>

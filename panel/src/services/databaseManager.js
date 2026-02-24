@@ -1,6 +1,7 @@
 const mysql = require('mysql2/promise');
 const crypto = require('crypto');
 const fs = require('fs');
+const { spawn } = require('child_process');
 
 const SOCKET_PATHS = [
   '/var/run/mysqld/mysqld.sock',
@@ -187,4 +188,62 @@ async function getDatabaseSizes(settings, dbNames) {
   return result;
 }
 
-module.exports = { getConnection, createDatabase, dropDatabase, createUser, setUserPassword, grantDatabase, revokeDatabase, dropUser, PRIVILEGE_SETS, getDatabaseSizes, formatBytes };
+/**
+ * Build connection args for MySQL CLI tools (mysqldump, mysqlcheck). Returns { args, env }.
+ */
+function getMysqlCliOpts(settings) {
+  const password = settings && settings.mysql_root_password;
+  if (!password) return null;
+  const socketPath = findSocket();
+  const args = socketPath ? ['--socket', socketPath] : ['-h', '127.0.0.1'];
+  return { args, env: { ...process.env, MYSQL_PWD: password } };
+}
+
+/**
+ * Stream a compressed dump of the database to the given writable stream.
+ * Returns a Promise that resolves with the readable stream (gzip output) once the pipeline is set up.
+ * Caller should set response headers then pipe the stream to res.
+ */
+function streamDatabaseDump(settings, dbName) {
+  const safe = String(dbName).replace(/[^a-z0-9_]/gi, '');
+  if (safe !== dbName) throw new Error('Invalid database name');
+  const opts = getMysqlCliOpts(settings);
+  if (!opts) throw new Error('MySQL root password not set in Settings');
+  return new Promise((resolve, reject) => {
+    const dumpArgs = ['--single-transaction', '-u', 'root', ...opts.args, safe];
+    const mysqldump = spawn('mysqldump', dumpArgs, { env: opts.env, stdio: ['ignore', 'pipe', 'pipe'] });
+    const gzip = spawn('gzip', ['-c'], { stdio: ['pipe', 'pipe', 'pipe'] });
+    mysqldump.stdout.pipe(gzip.stdin);
+    mysqldump.stderr.on('data', () => { gzip.stdin.destroy(); });
+    gzip.stdin.on('error', () => {});
+    gzip.stdout.on('error', (err) => reject(err));
+    mysqldump.on('error', (err) => { gzip.stdin.destroy(); reject(err); });
+    gzip.on('error', (err) => reject(err));
+    resolve(gzip.stdout);
+  });
+}
+
+/**
+ * Run mysqlcheck --repair on the database. Returns { ok, message }.
+ */
+async function repairDatabase(settings, dbName) {
+  const safe = String(dbName).replace(/[^a-z0-9_]/gi, '');
+  if (safe !== dbName) return { ok: false, message: 'Invalid database name' };
+  const opts = getMysqlCliOpts(settings);
+  if (!opts) return { ok: false, message: 'MySQL root password not set in Settings' };
+  return new Promise((resolve) => {
+    const args = ['-u', 'root', '--repair', ...opts.args, safe];
+    const proc = spawn('mysqlcheck', args, { env: opts.env, stdio: ['ignore', 'pipe', 'pipe'] });
+    let stderr = '';
+    let stdout = '';
+    proc.stderr.on('data', (c) => { stderr += c; });
+    proc.stdout.on('data', (c) => { stdout += c; });
+    proc.on('close', (code) => {
+      if (code === 0) resolve({ ok: true, message: 'Repair completed.' });
+      else resolve({ ok: false, message: (stderr || stdout || 'mysqlcheck failed').trim().slice(0, 200) });
+    });
+    proc.on('error', (err) => resolve({ ok: false, message: err.message || 'mysqlcheck not found' }));
+  });
+}
+
+module.exports = { getConnection, createDatabase, dropDatabase, createUser, setUserPassword, grantDatabase, revokeDatabase, dropUser, PRIVILEGE_SETS, getDatabaseSizes, formatBytes, streamDatabaseDump, repairDatabase };

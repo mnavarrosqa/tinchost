@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getDb } = require('../config/database');
 const databaseManager = require('../services/databaseManager');
-const { getDatabaseSizes } = require('../services/databaseManager');
+const { getDatabaseSizes, streamDatabaseDump, repairDatabase } = require('../services/databaseManager');
 const crypto = require('crypto');
 
 function getSettings(db) {
@@ -24,7 +24,9 @@ router.get('/', async (req, res) => {
       databaseSizes = await getDatabaseSizes(settings, databases.map(d => d.name));
     } catch (_) {}
   }
-  res.render('databases/list', { databases, users, grants, hasMysqlPassword: !!(settings && settings.mysql_root_password), user: req.session.user, databaseSizes });
+  const repair = req.query.repair || null;
+  const repairMsg = req.query.msg || null;
+  res.render('databases/list', { databases, users, grants, hasMysqlPassword: !!(settings && settings.mysql_root_password), user: req.session.user, databaseSizes, repair, repairMsg });
 });
 
 router.post('/databases', async (req, res) => {
@@ -54,6 +56,34 @@ router.post('/users', async (req, res) => {
     if (password) await databaseManager.createUser(settings, username, password, host || 'localhost');
   } catch (e) {}
   res.redirect('/databases');
+});
+
+router.get('/databases/:id/download', async (req, res) => {
+  const db = await getDb();
+  const row = db.prepare('SELECT id, name FROM databases WHERE id = ?').get(Number(req.params.id));
+  if (!row) return res.redirect('/databases');
+  const settings = getSettings(db);
+  try {
+    const stream = await streamDatabaseDump(settings, row.name);
+    const safeName = row.name.replace(/[^a-z0-9_]/gi, '_');
+    res.setHeader('Content-Disposition', 'attachment; filename="' + safeName + '.sql.gz"');
+    res.setHeader('Content-Type', 'application/gzip');
+    stream.pipe(res);
+    stream.on('error', () => { try { res.end(); } catch (_) {} });
+  } catch (e) {
+    if (!res.headersSent) res.status(500).send(e.message || 'Download failed');
+    else try { res.end(); } catch (_) {}
+  }
+});
+
+router.post('/databases/:id/repair', async (req, res) => {
+  const db = await getDb();
+  const row = db.prepare('SELECT id, name FROM databases WHERE id = ?').get(Number(req.params.id));
+  if (!row) return res.redirect('/databases');
+  const settings = getSettings(db);
+  const result = await repairDatabase(settings, row.name);
+  if (result.ok) res.redirect('/databases?repair=ok');
+  else res.redirect('/databases?repair=error&msg=' + encodeURIComponent(result.message || 'Repair failed'));
 });
 
 router.post('/databases/:id/delete', async (req, res) => {
