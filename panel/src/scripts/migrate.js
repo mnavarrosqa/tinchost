@@ -62,6 +62,12 @@ try {
 try {
   db.exec('ALTER TABLE sites ADD COLUMN php_options TEXT');
 } catch (_) { /* column may already exist */ }
+try {
+  db.exec("ALTER TABLE sites ADD COLUMN app_type TEXT DEFAULT 'php'");
+} catch (_) { /* column may already exist */ }
+try {
+  db.exec('ALTER TABLE sites ADD COLUMN node_port INTEGER');
+} catch (_) { /* column may already exist */ }
 db.exec(`
 
   CREATE TABLE IF NOT EXISTS sites (

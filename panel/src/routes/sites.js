@@ -56,8 +56,16 @@ router.get('/new', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { domain, docroot, php_version, create_docroot, ssl, ftp_enabled } = req.body || {};
+  const { domain, docroot, php_version, create_docroot, ssl, ftp_enabled, app_type, node_port } = req.body || {};
   if (!domain) return res.redirect('/sites/new');
+  const appKind = app_type === 'node' ? 'node' : 'php';
+  const portNum = node_port != null && node_port !== '' ? parseInt(node_port, 10) : null;
+  if (appKind === 'node' && (portNum == null || isNaN(portNum) || portNum < 1 || portNum > 65535)) {
+    const db = await getDb();
+    const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
+    const phpVersions = (state?.php_versions || '8.2').split(',').filter(Boolean);
+    return res.render('sites/form', { site: null, phpVersions, error: 'Node app requires a valid port (1–65535).' });
+  }
   const docrootPath = docroot || `/var/www/${domain}`;
   const db = await getDb();
   try {
@@ -66,8 +74,8 @@ router.post('/', async (req, res) => {
         return res.render('sites/form', { site: null, phpVersions: (db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get()?.php_versions || '8.2').split(',').filter(Boolean), error: 'SSL: ' + e.message });
       }
     }
-    db.prepare('INSERT INTO sites (domain, docroot, php_version, ssl, ftp_enabled) VALUES (?, ?, ?, ?, ?)').run(
-      domain, docrootPath, php_version || '8.2', ssl ? 1 : 0, ftp_enabled ? 1 : 0
+    db.prepare('INSERT INTO sites (domain, docroot, php_version, ssl, ftp_enabled, app_type, node_port) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+      domain, docrootPath, appKind === 'php' ? (php_version || '8.2') : null, ssl ? 1 : 0, ftp_enabled ? 1 : 0, appKind, appKind === 'node' ? portNum : null
     );
     const site = db.prepare('SELECT * FROM sites WHERE domain = ?').get(domain);
     const settings = getSettings(db);
@@ -371,19 +379,25 @@ router.post('/:id/php-options', async (req, res) => {
 });
 
 router.post('/:id', async (req, res) => {
-  const { domain, docroot, php_version, ssl, ftp_enabled } = req.body || {};
+  const { domain, docroot, php_version, ssl, ftp_enabled, app_type, node_port } = req.body || {};
   const db = await getDb();
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
   if (!site) return res.redirect('/sites');
+  const appKind = app_type === 'node' ? 'node' : 'php';
+  const portNum = node_port != null && node_port !== '' ? parseInt(node_port, 10) : null;
+  if (appKind === 'node' && (portNum == null || isNaN(portNum) || portNum < 1 || portNum > 65535)) {
+    const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
+    return res.render('sites/form', { site: { ...site, domain: domain || site.domain, docroot: docroot || site.docroot, php_version: site.php_version, app_type: 'node' }, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), error: 'Node app requires a valid port (1–65535).' });
+  }
   const dom = domain || site.domain;
   if (ssl && !site.ssl) {
     try { await sslManager.obtainCert(dom); } catch (e) {
       const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
-      return res.render('sites/form', { site: { ...site, domain: dom, docroot: docroot || site.docroot, php_version: php_version || site.php_version }, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), error: 'SSL: ' + e.message });
+      return res.render('sites/form', { site: { ...site, domain: dom, docroot: docroot || site.docroot, php_version: php_version || site.php_version, app_type: appKind, node_port: appKind === 'node' ? portNum : site.node_port }, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), error: 'SSL: ' + e.message });
     }
   }
-  db.prepare('UPDATE sites SET domain = ?, docroot = ?, php_version = ?, ssl = ?, ftp_enabled = ? WHERE id = ?').run(
-    dom, docroot || site.docroot, php_version || site.php_version, ssl ? 1 : 0, ftp_enabled ? 1 : 0, req.params.id
+  db.prepare('UPDATE sites SET domain = ?, docroot = ?, php_version = ?, ssl = ?, ftp_enabled = ?, app_type = ?, node_port = ? WHERE id = ?').run(
+    dom, docroot || site.docroot, appKind === 'php' ? (php_version || site.php_version) : null, ssl ? 1 : 0, ftp_enabled ? 1 : 0, appKind, appKind === 'node' ? portNum : null, req.params.id
   );
   const updated = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
   const settings = getSettings(db);

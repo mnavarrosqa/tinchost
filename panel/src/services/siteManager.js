@@ -36,6 +36,21 @@ function getPhpOptionLines(site) {
 }
 
 function vhostTemplate(site) {
+  const isNode = site.app_type === 'node';
+  const port = isNode && site.node_port != null ? Number(site.node_port) : null;
+  if (isNode && (!port || port < 1 || port > 65535)) {
+    throw new Error('Node app requires a valid port (1-65535)');
+  }
+  const proxyBlock = isNode ? `    location / {
+        proxy_pass http://127.0.0.1:${port};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+    }
+` : '';
   const phpSocket = site.php_version ? `/run/php/php${site.php_version}-fpm.sock` : '/run/php/php8.2-fpm.sock';
   const phpOptLines = getPhpOptionLines(site);
   const phpValueNginx = phpOptLines.length
@@ -46,16 +61,20 @@ function vhostTemplate(site) {
         fastcgi_pass unix:${phpSocket};
 ${phpValueNginx}    }
 `;
+  const root = site.docroot;
+  const phpLocationBlock = `    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+${phpBlock}
+`;
+  const locationBlock = isNode ? proxyBlock : phpLocationBlock;
   let conf = `
 server {
     listen 80;
     server_name ${site.domain};
-    root ${site.docroot};
+    root ${root};
     index index.php index.html;
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-${phpBlock}
+${locationBlock}
 }
 `;
   if (site.ssl) {
@@ -70,12 +89,9 @@ server {
     server_name ${site.domain};
     ssl_certificate /etc/letsencrypt/live/${site.domain}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${site.domain}/privkey.pem;
-    root ${site.docroot};
+    root ${root};
     index index.php index.html;
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-${phpBlock}
+${locationBlock}
 }
 `;
   }

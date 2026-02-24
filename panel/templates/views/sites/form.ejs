@@ -38,12 +38,24 @@
       <input type="text" name="domain" value="<%= site ? site.domain : '' %>" required placeholder="example.com">
       <label>Docroot</label>
       <input type="text" name="docroot" value="<%= site ? site.docroot : '' %>" placeholder="/var/www/example.com">
-      <label>PHP version</label>
-      <select name="php_version">
-        <% (phpVersions.length ? phpVersions : ['8.2']).forEach(function(v) { %>
-        <option value="<%= v %>" <%= (site && site.php_version === v) ? 'selected' : '' %>><%= v %></option>
-        <% }); %>
+      <label>App type</label>
+      <select name="app_type" id="app_type">
+        <option value="php" <%= (!site || site.app_type !== 'node') ? 'selected' : '' %>>PHP</option>
+        <option value="node" <%= (site && site.app_type === 'node') ? 'selected' : '' %>>Node</option>
       </select>
+      <div id="php-options">
+        <label>PHP version</label>
+        <select name="php_version">
+          <% (phpVersions.length ? phpVersions : ['8.2']).forEach(function(v) { %>
+          <option value="<%= v %>" <%= (site && site.php_version === v) ? 'selected' : '' %>><%= v %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div id="node-options" style="display:none;">
+        <label>Node app port</label>
+        <input type="number" name="node_port" id="node_port" min="1" max="65535" placeholder="e.g. 3001" value="<%= (site && site.app_type === 'node' && site.node_port) ? site.node_port : '' %>">
+        <p class="risk" style="margin-top:0.35rem;">Your Node app must listen on this port (e.g. <code>app.listen(3001)</code> or PM2). Nginx will proxy requests to 127.0.0.1:port.</p>
+      </div>
       <% if (!site) { %>
       <label><input type="checkbox" name="create_docroot" value="on"> Create docroot directory</label>
       <% } %>
@@ -53,6 +65,22 @@
       <div class="risk"><strong>Risk:</strong> FTP may not work from some networks if the server's FTP passive port range is not open in the firewall.</div>
       <button type="submit"><%= site ? 'Update' : 'Create' %> site</button>
     </form>
+    <script>
+      (function() {
+        var appType = document.getElementById('app_type');
+        var phpOpts = document.getElementById('php-options');
+        var nodeOpts = document.getElementById('node-options');
+        var nodePort = document.getElementById('node_port');
+        function toggle() {
+          var isNode = appType.value === 'node';
+          phpOpts.style.display = isNode ? 'none' : 'block';
+          nodeOpts.style.display = isNode ? 'block' : 'none';
+          nodePort.required = isNode;
+        }
+        appType.addEventListener('change', toggle);
+        toggle();
+      })();
+    </script>
   </main>
 </body>
 </html>
