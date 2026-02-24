@@ -40,6 +40,12 @@
     .error-msg { background: #f8d7da; border: 1px solid #9b2226; color: #9b2226; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
     .empty-msg { color: #52796f; font-size: 0.9rem; }
     form.inline { display: inline; }
+    .credential-box { background: #d8f3dc; border: 1px solid #2d6a4f; color: #1b4332; padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .credential-box strong { display: block; margin-bottom: 0.35rem; }
+    .credential-box .password { font-family: monospace; user-select: all; }
+    .btn-small { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+    .password-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+    .password-cell .show-hint { font-size: 0.8rem; color: #52796f; }
   </style>
 </head>
 <body>
@@ -80,23 +86,57 @@
       <% if (!hasMysqlPassword) { %>
       <p class="empty-msg">Set the MySQL root password in <a href="/settings">Settings</a> to create databases from the panel.</p>
       <% } else { %>
+      <% if (typeof newDbCredentials !== 'undefined' && newDbCredentials) { %>
+      <div class="credential-box">
+        <strong>New user created — save these credentials (shown once)</strong>
+        Database: <strong><%= newDbCredentials.database %></strong> · User: <strong><%= newDbCredentials.username %></strong> · Password: <span class="password"><%= newDbCredentials.password %></span>
+        <button type="button" class="btn btn-small btn-secondary" onclick="var el=this.closest('.credential-box').querySelector('.password'); if(el && navigator.clipboard){ navigator.clipboard.writeText(el.textContent); this.textContent='Copied'; var t=this; setTimeout(function(){ t.textContent='Copy'; }, 1500); }">Copy password</button>
+      </div>
+      <% } %>
       <% if (siteDatabases.length) { %>
       <table>
-        <thead><tr><th>Database</th><th>User</th><th>Privileges</th><th></th></tr></thead>
+        <thead><tr><th>Database</th><th>User</th><th>Privileges</th><th>Password</th><th></th></tr></thead>
         <tbody>
           <% siteDatabases.forEach(function(d) {
             const grants = (typeof databaseGrants !== 'undefined' ? databaseGrants : []).filter(function(g) { return g.database_id === d.id; });
           %>
+          <% if (grants.length) { %>
+            <% grants.forEach(function(g, gIdx) { %>
           <tr>
             <td><%= d.name %></td>
-            <td><%= grants.length ? grants.map(function(g) { return g.username; }).join(', ') : '—' %></td>
-            <td><%= grants.length ? grants.map(function(g) { return (g.privileges || 'ALL').replace(/_/g, ' '); }).join(', ') : '—' %></td>
+            <td><%= g.username %></td>
+            <td><%= (g.privileges || 'ALL').replace(/_/g, ' ') %></td>
+            <td class="password-cell">
+              <span class="pwd-mask">••••••</span>
+              <button type="button" class="btn btn-small btn-secondary" onclick="var c=this.closest('.password-cell'); c.querySelector('.pwd-mask').style.display='none'; c.querySelector('.show-hint').style.display='inline'; this.style.display='none';">Show</button>
+              <span class="show-hint" style="display:none;">Not stored — use Reset</span>
+              <form method="post" action="/sites/<%= site.id %>/db-users/<%= g.db_user_id %>/reset-password" class="inline">
+                <input type="password" name="password" placeholder="New password" required style="max-width:10rem;">
+                <button type="submit" class="btn btn-small">Reset</button>
+              </form>
+            </td>
+            <td>
+              <% if (gIdx === 0) { %>
+              <form method="post" action="/sites/<%= site.id %>/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm('Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.');">
+                <button type="submit" class="btn btn-danger">Delete DB</button>
+              </form>
+              <% } %>
+            </td>
+          </tr>
+            <% }); %>
+          <% } else { %>
+          <tr>
+            <td><%= d.name %></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
             <td>
               <form method="post" action="/sites/<%= site.id %>/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm('Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.');">
-                <button type="submit" class="btn btn-danger">Delete</button>
+                <button type="submit" class="btn btn-danger">Delete DB</button>
               </form>
             </td>
           </tr>
+          <% } %>
           <% }); %>
         </tbody>
       </table>
@@ -134,6 +174,13 @@
       <% if (!site.ftp_enabled) { %>
       <p class="empty-msg">Enable FTP for this site in <a href="/sites/<%= site.id %>/edit">Edit settings</a> to add FTP users.</p>
       <% } else { %>
+      <% if (typeof newFtpCredentials !== 'undefined' && newFtpCredentials) { %>
+      <div class="credential-box">
+        <strong>New FTP user created — save these credentials (shown once)</strong>
+        User: <strong><%= newFtpCredentials.username %></strong> · Password: <span class="password"><%= newFtpCredentials.password %></span>
+        <button type="button" class="btn btn-small btn-secondary" onclick="var el=this.closest('.credential-box').querySelector('.password'); if(el && navigator.clipboard){ navigator.clipboard.writeText(el.textContent); this.textContent='Copied'; var t=this; setTimeout(function(){ t.textContent='Copy'; }, 1500); }">Copy password</button>
+      </div>
+      <% } %>
       <% if (ftpUsers.length) { %>
       <table>
         <thead><tr><th>Username</th><th>Default route</th><th>Password</th><th></th></tr></thead>
@@ -142,10 +189,15 @@
           <tr>
             <td><%= u.username %></td>
             <td><%= (u.default_route && u.default_route !== '') ? u.default_route : '(docroot)' %></td>
-            <td><span class="empty-msg">••••••</span> <form method="post" action="/sites/<%= site.id %>/ftp-users/<%= u.id %>/reset-password" class="inline" style="display:inline;">
-              <input type="password" name="password" placeholder="New password" required style="max-width:10rem; margin-right:0.25rem;">
-              <button type="submit" class="btn btn-secondary">Reset</button>
-            </form></td>
+            <td class="password-cell">
+              <span class="pwd-mask">••••••</span>
+              <button type="button" class="btn btn-small btn-secondary" onclick="var c=this.closest('.password-cell'); c.querySelector('.pwd-mask').style.display='none'; c.querySelector('.show-hint').style.display='inline'; this.style.display='none';">Show</button>
+              <span class="show-hint" style="display:none;">Not stored — use Reset</span>
+              <form method="post" action="/sites/<%= site.id %>/ftp-users/<%= u.id %>/reset-password" class="inline">
+                <input type="password" name="password" placeholder="New password" required style="max-width:10rem;">
+                <button type="submit" class="btn btn-small">Reset</button>
+              </form>
+            </td>
             <td>
               <form method="post" action="/sites/<%= site.id %>/ftp-users/<%= u.id %>/delete" class="inline" onsubmit="return confirm('Remove FTP user <%= u.username %>?');">
                 <button type="submit" class="btn btn-danger">Remove</button>

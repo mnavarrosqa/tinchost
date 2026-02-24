@@ -38,6 +38,16 @@ async function createUser(settings, username, password, host) {
   await conn.end();
 }
 
+async function setUserPassword(settings, username, newPassword, host) {
+  const conn = await getConnection(settings);
+  if (!conn) throw new Error('MySQL root password not set in Settings');
+  const safeUser = username.replace(/[^a-z0-9_]/gi, '');
+  if (safeUser !== username) throw new Error('Invalid username');
+  await conn.execute('ALTER USER ??@?? IDENTIFIED BY ?', [safeUser, host || 'localhost', newPassword]);
+  await conn.execute('FLUSH PRIVILEGES');
+  await conn.end();
+}
+
 const PRIVILEGE_SETS = {
   ALL: 'ALL PRIVILEGES',
   READ_WRITE: 'SELECT, INSERT, UPDATE, DELETE',
@@ -55,4 +65,4 @@ async function grantDatabase(settings, username, databaseName, host, privileges)
   await conn.end();
 }
 
-module.exports = { getConnection, createDatabase, createUser, grantDatabase, PRIVILEGE_SETS };
+module.exports = { getConnection, createDatabase, createUser, setUserPassword, grantDatabase, PRIVILEGE_SETS };

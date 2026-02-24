@@ -86,13 +86,17 @@ router.get('/:id', async (req, res) => {
   if (!site) return res.redirect('/sites');
   const siteDatabases = db.prepare('SELECT * FROM databases WHERE site_id = ? ORDER BY name').all(site.id);
   const databaseGrants = db.prepare(`
-    SELECT g.database_id, g.privileges, u.username FROM db_grants g
+    SELECT g.database_id, g.db_user_id, g.privileges, u.username FROM db_grants g
     JOIN db_users u ON u.id = g.db_user_id
     JOIN databases d ON d.id = g.database_id WHERE d.site_id = ?
   `).all(site.id);
   const ftpUsers = ftpManager.getFtpUsersBySite(db, site.id);
   const settings = getSettings(db);
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!(settings && settings.mysql_root_password), error: req.query.error, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS) });
+  const newDbCredentials = req.session.newDbCredentials || null;
+  const newFtpCredentials = req.session.newFtpCredentials || null;
+  if (req.session.newDbCredentials) delete req.session.newDbCredentials;
+  if (req.session.newFtpCredentials) delete req.session.newFtpCredentials;
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!(settings && settings.mysql_root_password), error: req.query.error, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials });
 });
 
 router.post('/:id', async (req, res) => {
@@ -147,6 +151,7 @@ router.post('/:id/databases', async (req, res) => {
     if (db_username && db_password) {
       const safeUser = db_username.replace(/[^a-z0-9_]/gi, '');
       if (safeUser !== db_username) throw new Error('Invalid username');
+      const isNewUser = !db.prepare('SELECT id FROM db_users WHERE username = ?').get(safeUser);
       let uid = db.prepare('SELECT id FROM db_users WHERE username = ?').get(safeUser)?.id;
       if (!uid) {
         const hash = crypto.createHash('sha256').update(db_password).digest('hex');
@@ -157,9 +162,33 @@ router.post('/:id/databases', async (req, res) => {
       await databaseManager.grantDatabase(settings, safeUser, safeName, 'localhost', priv);
       const did = db.prepare('SELECT id FROM databases WHERE name = ?').get(safeName).id;
       db.prepare('INSERT OR IGNORE INTO db_grants (database_id, db_user_id, privileges) VALUES (?, ?, ?)').run(did, uid, priv);
+      if (isNewUser) req.session.newDbCredentials = { username: safeUser, password: db_password, database: safeName };
     }
   } catch (e) {
     return res.redirect('/sites/' + siteId + '?error=' + encodeURIComponent(e.message || 'Database creation failed'));
+  }
+  res.redirect('/sites/' + siteId);
+});
+
+router.post('/:id/db-users/:dbUserId/reset-password', async (req, res) => {
+  const { password } = req.body || {};
+  const siteId = req.params.id;
+  const dbUserId = req.params.dbUserId;
+  if (!password) return res.redirect('/sites/' + siteId + '?error=password_required');
+  const db = await getDb();
+  const grant = db.prepare(`
+    SELECT u.username FROM db_grants g
+    JOIN db_users u ON u.id = g.db_user_id
+    JOIN databases d ON d.id = g.database_id WHERE d.site_id = ? AND g.db_user_id = ?
+  `).get(siteId, dbUserId);
+  if (!grant) return res.redirect('/sites/' + siteId);
+  const settings = getSettings(db);
+  try {
+    await databaseManager.setUserPassword(settings, grant.username, password, 'localhost');
+    const hash = crypto.createHash('sha256').update(password).digest('hex');
+    db.prepare('UPDATE db_users SET password_hash = ? WHERE id = ?').run(hash, dbUserId);
+  } catch (e) {
+    return res.redirect('/sites/' + siteId + '?error=' + encodeURIComponent(e.message || 'Failed to update password'));
   }
   res.redirect('/sites/' + siteId);
 });
@@ -193,6 +222,7 @@ router.post('/:id/ftp-users', async (req, res) => {
   if (!site || !username || !password) return res.redirect('/sites/' + siteId);
   try {
     await ftpManager.addFtpUser(siteId, username, password, default_route);
+    req.session.newFtpCredentials = { username, password };
   } catch (e) {
     return res.redirect('/sites/' + siteId + '?error=' + encodeURIComponent(e.message || 'FTP user creation failed'));
   }
