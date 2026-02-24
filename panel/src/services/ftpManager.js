@@ -69,7 +69,7 @@ async function addFtpUser(siteId, username, password, defaultRoute) {
   const db = await getDb();
   const hash = hashPassword(password);
   const route = (defaultRoute != null && String(defaultRoute).trim() !== '') ? String(defaultRoute).trim() : '';
-  db.prepare('INSERT INTO ftp_users (site_id, username, password_hash, default_route, crypt_hash) VALUES (?, ?, ?, ?, ?)').run(siteId, username, hash, route, crypt);
+  db.prepare('INSERT INTO ftp_users (site_id, username, password_hash, default_route, crypt_hash, password_plain) VALUES (?, ?, ?, ?, ?, ?)').run(siteId, username, hash, route, crypt, password);
   await syncFtpUsers();
 }
 
@@ -81,7 +81,7 @@ async function updateFtpUser(siteId, userId, updates) {
     const crypt = cryptHash(updates.password);
     if (!crypt) throw new Error('Could not generate FTP password hash. Ensure openssl is installed.');
     const hash = hashPassword(updates.password);
-    db.prepare('UPDATE ftp_users SET password_hash = ?, crypt_hash = ? WHERE id = ? AND site_id = ?').run(hash, crypt, userId, siteId);
+    db.prepare('UPDATE ftp_users SET password_hash = ?, crypt_hash = ?, password_plain = ? WHERE id = ? AND site_id = ?').run(hash, crypt, updates.password, userId, siteId);
   }
   if (updates.default_route !== undefined) {
     const route = String(updates.default_route).trim();

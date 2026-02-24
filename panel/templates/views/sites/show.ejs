@@ -235,9 +235,8 @@
               <span class="show-hint">FTP login disabled — set password below to enable.</span>
               <% } else { %>
               <span class="pwd-mask">••••••</span>
-              <button type="button" class="btn btn-small btn-secondary" onclick="var c=this.closest('.password-cell'); c.querySelector('.pwd-mask').style.display='none'; c.querySelector('.show-hint').style.display='inline'; this.style.display='none';">Show</button>
-              <span class="show-hint" style="display:none;">Not stored — use Reset</span>
-              <% } %>
+              <button type="button" class="btn btn-small btn-secondary" onclick="var c=this.closest('.password-cell'); var pwd=c.querySelector('.pwd-value'); var hint=c.querySelector('.show-hint'); if(pwd&&pwd.textContent){ pwd.style.display='inline'; pwd.classList.add('password'); } else if(hint){ hint.style.display='inline'; } c.querySelector('.pwd-mask').style.display='none'; this.style.display='none';">Show</button>
+              <% if (u.password_plain) { %><span class="pwd-value" style="display:none;"><%= u.password_plain %></span><% } else { %><span class="show-hint" style="display:none;">Not stored — use Reset</span><% } %>
               <form method="post" action="/sites/<%= site.id %>/ftp-users/<%= u.id %>/reset-password" class="inline">
                 <input type="password" name="password" placeholder="New password" required style="max-width:10rem;" autocomplete="new-password">
                 <button type="submit" class="btn btn-small">Reset</button>
