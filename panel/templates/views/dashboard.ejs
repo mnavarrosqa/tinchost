@@ -26,6 +26,19 @@
     .card ul { margin: 0; padding: 0; list-style: none; }
     .card li { padding: 0.35rem 0; border-bottom: 1px solid #e8f5e9; }
     .card li:last-child { border-bottom: none; }
+    .server-meta { display: flex; flex-wrap: wrap; gap: 1rem 2rem; margin-bottom: 1rem; color: #52796f; font-size: 0.95rem; }
+    .server-meta strong { color: #1b4332; }
+    .metric { margin-bottom: 1rem; }
+    .metric-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.35rem; font-size: 0.9rem; color: #1b4332; }
+    .metric-label span:last-child { color: #52796f; font-size: 0.85rem; }
+    .bar-track { height: 0.75rem; background: #e8f5e9; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.2s ease; }
+    .bar-fill.load { background: #2d6a4f; }
+    .bar-fill.load.warn { background: #b7a53a; }
+    .bar-fill.load.high { background: #9b2226; }
+    .bar-fill.mem, .bar-fill.disk { background: #2d6a4f; }
+    .bar-fill.mem.warn, .bar-fill.disk.warn { background: #b7a53a; }
+    .bar-fill.mem.high, .bar-fill.disk.high { background: #9b2226; }
   </style>
 </head>
 <body>
@@ -41,6 +54,33 @@
   <main>
     <h1>Hello, <%= user.username %></h1>
     <p class="intro">Tinchost Panel. Manage sites, databases, and mail from the menu.</p>
+    <% if (typeof serverInfo !== 'undefined' && serverInfo) { %>
+    <div class="card">
+      <h2><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>Server</h2>
+      <div class="server-meta">
+        <span><strong>Hostname</strong> <%= serverInfo.hostname %></span>
+        <span><strong>IP</strong> <%= serverInfo.mainIp %></span>
+      </div>
+      <div class="metric">
+        <div class="metric-label"><span>Load average</span><span>1m: <%= serverInfo.load.one %> · 5m: <%= serverInfo.load.five %> · 15m: <%= serverInfo.load.fifteen %> (<%= serverInfo.load.cpus %> CPU<%= serverInfo.load.cpus !== 1 ? 's' : '' %>)</span></div>
+        <div class="bar-track">
+          <div class="bar-fill load <%= serverInfo.load.onePerCpu >= 90 ? 'high' : (serverInfo.load.onePerCpu >= 70 ? 'warn' : '') %>" style="width: <%= Math.min(100, serverInfo.load.onePerCpu) %>%;"></div>
+        </div>
+      </div>
+      <div class="metric">
+        <div class="metric-label"><span>Memory</span><span><%= serverInfo.memory.usedFormatted %> of <%= serverInfo.memory.totalFormatted %> (<%= serverInfo.memory.usedPercent %>%)</span></div>
+        <div class="bar-track">
+          <div class="bar-fill mem <%= serverInfo.memory.usedPercent >= 90 ? 'high' : (serverInfo.memory.usedPercent >= 75 ? 'warn' : '') %>" style="width: <%= serverInfo.memory.usedPercent %>%;"></div>
+        </div>
+      </div>
+      <div class="metric">
+        <div class="metric-label"><span>Disk (root)</span><span><%= serverInfo.disk.usedFormatted %> of <%= serverInfo.disk.totalFormatted %> (<%= serverInfo.disk.usedPercent %>%)</span></div>
+        <div class="bar-track">
+          <div class="bar-fill disk <%= serverInfo.disk.usedPercent >= 90 ? 'high' : (serverInfo.disk.usedPercent >= 85 ? 'warn' : '') %>" style="width: <%= serverInfo.disk.usedPercent %>%;"></div>
+        </div>
+      </div>
+    </div>
+    <% } %>
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Quick links</h2>
       <ul>

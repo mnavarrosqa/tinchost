@@ -7,6 +7,7 @@ const authRouter = require('./routes/auth');
 const wizardRouter = require('./routes/wizard');
 const sitesRouter = require('./routes/sites');
 const settingsRouter = require('./routes/settings');
+const { getServerInfo, formatBytes } = require('./services/serverInfo');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,7 +56,15 @@ app.get('/login', async (req, res) => {
 });
 
 app.get('/', requireAuth, requireWizardComplete, (req, res) => {
-  res.render('dashboard', { user: req.session.user });
+  let serverInfo = null;
+  try {
+    serverInfo = getServerInfo();
+    serverInfo.memory.totalFormatted = formatBytes(serverInfo.memory.total);
+    serverInfo.memory.usedFormatted = formatBytes(serverInfo.memory.used);
+    serverInfo.disk.totalFormatted = formatBytes(serverInfo.disk.total);
+    serverInfo.disk.usedFormatted = formatBytes(serverInfo.disk.used);
+  } catch (_) {}
+  res.render('dashboard', { user: req.session.user, serverInfo });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
