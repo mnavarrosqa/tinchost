@@ -8,6 +8,9 @@ const PROFTPD_PASSWD_FILE = process.env.PROFTPD_PASSWD_FILE || '/etc/proftpd/ftp
 const PROFTPD_CONF_DIR = process.env.PROFTPD_CONF_DIR || '/etc/proftpd/conf.d';
 const FTP_UID = process.env.FTP_UID || '33';
 const FTP_GID = process.env.FTP_GID || '33';
+// Must match the passive range opened by install.sh (PORTS_FTP_PASSIVE=40000:40100)
+const FTP_PASSIVE_PORTS = process.env.FTP_PASSIVE_PORTS || '40000 40100';
+const FTP_MASQUERADE_ADDRESS = process.env.FTP_MASQUERADE_ADDRESS || '';
 
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -53,6 +56,10 @@ async function syncFtpUsers() {
 function writeProftpdConf() {
   try {
     fs.mkdirSync(PROFTPD_CONF_DIR, { recursive: true });
+    const passiveLines = [
+      `PassivePorts ${FTP_PASSIVE_PORTS}`,
+      ...(FTP_MASQUERADE_ADDRESS ? [`MasqueradeAddress ${FTP_MASQUERADE_ADDRESS}`] : [])
+    ].join('\n');
     const conf = `# Tinchost panel – virtual FTP users (AuthUserFile only)
 # Panel must run on the same host as ProFTPD so this file and passwd file exist here.
 <IfModule mod_auth_pam.c>
@@ -63,6 +70,8 @@ AuthUserFile ${PROFTPD_PASSWD_FILE}
 RequireValidShell off
 UseFtpUsers off
 DefaultRoot ~
+# Passive mode: use same port range as firewall (install.sh PORTS_FTP_PASSIVE=40000:40100)
+${passiveLines}
 `;
     const confPath = path.join(PROFTPD_CONF_DIR, 'tinchost.conf');
     fs.writeFileSync(confPath, conf, 'utf8');

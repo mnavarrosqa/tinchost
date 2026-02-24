@@ -30,7 +30,7 @@ This pulls the latest code (if you haven’t already), syncs the `panel/` files 
 
 - **Panel runs as root.** If the panel is compromised, the server can be fully controlled. Use a strong password and restrict access (firewall, VPN, or bind panel to localhost and use Nginx in front).
 - **SSL (Let's Encrypt):** Issuance fails if the domain’s DNS does not point to this server or ports 80/443 are blocked.
-- **FTP:** May not work from some networks if the FTP passive port range is not open in the firewall. In the FTP client, use the **FTP login** shown in the panel (e.g. `myuser@example.com`), not the username alone. The panel and ProFTPD must run on the same host.
+- **FTP:** May not work from some networks if the FTP passive port range is not open in the firewall. The panel configures ProFTPD to use ports 40000–40100 for passive mode (same range opened by `install.sh`). In the FTP client, use the **FTP login** shown in the panel (e.g. `myuser@example.com`). If the server is behind NAT, set `FTP_MASQUERADE_ADDRESS` to the public IP or hostname so passive connections work.
 - **Mail:** Mail may not be delivered or may be marked as spam without SPF/DKIM/DMARC and open ports 25/587.
 - **Destructive actions** (delete site, database, mailbox) cannot be undone. Ensure you have backups.
 
@@ -42,7 +42,9 @@ The panel stores its SQLite database at `panel/data/panel.sqlite` (relative to t
 
 ## Process management
 
-The install script installs **PM2**, starts the panel with it, and configures it to start on boot. To manage manually:
+The install script installs **PM2**, starts the panel with it, and configures it to start on boot. The panel is served via Nginx proxy with 5-minute timeouts so long operations (e.g. delete site, wizard) do not return 504 Gateway Time-out. If you see 504 on an existing install, add `proxy_connect_timeout 300s; proxy_send_timeout 300s; proxy_read_timeout 300s;` to the panel `location /` block in `/etc/nginx/sites-available/panel` and run `nginx -t && systemctl reload nginx`.
+
+To manage manually:
 
 - **PM2:** `pm2 start /opt/tinchohost/panel/src/index.js --name tinchost-panel` · `pm2 status` · `pm2 logs tinchost-panel`
 
