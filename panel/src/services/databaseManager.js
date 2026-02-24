@@ -26,6 +26,10 @@ function escapeAccountPart(s) {
   return "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "''") + "'";
 }
 
+function escapeString(s) {
+  return "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "''") + "'";
+}
+
 /**
  * Run MySQL/MariaDB commands when root password is configured in settings.
  * Panel runs as root; connects to local MySQL and runs CREATE DATABASE, CREATE USER, GRANT.
@@ -80,7 +84,7 @@ async function createUser(settings, username, password, host) {
   const safeUser = username.replace(/[^a-z0-9_]/gi, '');
   if (safeUser !== username) throw new Error('Invalid username');
   const h = host || 'localhost';
-  await conn.execute("CREATE USER IF NOT EXISTS " + escapeAccountPart(safeUser) + "@" + escapeAccountPart(h) + " IDENTIFIED BY ?", [password]);
+  await conn.execute("CREATE USER IF NOT EXISTS " + escapeAccountPart(safeUser) + "@" + escapeAccountPart(h) + " IDENTIFIED BY " + escapeString(password));
   await conn.execute('FLUSH PRIVILEGES');
   await conn.end();
 }
@@ -91,7 +95,7 @@ async function setUserPassword(settings, username, newPassword, host) {
   const safeUser = username.replace(/[^a-z0-9_]/gi, '');
   if (safeUser !== username) throw new Error('Invalid username');
   const h = host || 'localhost';
-  await conn.execute('ALTER USER ' + escapeAccountPart(safeUser) + '@' + escapeAccountPart(h) + ' IDENTIFIED BY ?', [newPassword]);
+  await conn.execute('ALTER USER ' + escapeAccountPart(safeUser) + '@' + escapeAccountPart(h) + ' IDENTIFIED BY ' + escapeString(newPassword));
   await conn.execute('FLUSH PRIVILEGES');
   await conn.end();
 }
