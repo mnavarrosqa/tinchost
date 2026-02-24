@@ -53,6 +53,9 @@
     <% if (typeof serviceRestarted === 'string' && serviceRestarted) { %>
     <p class="success">Service <strong><%= serviceRestarted %></strong> restarted.</p>
     <% } %>
+    <% if (typeof settingsInstalled === 'string' && settingsInstalled) { %>
+    <p class="success">Component <strong><%= settingsInstalled === 'php' ? 'PHP-FPM' : settingsInstalled === 'node' ? 'Node.js' : settingsInstalled === 'database' ? 'Database' : settingsInstalled === 'mail' ? 'Mail' : settingsInstalled === 'ftp' ? 'FTP' : 'Certbot' %></strong> installed successfully.</p>
+    <% } %>
     <div class="risk"><strong>This panel runs as root.</strong> Protect access and use a strong password.</div>
 
     <h2>Paths &amp; credentials</h2>
@@ -98,8 +101,107 @@
       </table>
     </div>
     <% } else { %>
-    <p style="color:#52796f; font-size:0.9rem;">Complete the <a href="/wizard">setup wizard</a> to install PHP, database, mail, and FTP. Services will appear here.</p>
+    <p style="color:#52796f; font-size:0.9rem;">Complete the <a href="/wizard">setup wizard</a> or install components below. Services will appear here once installed.</p>
     <% } %>
+
+    <h2>Install components</h2>
+    <p style="color:#52796f; font-size:0.9rem; margin:0 0 0.75rem 0;">Install or add components that were not selected during the wizard. Installation may take a few minutes; do not close the page until it finishes.</p>
+    <% const phpList = (state && state.php_versions) ? (state.php_versions + '').split(',').map(s => s.trim()).filter(Boolean) : []; %>
+    <% const hasPhp = phpList.length > 0; %>
+    <% const hasNode = state && state.node_version; %>
+    <% const hasDb = state && state.database_choice; %>
+    <% const hasMail = state && state.email_installed; %>
+    <% const hasFtp = state && state.ftp_installed; %>
+    <% const hasCertbot = state && state.certbot_installed; %>
+    <% const phpFpmConfig = (state && state.php_fpm_config) || 'default'; %>
+    <% const databaseConfig = (state && state.database_config) || 'default'; %>
+
+    <div class="card">
+      <h3 style="margin:0 0 0.5rem 0; font-size:1rem;">PHP-FPM</h3>
+      <% if (hasPhp) { %>
+      <p style="margin:0; font-size:0.9rem; color:#52796f;">Installed: <%= phpList.join(', ') %> · Config: <%= phpFpmConfig %></p>
+      <p style="margin:0.5rem 0 0 0; font-size:0.85rem;">To add or change versions, use the form below and submit.</p>
+      <% } %>
+      <form method="post" action="/settings/install/php" style="margin-top:0.75rem;">
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem 1rem;">
+          <label class="checkbox-option" style="display:inline-flex; align-items:center; margin:0;"><input type="checkbox" name="versions" value="7.4" <%= phpList.includes('7.4') ? 'checked' : ''>> 7.4</label>
+          <label class="checkbox-option" style="display:inline-flex; align-items:center; margin:0;"><input type="checkbox" name="versions" value="8.1" <%= phpList.includes('8.1') ? 'checked' : ''>> 8.1</label>
+          <label class="checkbox-option" style="display:inline-flex; align-items:center; margin:0;"><input type="checkbox" name="versions" value="8.2" <%= phpList.includes('8.2') ? 'checked' : ''>> 8.2</label>
+          <label class="checkbox-option" style="display:inline-flex; align-items:center; margin:0;"><input type="checkbox" name="versions" value="8.3" <%= phpList.includes('8.3') ? 'checked' : ''>> 8.3</label>
+        </div>
+        <div style="margin-top:0.5rem;">
+          <label style="margin-right:0.75rem;"><input type="radio" name="php_fpm_config" value="default" <%= phpFpmConfig === 'default' ? 'checked' : ''>> Default</label>
+          <label><input type="radio" name="php_fpm_config" value="optimized" <%= phpFpmConfig === 'optimized' ? 'checked' : ''>> Optimized</label>
+        </div>
+        <button type="submit" style="margin-top:0.5rem;"><%= hasPhp ? 'Update PHP-FPM' : 'Install PHP-FPM' %></button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 0.5rem 0; font-size:1rem;">Node.js</h3>
+      <% if (hasNode) { %>
+      <p style="margin:0; font-size:0.9rem; color:#52796f;">Installed: Node.js <%= state.node_version %></p>
+      <% } else { %>
+      <form method="post" action="/settings/install/node">
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem 1rem;">
+          <label style="display:inline-flex; align-items:center; margin:0;"><input type="radio" name="node_version" value="22"> 22</label>
+          <label style="display:inline-flex; align-items:center; margin:0;"><input type="radio" name="node_version" value="20"> 20</label>
+          <label style="display:inline-flex; align-items:center; margin:0;"><input type="radio" name="node_version" value="18"> 18</label>
+        </div>
+        <button type="submit" style="margin-top:0.5rem;">Install Node.js</button>
+      </form>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 0.5rem 0; font-size:1rem;">Database (MySQL / MariaDB)</h3>
+      <% if (hasDb) { %>
+      <p style="margin:0; font-size:0.9rem; color:#52796f;">Installed: <%= state.database_choice === 'mariadb' ? 'MariaDB' : 'MySQL' %> · Config: <%= databaseConfig %></p>
+      <% } else { %>
+      <form method="post" action="/settings/install/database">
+        <label style="margin-right:1rem;"><input type="radio" name="choice" value="mysql" checked> MySQL 8</label>
+        <label><input type="radio" name="choice" value="mariadb"> MariaDB 10</label>
+        <div style="margin-top:0.5rem;">
+          <label style="margin-right:0.75rem;"><input type="radio" name="database_config" value="default" <%= databaseConfig === 'default' ? 'checked' : ''>> Default</label>
+          <label><input type="radio" name="database_config" value="optimized" <%= databaseConfig === 'optimized' ? 'checked' : ''>> Optimized</label>
+        </div>
+        <button type="submit" style="margin-top:0.5rem;">Install database</button>
+      </form>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 0.5rem 0; font-size:1rem;">Mail (Postfix + Dovecot)</h3>
+      <% if (hasMail) { %>
+      <p style="margin:0; font-size:0.9rem; color:#52796f;">Installed.</p>
+      <% } else { %>
+      <form method="post" action="/settings/install/mail">
+        <button type="submit">Install Mail</button>
+      </form>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 0.5rem 0; font-size:1rem;">FTP (ProFTPD)</h3>
+      <% if (hasFtp) { %>
+      <p style="margin:0; font-size:0.9rem; color:#52796f;">Installed.</p>
+      <% } else { %>
+      <form method="post" action="/settings/install/ftp">
+        <button type="submit">Install FTP</button>
+      </form>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 0.5rem 0; font-size:1rem;">Certbot (Let's Encrypt)</h3>
+      <% if (hasCertbot) { %>
+      <p style="margin:0; font-size:0.9rem; color:#52796f;">Installed.</p>
+      <% } else { %>
+      <form method="post" action="/settings/install/certbot">
+        <button type="submit">Install Certbot</button>
+      </form>
+      <% } %>
+    </div>
 
     <p style="margin-top:1.5rem; font-size:0.9rem; color:#52796f;">Wizard completed: <%= state && state.completed ? 'Yes' : 'No' %> · Certbot installed: <%= state && state.certbot_installed ? 'Yes' : 'No' %></p>
   </main>
