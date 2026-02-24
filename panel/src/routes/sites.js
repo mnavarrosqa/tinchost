@@ -142,6 +142,12 @@ router.post('/:id/delete', async (req, res) => {
     const settings = getSettings(db);
     siteManager.removeVhost(site, settings);
     db.prepare('DELETE FROM ftp_users WHERE site_id = ?').run(req.params.id);
+    await ftpManager.syncFtpUsers();
+    const siteDbIds = db.prepare('SELECT id FROM databases WHERE site_id = ?').all(req.params.id);
+    for (const row of siteDbIds) {
+      db.prepare('DELETE FROM db_grants WHERE database_id = ?').run(row.id);
+    }
+    db.prepare('DELETE FROM databases WHERE site_id = ?').run(req.params.id);
     db.prepare('DELETE FROM sites WHERE id = ?').run(req.params.id);
     siteManager.reloadNginx();
   }
