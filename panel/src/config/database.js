@@ -6,9 +6,10 @@ let db = null;
 
 function getDbPath() {
   const envPath = process.env.DATABASE_PATH;
-  if (envPath) return path.isAbsolute(envPath) ? envPath : path.join(process.cwd(), envPath);
-  const cwdDb = path.join(process.cwd(), 'data', 'panel.sqlite');
-  if (fs.existsSync(cwdDb)) return cwdDb;
+  if (envPath && envPath.trim()) {
+    const p = envPath.trim();
+    return path.isAbsolute(p) ? p : path.join(__dirname, '..', '..', p);
+  }
   return path.join(__dirname, '..', '..', 'data', 'panel.sqlite');
 }
 
