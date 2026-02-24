@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
-const { getDb } = require('../config/database');
+const { getDb, getSetting } = require('../config/database');
 const siteManager = require('../services/siteManager');
 const sslManager = require('../services/sslManager');
 const databaseManager = require('../services/databaseManager');
@@ -12,6 +12,10 @@ const { execSync, execFileSync } = require('child_process');
 const crypto = require('crypto');
 
 const DEFAULT_INDEX_PATH = path.join(__dirname, '..', '..', 'templates', 'default-site-index.html');
+
+const SITE_ERROR_MESSAGES = {
+  mysql_password: 'MySQL root password not set in Settings. Set it in Settings and click Save.'
+};
 
 function getSettings(db) {
   const rows = db.prepare('SELECT key, value FROM settings').all();
@@ -99,7 +103,8 @@ router.get('/:id', async (req, res) => {
   const newFtpCredentials = req.session.newFtpCredentials || null;
   if (req.session.newDbCredentials) delete req.session.newDbCredentials;
   if (req.session.newFtpCredentials) delete req.session.newFtpCredentials;
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!(settings && settings.mysql_root_password), error: req.query.error, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials });
+  const errorMsg = (req.query.error && SITE_ERROR_MESSAGES[req.query.error]) || req.query.error || null;
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials });
 });
 
 router.post('/:id', async (req, res) => {
@@ -144,7 +149,7 @@ router.post('/:id/databases', async (req, res) => {
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(siteId);
   if (!site || !name) return res.redirect('/sites/' + siteId);
   const settings = getSettings(db);
-  if (!settings.mysql_root_password) return res.redirect('/sites/' + siteId + '?error=mysql_password');
+  if (!getSetting(db, 'mysql_root_password')) return res.redirect('/sites/' + siteId + '?error=mysql_password');
   const priv = (privileges === 'READ_ONLY' || privileges === 'READ_WRITE') ? privileges : 'ALL';
   let newDbCredentials = null;
   try {
@@ -178,7 +183,7 @@ router.post('/:id/databases', async (req, res) => {
     JOIN databases d ON d.id = g.database_id WHERE d.site_id = ?
   `).all(site.id);
   const ftpUsers = ftpManager.getFtpUsersBySite(db, site.id);
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!(settings && settings.mysql_root_password), error: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials: null });
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials: null });
 });
 
 

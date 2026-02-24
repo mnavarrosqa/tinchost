@@ -1,12 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { getDb, getDbPath } = require('../config/database');
+const { getDb, getDbPath, getSetting } = require('../config/database');
 const servicesManager = require('../services/servicesManager');
-
-function getSetting(db, key) {
-  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
-  return row ? row.value : null;
-}
 
 function setSetting(db, key, value) {
   db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)').run(key, value);

@@ -15,8 +15,8 @@ async function getConnection(settings) {
       password,
       multipleStatements: true
     });
-  } catch (_) {
-    return null;
+  } catch (err) {
+    throw new Error(err.message || 'MySQL connection failed');
   }
 }
 

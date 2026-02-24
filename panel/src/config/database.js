@@ -35,4 +35,9 @@ async function getDb() {
   return db;
 }
 
-module.exports = { getDb, getDbPath };
+function getSetting(db, key) {
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  return row ? row.value : null;
+}
+
+module.exports = { getDb, getDbPath, getSetting };
