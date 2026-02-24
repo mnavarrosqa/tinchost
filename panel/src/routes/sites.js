@@ -178,7 +178,6 @@ router.post('/:id/databases', async (req, res) => {
     JOIN databases d ON d.id = g.database_id WHERE d.site_id = ?
   `).all(site.id);
   const ftpUsers = ftpManager.getFtpUsersBySite(db, site.id);
-  const settings = getSettings(db);
   res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!(settings && settings.mysql_root_password), error: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials: null });
 });
 

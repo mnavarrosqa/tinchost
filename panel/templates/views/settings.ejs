@@ -79,12 +79,13 @@
     <% if (typeof installedServices !== 'undefined' && installedServices.length) { %>
     <div class="card">
       <table>
-        <thead><tr><th>Service</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>Service</th><th>Status</th><th>Logs</th><th>Action</th></tr></thead>
         <tbody>
           <% installedServices.forEach(function(s) { %>
           <tr>
             <td><%= s.label %></td>
             <td><span class="<%= s.status === 'active' ? 'status-active' : 'status-inactive' %>"><%= s.status === 'active' ? 'Running' : 'Stopped' %></span></td>
+            <td><a href="/settings/services/logs?unit=<%= encodeURIComponent(s.unit) %>" target="_blank" rel="noopener" class="btn" style="text-decoration:none; padding:0.35rem 0.65rem; font-size:0.85rem;">View logs</a></td>
             <td>
               <form method="post" action="/settings/services/restart" class="inline">
                 <input type="hidden" name="service" value="<%= s.unit %>">

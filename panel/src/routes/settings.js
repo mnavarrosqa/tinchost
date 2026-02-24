@@ -36,6 +36,19 @@ router.get('/', async (req, res) => {
   res.render('settings', { state, nginxSites, phpPoolDir, mailPath, mysqlRootPassword, saved, settingsError, installedServices, serviceRestarted, serviceError, dbPath, hasMysqlPassword });
 });
 
+router.get('/services/logs', async (req, res) => {
+  const unit = req.query && req.query.unit ? String(req.query.unit).trim() : '';
+  const db = await getDb();
+  const state = db.prepare('SELECT * FROM wizard_state WHERE id = 1').get();
+  if (!unit || !servicesManager.isAllowedUnit(unit, state || {})) {
+    return res.redirect('/settings?error=invalid_service');
+  }
+  const lines = req.query.lines || 200;
+  const result = servicesManager.getServiceLogs(unit, lines);
+  const label = (servicesManager.getInstalledServices(state || {}).find((s) => s.unit === unit) || {}).label || unit;
+  res.render('settings-logs', { unit, label, output: result.ok ? result.output : result.error || 'Failed to load logs', error: !result.ok });
+});
+
 router.post('/services/restart', async (req, res) => {
   const unit = req.body && req.body.service ? String(req.body.service).trim() : '';
   const db = await getDb();

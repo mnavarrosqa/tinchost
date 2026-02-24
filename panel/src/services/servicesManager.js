@@ -52,4 +52,20 @@ function restartService(unit) {
   }
 }
 
-module.exports = { getInstalledServices, getServiceStatus, restartService, isAllowedUnit };
+/** Get recent log lines for a systemd unit (journalctl). Returns { ok, output, error }. */
+function getServiceLogs(unit, lines) {
+  const n = Math.min(Number(lines) || 200, 500);
+  try {
+    const out = execFileSync(
+      'journalctl',
+      ['-u', unit, '-n', String(n), '--no-pager', '-o', 'short-iso'],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 10000, maxBuffer: 512 * 1024 }
+    );
+    return { ok: true, output: out.trim() || '(no log entries)' };
+  } catch (e) {
+    const err = (e.stderr && e.stderr.toString()) || e.message || 'Failed to read logs';
+    return { ok: false, output: '', error: err };
+  }
+}
+
+module.exports = { getInstalledServices, getServiceStatus, restartService, getServiceLogs, isAllowedUnit };

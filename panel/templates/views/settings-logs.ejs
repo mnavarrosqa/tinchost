@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logs: <%= label %> – Tinchost Panel</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
+    .nav { background: #2d6a4f; color: #fff; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .nav a { color: #d8f3dc; text-decoration: none; }
+    .nav a:hover { color: #fff; }
+    .nav .nav-active { color: #fff; font-weight: 600; }
+    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
+    h1 { margin-top: 0; color: #1b4332; font-size: 1.25rem; }
+    .back { margin-bottom: 1rem; }
+    .back a { color: #2d6a4f; text-decoration: none; }
+    .back a:hover { text-decoration: underline; }
+    .log-box { background: #1b4332; color: #d8f3dc; padding: 1rem; border-radius: 6px; overflow-x: auto; font-family: ui-monospace, monospace; font-size: 0.8rem; line-height: 1.4; white-space: pre-wrap; word-break: break-all; max-height: 70vh; overflow-y: auto; }
+    .log-box.error { background: #3d0f0f; color: #f8d7da; }
+    .meta { font-size: 0.85rem; color: #52796f; margin-bottom: 0.75rem; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="/">Dashboard</a>
+    <a href="/settings" class="nav-active">Settings</a>
+    <a href="/sites">Sites</a>
+    <a href="/databases">Databases</a>
+    <a href="/mail">Mail</a>
+    <span style="margin-left:auto"><a href="/auth/logout">Logout</a></span>
+  </nav>
+  <main>
+    <div class="back"><a href="/settings">← Settings</a></div>
+    <h1>Logs: <%= label %></h1>
+    <p class="meta">Unit: <code><%= unit %></code> · Last 200 lines from journalctl</p>
+    <div class="log-box <%= typeof error !== 'undefined' && error ? 'error' : '' %>"><%= typeof output !== 'undefined' ? output.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '(no output)' %></div>
+  </main>
+</body>
+</html>
