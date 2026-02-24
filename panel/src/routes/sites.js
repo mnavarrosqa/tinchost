@@ -8,7 +8,7 @@ const { getDb, getDbPath, getSetting } = require('../config/database');
 const siteManager = require('../services/siteManager');
 const sslManager = require('../services/sslManager');
 const databaseManager = require('../services/databaseManager');
-const { PRIVILEGE_SETS } = require('../services/databaseManager');
+const { PRIVILEGE_SETS, getDatabaseSizes } = require('../services/databaseManager');
 const ftpManager = require('../services/ftpManager');
 const { execSync, execFileSync } = require('child_process');
 const crypto = require('crypto');
@@ -131,7 +131,13 @@ router.get('/:id', async (req, res) => {
   const wordpress = req.query.wordpress || null;
   const wp_folder = req.query.wp_folder || null;
   const phpOptionsSaved = req.query.php_options === 'saved';
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, wordpress, wp_folder, phpOptionsSaved });
+  let databaseSizes = {};
+  if (siteDatabases.length && getSetting(db, 'mysql_root_password')) {
+    try {
+      databaseSizes = await getDatabaseSizes(settings, siteDatabases.map(d => d.name));
+    } catch (_) {}
+  }
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, wordpress, wp_folder, phpOptionsSaved, databaseSizes });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {

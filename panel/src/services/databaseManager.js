@@ -139,4 +139,52 @@ async function dropUser(settings, username, host) {
   await conn.end();
 }
 
-module.exports = { getConnection, createDatabase, dropDatabase, createUser, setUserPassword, grantDatabase, revokeDatabase, dropUser, PRIVILEGE_SETS };
+function formatBytes(bytes) {
+  if (bytes == null || bytes === 0) return '0 B';
+  const n = Number(bytes);
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1).replace(/\.0$/, '') + ' KB';
+  if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1).replace(/\.0$/, '') + ' MB';
+  return (n / (1024 * 1024 * 1024)).toFixed(1).replace(/\.0$/, '') + ' GB';
+}
+
+/**
+ * Get human-readable sizes for the given database names. Returns { dbName: "12.5 MB", ... }.
+ * On error or no MySQL config, returns {}.
+ */
+async function getDatabaseSizes(settings, dbNames) {
+  if (!dbNames || dbNames.length === 0) return {};
+  let conn;
+  try {
+    conn = await getConnection(settings);
+    if (!conn) return {};
+  } catch (_) {
+    return {};
+  }
+  const result = {};
+  try {
+    const placeholders = dbNames.map(() => '?').join(',');
+    const [rows] = await conn.execute(
+      `SELECT table_schema AS db_name, COALESCE(SUM(data_length + index_length), 0) AS size_bytes
+       FROM information_schema.tables
+       WHERE table_schema IN (${placeholders})
+       GROUP BY table_schema`,
+      dbNames
+    );
+    for (const row of rows || []) {
+      const name = row.db_name || row.DB_NAME;
+      const bytes = row.size_bytes != null ? Number(row.size_bytes) : 0;
+      if (name) result[name] = formatBytes(bytes);
+    }
+    for (const name of dbNames) {
+      if (result[name] === undefined) result[name] = formatBytes(0);
+    }
+  } catch (_) {
+    // leave result empty or partial
+  } finally {
+    try { await conn.end(); } catch (_) {}
+  }
+  return result;
+}
+
+module.exports = { getConnection, createDatabase, dropDatabase, createUser, setUserPassword, grantDatabase, revokeDatabase, dropUser, PRIVILEGE_SETS, getDatabaseSizes, formatBytes };

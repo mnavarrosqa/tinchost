@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getDb } = require('../config/database');
 const databaseManager = require('../services/databaseManager');
+const { getDatabaseSizes } = require('../services/databaseManager');
 const crypto = require('crypto');
 
 function getSettings(db) {
@@ -17,7 +18,13 @@ router.get('/', async (req, res) => {
   const users = db.prepare('SELECT * FROM db_users ORDER BY username').all();
   const grants = db.prepare('SELECT g.id, g.database_id, g.db_user_id, g.privileges, d.name AS database_name, u.username, u.host FROM db_grants g JOIN databases d ON d.id = g.database_id JOIN db_users u ON u.id = g.db_user_id').all();
   const settings = getSettings(db);
-  res.render('databases/list', { databases, users, grants, hasMysqlPassword: !!(settings && settings.mysql_root_password), user: req.session.user });
+  let databaseSizes = {};
+  if (databases.length && settings && settings.mysql_root_password) {
+    try {
+      databaseSizes = await getDatabaseSizes(settings, databases.map(d => d.name));
+    } catch (_) {}
+  }
+  res.render('databases/list', { databases, users, grants, hasMysqlPassword: !!(settings && settings.mysql_root_password), user: req.session.user, databaseSizes });
 });
 
 router.post('/databases', async (req, res) => {

@@ -139,15 +139,17 @@
       <% } %>
       <% if (siteDatabases.length) { %>
       <table>
-        <thead><tr><th>Database</th><th>User</th><th>Privileges</th><th>Password</th><th></th></tr></thead>
+        <thead><tr><th>Database</th><th>Size</th><th>User</th><th>Privileges</th><th>Password</th><th></th></tr></thead>
         <tbody>
           <% siteDatabases.forEach(function(d) {
             const grants = (typeof databaseGrants !== "undefined" ? databaseGrants : []).filter(function(g) { return g.database_id === d.id; });
+            const sizeStr = (typeof databaseSizes !== "undefined" && databaseSizes[d.name]) ? databaseSizes[d.name] : "—";
           %>
           <% if (grants.length) { %>
             <% grants.forEach(function(g, gIdx) { %>
           <tr>
             <td><%= d.name %></td>
+            <td><%= gIdx === 0 ? sizeStr : "" %></td>
             <td><%= g.username %></td>
             <td><%= (g.privileges || "ALL").split("_").join(" ") %></td>
             <td class="password-cell">
@@ -171,6 +173,7 @@
           <% } else { %>
           <tr>
             <td><%= d.name %></td>
+            <td><%= sizeStr %></td>
             <td>—</td>
             <td>—</td>
             <td>—</td>
