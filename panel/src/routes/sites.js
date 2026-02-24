@@ -97,7 +97,7 @@ router.get('/:id', async (req, res) => {
   if (!site) return res.redirect('/sites');
   const siteDatabases = db.prepare('SELECT * FROM databases WHERE site_id = ? ORDER BY name').all(site.id);
   const databaseGrants = db.prepare(`
-    SELECT g.database_id, g.db_user_id, g.privileges, u.username FROM db_grants g
+    SELECT g.database_id, g.db_user_id, g.privileges, u.username, u.password_plain FROM db_grants g
     JOIN db_users u ON u.id = g.db_user_id
     JOIN databases d ON d.id = g.database_id WHERE d.site_id = ?
   `).all(site.id);
@@ -159,7 +159,7 @@ router.post('/:id/databases', async (req, res) => {
   if (!mysqlPassword) {
     const siteDatabases = db.prepare('SELECT * FROM databases WHERE site_id = ? ORDER BY name').all(site.id);
     const databaseGrants = db.prepare(`
-      SELECT g.database_id, g.db_user_id, g.privileges, u.username FROM db_grants g
+      SELECT g.database_id, g.db_user_id, g.privileges, u.username, u.password_plain FROM db_grants g
       JOIN db_users u ON u.id = g.db_user_id
       JOIN databases d ON d.id = g.database_id WHERE d.site_id = ?
     `).all(site.id);
@@ -191,7 +191,7 @@ router.post('/:id/databases', async (req, res) => {
       uid = db.prepare('SELECT id FROM db_users WHERE username = ?').get(safeUser)?.id;
       if (!uid) {
         const hash = crypto.createHash('sha256').update(db_password).digest('hex');
-        db.prepare('INSERT INTO db_users (username, password_hash, host) VALUES (?, ?, ?)').run(safeUser, hash, 'localhost');
+        db.prepare('INSERT INTO db_users (username, password_hash, host, password_plain) VALUES (?, ?, ?, ?)').run(safeUser, hash, 'localhost', db_password);
         await databaseManager.createUser(settings, safeUser, db_password, 'localhost');
         uid = db.prepare('SELECT id FROM db_users WHERE username = ?').get(safeUser).id;
       }
@@ -215,7 +215,7 @@ router.post('/:id/databases', async (req, res) => {
   }
   const siteDatabases = db.prepare('SELECT * FROM databases WHERE site_id = ? ORDER BY name').all(site.id);
   const databaseGrants = db.prepare(`
-    SELECT g.database_id, g.db_user_id, g.privileges, u.username FROM db_grants g
+    SELECT g.database_id, g.db_user_id, g.privileges, u.username, u.password_plain FROM db_grants g
     JOIN db_users u ON u.id = g.db_user_id
     JOIN databases d ON d.id = g.database_id WHERE d.site_id = ?
   `).all(site.id);
@@ -241,7 +241,7 @@ router.post('/:id/db-users/:dbUserId/reset-password', async (req, res) => {
   try {
     await databaseManager.setUserPassword(settings, grant.username, password, 'localhost');
     const hash = crypto.createHash('sha256').update(password).digest('hex');
-    db.prepare('UPDATE db_users SET password_hash = ? WHERE id = ?').run(hash, dbUserId);
+    db.prepare('UPDATE db_users SET password_hash = ?, password_plain = ? WHERE id = ?').run(hash, password, dbUserId);
   } catch (e) {
     return res.redirect('/sites/' + siteId + '?error=' + encodeURIComponent(e.message || 'Failed to update password'));
   }
@@ -279,7 +279,7 @@ router.post('/:id/ftp-users', async (req, res) => {
   }
   const siteDatabases = db.prepare('SELECT * FROM databases WHERE site_id = ? ORDER BY name').all(site.id);
   const databaseGrants = db.prepare(`
-    SELECT g.database_id, g.db_user_id, g.privileges, u.username FROM db_grants g
+    SELECT g.database_id, g.db_user_id, g.privileges, u.username, u.password_plain FROM db_grants g
     JOIN db_users u ON u.id = g.db_user_id
     JOIN databases d ON d.id = g.database_id WHERE d.site_id = ?
   `).all(site.id);

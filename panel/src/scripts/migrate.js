@@ -48,6 +48,9 @@ try {
   db.exec("ALTER TABLE db_grants ADD COLUMN privileges TEXT DEFAULT 'ALL'");
 } catch (_) { /* column may already exist */ }
 try {
+  db.exec('ALTER TABLE db_users ADD COLUMN password_plain TEXT');
+} catch (_) { /* column may already exist */ }
+try {
   db.exec('ALTER TABLE ftp_users ADD COLUMN default_route TEXT DEFAULT ""');
 } catch (_) { /* column may already exist */ }
 try {
