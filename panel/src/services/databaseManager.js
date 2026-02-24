@@ -1,27 +1,52 @@
 const mysql = require('mysql2/promise');
 const crypto = require('crypto');
+const fs = require('fs');
+
+const SOCKET_PATHS = [
+  '/var/run/mysqld/mysqld.sock',
+  '/tmp/mysql.sock',
+  '/var/lib/mysql/mysql.sock',
+  '/run/mysqld/mysqld.sock'
+];
+
+function findSocket() {
+  for (const p of SOCKET_PATHS) {
+    try {
+      if (fs.existsSync(p)) return p;
+    } catch (_) {}
+  }
+  return null;
+}
 
 /**
  * Run MySQL/MariaDB commands when root password is configured in settings.
  * Panel runs as root; connects to local MySQL and runs CREATE DATABASE, CREATE USER, GRANT.
- * Tries localhost (socket) first, then 127.0.0.1 (TCP) if Access denied.
+ * Tries Unix socket first (same as `sudo mysql -u root -p`), then 127.0.0.1, then localhost.
  */
 async function getConnection(settings) {
   const password = settings && settings.mysql_root_password;
   if (!password) return null;
   const opts = { user: 'root', password, multipleStatements: true };
-  try {
-    return await mysql.createConnection({ ...opts, host: 'localhost' });
-  } catch (err) {
-    if (err.message && err.message.includes('Access denied') && err.message.includes('root')) {
-      try {
-        return await mysql.createConnection({ ...opts, host: '127.0.0.1' });
-      } catch (err2) {
-        throw new Error('MySQL access denied for root. Check that the password in Settings matches the MySQL root password (e.g. run: sudo mysql -u root -p).');
-      }
+  let lastErr = null;
+  const socketPath = findSocket();
+  if (socketPath) {
+    try {
+      return await mysql.createConnection({ ...opts, socketPath });
+    } catch (err) {
+      lastErr = err;
     }
-    throw new Error(err.message || 'MySQL connection failed');
   }
+  for (const host of ['127.0.0.1', 'localhost']) {
+    try {
+      return await mysql.createConnection({ ...opts, host });
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  const msg = lastErr && lastErr.message && lastErr.message.includes('Access denied')
+    ? 'MySQL access denied for root. Check that the password in Settings matches the MySQL root password (e.g. run: sudo mysql -u root -p).'
+    : (lastErr && lastErr.message) || 'MySQL connection failed';
+  throw new Error(msg);
 }
 
 async function createDatabase(settings, name) {

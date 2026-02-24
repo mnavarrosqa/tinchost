@@ -242,10 +242,11 @@ router.post('/:id/databases/:dbId/delete', async (req, res) => {
   const settings = getSettings(db);
   if (settings.mysql_root_password) {
     try {
-      const mysql = require('mysql2/promise');
-      const conn = await mysql.createConnection({ host: 'localhost', user: 'root', password: settings.mysql_root_password });
-      await conn.execute('DROP DATABASE IF EXISTS ??', [row.name.replace(/[^a-z0-9_]/gi, '')]);
-      await conn.end();
+      const conn = await databaseManager.getConnection(settings);
+      if (conn) {
+        await conn.execute('DROP DATABASE IF EXISTS ??', [row.name.replace(/[^a-z0-9_]/gi, '')]);
+        await conn.end();
+      }
     } catch (_) {}
   }
   res.redirect('/sites/' + siteId);
