@@ -15,8 +15,37 @@ function getVhostPath(domain, settings) {
   return path.join(sitesAvailable, `tinchost-${safe}.conf`);
 }
 
+/** Parse site.php_options (JSON) into key=value lines for PHP_VALUE. Only allows safe ini keys and values. */
+function getPhpOptionLines(site) {
+  if (!site.php_options || typeof site.php_options !== 'string') return [];
+  let opts;
+  try {
+    opts = JSON.parse(site.php_options);
+  } catch (_) {
+    return [];
+  }
+  if (!opts || typeof opts !== 'object') return [];
+  const lines = [];
+  for (const [k, v] of Object.entries(opts)) {
+    if (typeof k !== 'string' || typeof v !== 'string') continue;
+    const key = k.replace(/[^a-zA-Z0-9_.]/g, '');
+    const val = v.replace(/[\r\n"\\]/g, '').trim();
+    if (key && val) lines.push(key + '=' + val);
+  }
+  return lines;
+}
+
 function vhostTemplate(site) {
   const phpSocket = site.php_version ? `/run/php/php${site.php_version}-fpm.sock` : '/run/php/php8.2-fpm.sock';
+  const phpOptLines = getPhpOptionLines(site);
+  const phpValueNginx = phpOptLines.length
+    ? '        fastcgi_param PHP_VALUE "' + phpOptLines.join('\n        ') + '";\n'
+    : '';
+  const phpBlock = `    location ~ \\.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:${phpSocket};
+${phpValueNginx}    }
+`;
   let conf = `
 server {
     listen 80;
@@ -26,10 +55,7 @@ server {
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
-    location ~ \\.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:${phpSocket};
-    }
+${phpBlock}
 }
 `;
   if (site.ssl) {
@@ -49,10 +75,7 @@ server {
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
-    location ~ \\.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:${phpSocket};
-    }
+${phpBlock}
 }
 `;
   }

@@ -1,5 +1,5 @@
 (function() {
-  var TAB_IDS = ["overview", "databases", "ftp", "ssl", "scripts"];
+  var TAB_IDS = ["overview", "databases", "ftp", "ssl", "php", "scripts"];
   function getTabFromHash() {
     var hash = (window.location.hash || "").replace(/^#/, "");
     return TAB_IDS.indexOf(hash) >= 0 ? hash : "overview";

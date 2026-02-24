@@ -130,7 +130,8 @@ router.get('/:id', async (req, res) => {
   const sslRemoved = req.query.ssl === 'removed';
   const wordpress = req.query.wordpress || null;
   const wp_folder = req.query.wp_folder || null;
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, wordpress, wp_folder });
+  const phpOptionsSaved = req.query.php_options === 'saved';
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, wordpress, wp_folder, phpOptionsSaved });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {
@@ -334,6 +335,33 @@ router.post('/:id/files/upload', upload.single('file'), async (req, res) => {
     execFileSync('chown', ['www-data:www-data', full], { stdio: 'pipe' });
   } catch (_) {}
   res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(dirPath));
+});
+
+router.post('/:id/php-options', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  const opts = {};
+  const common = ['memory_limit', 'upload_max_filesize', 'max_execution_time', 'post_max_size', 'max_input_vars'];
+  for (const k of common) {
+    const v = (req.body[k] || '').trim();
+    if (v) opts[k] = v.replace(/[\r\n"\\]/g, '');
+  }
+  const extra = (req.body.extra_options || '').trim().split(/\r?\n/);
+  for (const line of extra) {
+    const idx = line.indexOf('=');
+    if (idx <= 0) continue;
+    const k = line.slice(0, idx).trim().replace(/[^a-zA-Z0-9_.]/g, '');
+    const v = line.slice(idx + 1).trim().replace(/[\r\n"\\]/g, '');
+    if (k) opts[k] = v;
+  }
+  const php_options = Object.keys(opts).length ? JSON.stringify(opts) : null;
+  db.prepare('UPDATE sites SET php_options = ? WHERE id = ?').run(php_options, req.params.id);
+  const updated = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  const settings = getSettings(db);
+  await siteManager.writeVhost(updated, settings);
+  siteManager.reloadNginx();
+  res.redirect('/sites/' + site.id + '?php_options=saved#php');
 });
 
 router.post('/:id', async (req, res) => {

@@ -59,6 +59,9 @@ try {
 try {
   db.exec('ALTER TABLE ftp_users ADD COLUMN crypt_hash TEXT');
 } catch (_) { /* column may already exist */ }
+try {
+  db.exec('ALTER TABLE sites ADD COLUMN php_options TEXT');
+} catch (_) { /* column may already exist */ }
 db.exec(`
 
   CREATE TABLE IF NOT EXISTS sites (
