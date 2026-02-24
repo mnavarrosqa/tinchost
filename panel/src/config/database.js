@@ -35,9 +35,10 @@ async function getDb() {
   return db;
 }
 
-function getSetting(db, key) {
-  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
-  return row ? row.value : null;
+function getSetting(database, key) {
+  const row = database.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  if (!row) return null;
+  return row.value !== undefined ? row.value : row.VALUE;
 }
 
 module.exports = { getDb, getDbPath, getSetting };

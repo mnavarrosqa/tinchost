@@ -63,7 +63,7 @@
     <h1><%= site.domain %></h1>
 
     <% if (typeof error !== 'undefined' && error) { %>
-    <div class="error-msg"><%= error %></div>
+    <div class="error-msg"><%= error %><% if (typeof panelDbPath !== 'undefined' && panelDbPath) { %> <br><br>Panel database path: <code style="font-size:0.85em; word-break:break-all;"><%= panelDbPath %></code><% } %></div>
     <% } %>
     <% if (typeof reset !== 'undefined' && reset === 'ftp') { %>
     <div class="success-msg">FTP password updated. Use the new password and the <strong>FTP login</strong> name below to connect.</div>

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
-const { getDb, getSetting } = require('../config/database');
+const { getDb, getDbPath, getSetting } = require('../config/database');
 const siteManager = require('../services/siteManager');
 const sslManager = require('../services/sslManager');
 const databaseManager = require('../services/databaseManager');
@@ -20,7 +20,11 @@ const SITE_ERROR_MESSAGES = {
 function getSettings(db) {
   const rows = db.prepare('SELECT key, value FROM settings').all();
   const o = {};
-  if (rows) rows.forEach(r => { o[r.key] = r.value; });
+  if (rows) rows.forEach(r => {
+    const k = r.key !== undefined ? r.key : r.KEY;
+    const v = r.value !== undefined ? r.value : r.VALUE;
+    if (k != null) o[k] = v;
+  });
   return o;
 }
 
@@ -104,7 +108,8 @@ router.get('/:id', async (req, res) => {
   if (req.session.newDbCredentials) delete req.session.newDbCredentials;
   if (req.session.newFtpCredentials) delete req.session.newFtpCredentials;
   const errorMsg = (req.query.error && SITE_ERROR_MESSAGES[req.query.error]) || req.query.error || null;
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials });
+  const panelDbPath = (req.query.error === 'mysql_password' ? getDbPath() : null) || null;
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath });
 });
 
 router.post('/:id', async (req, res) => {
@@ -149,7 +154,19 @@ router.post('/:id/databases', async (req, res) => {
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(siteId);
   if (!site || !name) return res.redirect('/sites/' + siteId);
   const settings = getSettings(db);
-  if (!getSetting(db, 'mysql_root_password')) return res.redirect('/sites/' + siteId + '?error=mysql_password');
+  const mysqlPassword = getSetting(db, 'mysql_root_password');
+  if (!mysqlPassword) {
+    const siteDatabases = db.prepare('SELECT * FROM databases WHERE site_id = ? ORDER BY name').all(site.id);
+    const databaseGrants = db.prepare(`
+      SELECT g.database_id, g.db_user_id, g.privileges, u.username FROM db_grants g
+      JOIN db_users u ON u.id = g.db_user_id
+      JOIN databases d ON d.id = g.database_id WHERE d.site_id = ?
+    `).all(site.id);
+    const ftpUsers = ftpManager.getFtpUsersBySite(db, site.id);
+    const dbPath = getDbPath();
+    const errorMsg = 'MySQL root password not set in Settings. Set it in Settings and click Save. If you already did, set DATABASE_PATH to this panel database path and restart the panel: ' + dbPath;
+    return res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: false, error: errorMsg, reset: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials: null, newFtpCredentials: null, panelDbPath: dbPath });
+  }
   const priv = (privileges === 'READ_ONLY' || privileges === 'READ_WRITE') ? privileges : 'ALL';
   let newDbCredentials = null;
   try {
