@@ -168,6 +168,7 @@ router.post('/:id/databases', async (req, res) => {
     return res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: false, error: errorMsg, reset: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials: null, newFtpCredentials: null, panelDbPath: dbPath });
   }
   const priv = (privileges === 'READ_ONLY' || privileges === 'READ_WRITE') ? privileges : 'ALL';
+  settings.mysql_root_password = settings.mysql_root_password || mysqlPassword;
   let newDbCredentials = null;
   try {
     const safeName = name.replace(/[^a-z0-9_]/gi, '');

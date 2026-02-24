@@ -66,7 +66,11 @@ router.post('/', async (req, res) => {
     if (php_pool_dir != null && php_pool_dir !== '') setSetting(db, 'php_pool_dir', php_pool_dir);
     if (mail_path != null && mail_path !== '') setSetting(db, 'mail_path', mail_path);
     const pw = mysql_root_password;
-    if (pw != null && String(pw).trim() !== '' && pw !== '********') setSetting(db, 'mysql_root_password', String(pw).trim());
+    if (pw != null && String(pw).trim() !== '' && pw !== '********') {
+      const trimmed = String(pw).trim();
+      setSetting(db, 'mysql_root_password', trimmed);
+      if (!getSetting(db, 'mysql_root_password')) req.session.settingsError = 'MySQL password was not saved; try entering it again and click Save.';
+    }
     req.session.settingsSaved = true;
   } catch (e) {
     req.session.settingsError = (e && e.message) ? e.message : 'Failed to save settings';
