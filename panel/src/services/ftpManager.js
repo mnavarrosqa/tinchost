@@ -38,7 +38,7 @@ async function syncFtpUsers() {
   const lines = users.map((u) => {
     const route = (u.default_route && String(u.default_route).trim() !== '') ? String(u.default_route).trim().replace(/^\/+/, '') : '';
     const homedir = route !== '' ? path.join(u.docroot, route) : u.docroot;
-    const loginName = `${String(u.domain).replace(/\./g, '_')}_${u.username}`;
+    const loginName = `${String(u.username).trim()}@${String(u.domain)}`;
     return `${loginName}:${u.crypt_hash}:${FTP_UID}:${FTP_GID}::${homedir}:/sbin/nologin`;
   });
   fs.writeFileSync(PROFTPD_PASSWD_FILE, lines.join('\n') + (lines.length ? '\n' : ''), 'utf8');

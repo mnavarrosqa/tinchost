@@ -193,7 +193,7 @@
       <p class="empty-msg">Enable FTP for this site in <a href="/sites/<%= site.id %>/edit">Edit settings</a> to add FTP users.</p>
       <% } else { %>
       <% if (typeof newFtpCredentials !== "undefined" && newFtpCredentials) {
-        const newFtpLogin = (typeof site !== "undefined" && site.domain) ? (site.domain.split(".").join("_") + "_" + newFtpCredentials.username) : newFtpCredentials.username;
+        const newFtpLogin = (typeof site !== "undefined" && site.domain) ? (newFtpCredentials.username + "@" + site.domain) : newFtpCredentials.username;
       %>
       <div class="credential-box">
         <strong>New FTP user created — save these credentials (shown once)</strong>
@@ -201,13 +201,13 @@
         <button type="button" class="btn btn-small btn-secondary js-copy-password">Copy password</button>
       </div>
       <% } %>
-      <p class="empty-msg">Use the <strong>FTP login</strong> name (domain_username) in your FTP client, not the username alone.</p>
+      <p class="empty-msg">Use the <strong>FTP login</strong> (name@domain) in your FTP client, e.g. <code>martin@example.com</code>.</p>
       <% if (ftpUsers.length) { %>
       <table>
-        <thead><tr><th>Username</th><th>FTP login</th><th>Default route</th><th>Password</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>FTP login</th><th>Default route</th><th>Password</th><th></th></tr></thead>
         <tbody>
           <% ftpUsers.forEach(function(u) {
-            const ftpLogin = (typeof site !== "undefined" && site.domain) ? (site.domain.split(".").join("_") + "_" + u.username) : u.username;
+            const ftpLogin = (typeof site !== "undefined" && site.domain) ? (u.username + "@" + site.domain) : u.username;
           %>
           <tr>
             <td><%= u.username %></td>
@@ -239,8 +239,8 @@
       <% } %>
       <form method="post" action="/sites/<%= site.id %>/ftp-users" style="margin-top:1rem;">
         <div class="form-row">
-          <label>Username</label>
-          <input type="text" name="username" required>
+          <label>Name</label>
+          <input type="text" name="username" required placeholder="e.g. martin (FTP login will be name@<%= site.domain %>)">
         </div>
         <div class="form-row">
           <label>Password</label>
