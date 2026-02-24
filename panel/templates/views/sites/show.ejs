@@ -48,6 +48,15 @@
     .password-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
     .password-cell .show-hint { font-size: 0.8rem; color: #52796f; }
     .password-cell .pwd-value { font-family: monospace; user-select: all; }
+    .tabs { margin: 0 0 0 0; border-bottom: 1px solid #b7d4bc; }
+    .tabs-list { display: flex; flex-wrap: wrap; gap: 0; list-style: none; margin: 0; padding: 0; }
+    .tabs-list li { margin: 0; }
+    .tabs-trigger { padding: 0.75rem 1rem; color: #52796f; text-decoration: none; border-bottom: 3px solid transparent; margin-bottom: -1px; display: flex; align-items: center; gap: 0.4rem; font-size: 0.95rem; }
+    .tabs-trigger:hover { color: #2d6a4f; }
+    .tabs-trigger.is-active { color: #2d6a4f; font-weight: 600; border-bottom-color: #2d6a4f; }
+    .tabs-trigger .ic { width: 18px; height: 18px; }
+    .tabs-panel { display: none; padding-top: 1.25rem; }
+    .tabs-panel.is-active { display: block; }
   </style>
 </head>
 <body>
@@ -73,6 +82,15 @@
     <div class="success-msg">Database user password updated. Use the new password to connect to MySQL.</div>
     <% } %>
 
+    <nav class="tabs" aria-label="Site sections">
+      <ul class="tabs-list">
+        <li><a href="#overview" class="tabs-trigger is-active" data-tab="overview" id="tab-overview"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Overview</a></li>
+        <li><a href="#databases" class="tabs-trigger" data-tab="databases" id="tab-databases"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</a></li>
+        <li><a href="#ftp" class="tabs-trigger" data-tab="ftp" id="tab-ftp"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>FTP</a></li>
+      </ul>
+    </nav>
+
+    <div id="panel-overview" class="tabs-panel is-active" role="tabpanel" aria-labelledby="tab-overview">
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Site settings</h2>
       <div class="site-meta">
@@ -88,7 +106,9 @@
         </form>
       </div>
     </div>
+    </div>
 
+    <div id="panel-databases" class="tabs-panel" role="tabpanel" aria-labelledby="tab-databases">
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases for this site</h2>
       <% if (!hasMysqlPassword) { %>
@@ -186,7 +206,9 @@
       </form>
       <% } %>
     </div>
+    </div>
 
+    <div id="panel-ftp" class="tabs-panel" role="tabpanel" aria-labelledby="tab-ftp">
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>FTP users for this site</h2>
       <% if (!site.ftp_enabled) { %>
@@ -253,6 +275,7 @@
         <button type="submit" class="btn">Add FTP user</button>
       </form>
       <% } %>
+    </div>
     </div>
   </main>
   <script src="/js/sites-show.js"></script>

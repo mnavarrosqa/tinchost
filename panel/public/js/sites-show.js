@@ -1,4 +1,28 @@
 (function() {
+  var TAB_IDS = ["overview", "databases", "ftp"];
+  function getTabFromHash() {
+    var hash = (window.location.hash || "").replace(/^#/, "");
+    return TAB_IDS.indexOf(hash) >= 0 ? hash : "overview";
+  }
+  function switchTab(id) {
+    TAB_IDS.forEach(function(tabId) {
+      var panel = document.getElementById("panel-" + tabId);
+      var trigger = document.getElementById("tab-" + tabId);
+      if (panel) panel.classList.toggle("is-active", tabId === id);
+      if (trigger) trigger.classList.toggle("is-active", tabId === id);
+    });
+    window.location.hash = id;
+  }
+  document.addEventListener("click", function(e) {
+    var trigger = e.target.closest(".tabs-trigger");
+    if (trigger && trigger.dataset.tab) {
+      e.preventDefault();
+      switchTab(trigger.dataset.tab);
+    }
+  });
+  window.addEventListener("hashchange", function() { switchTab(getTabFromHash()); });
+  switchTab(getTabFromHash());
+
   document.addEventListener("click", function(e) {
     var btn = e.target.closest(".show-pwd-btn");
     if (!btn) return;
