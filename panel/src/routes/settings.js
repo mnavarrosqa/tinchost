@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getDb } = require('../config/database');
+const servicesManager = require('../services/servicesManager');
 
 function getSetting(db, key) {
   const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
@@ -18,11 +19,33 @@ router.get('/', async (req, res) => {
   const phpPoolDir = getSetting(db, 'php_pool_dir') || '/etc/php';
   const mailPath = getSetting(db, 'mail_path') || '/var/mail/vhosts';
   const mysqlRootPassword = getSetting(db, 'mysql_root_password') ? '********' : '';
+  const installedServices = servicesManager.getInstalledServices(state || {}).map((s) => ({
+    ...s,
+    status: servicesManager.getServiceStatus(s.unit)
+  }));
   const saved = req.session.settingsSaved;
   const settingsError = req.session.settingsError;
+  const serviceRestarted = req.session.serviceRestarted;
+  const serviceError = req.session.serviceError;
   if (req.session.settingsSaved) delete req.session.settingsSaved;
   if (req.session.settingsError) delete req.session.settingsError;
-  res.render('settings', { state, nginxSites, phpPoolDir, mailPath, mysqlRootPassword, saved, settingsError });
+  if (req.session.serviceRestarted) delete req.session.serviceRestarted;
+  if (req.session.serviceError) delete req.session.serviceError;
+  res.render('settings', { state, nginxSites, phpPoolDir, mailPath, mysqlRootPassword, saved, settingsError, installedServices, serviceRestarted, serviceError });
+});
+
+router.post('/services/restart', async (req, res) => {
+  const unit = req.body && req.body.service ? String(req.body.service).trim() : '';
+  const db = await getDb();
+  const state = db.prepare('SELECT * FROM wizard_state WHERE id = 1').get();
+  if (!unit || !servicesManager.isAllowedUnit(unit, state || {})) {
+    req.session.serviceError = 'Invalid or not allowed service';
+    return res.redirect('/settings');
+  }
+  const result = servicesManager.restartService(unit);
+  if (result.ok) req.session.serviceRestarted = unit;
+  else req.session.serviceError = result.message || 'Restart failed';
+  res.redirect('/settings');
 });
 
 router.post('/', async (req, res) => {

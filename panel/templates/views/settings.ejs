@@ -6,14 +6,28 @@
   <title>Settings – Tinchost Panel</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #f5f5f5; }
-    .nav { background: #222; color: #fff; padding: 0.75rem 1.5rem; }
-    .nav a { color: #fff; text-decoration: none; margin-right: 1rem; }
-    main { max-width: 560px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; }
-    label { display: block; margin-top: 0.75rem; }
-    input[type=text] { width: 100%; padding: 0.5rem; }
-    button { padding: 0.5rem 1rem; background: #007bff; color: #fff; border: none; cursor: pointer; margin-top: 1rem; }
-    .risk { background: #f8d7da; border-left: 4px solid #dc3545; padding: 0.75rem; margin: 1rem 0; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
+    .nav { background: #2d6a4f; color: #fff; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .nav a { color: #d8f3dc; text-decoration: none; }
+    .nav a:hover { color: #fff; }
+    .nav .nav-right { margin-left: auto; }
+    .nav .nav-active { color: #fff; font-weight: 600; }
+    main { max-width: 720px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
+    h1 { margin-top: 0; color: #1b4332; font-size: 1.5rem; }
+    h2 { color: #2d6a4f; font-size: 1.1rem; margin: 1.5rem 0 0.75rem 0; }
+    label { display: block; margin-top: 0.75rem; font-size: 0.9rem; color: #1b4332; }
+    input[type=text], input[type=password] { width: 100%; max-width: 360px; padding: 0.5rem; border: 1px solid #b7d4bc; border-radius: 4px; }
+    button, .btn { padding: 0.45rem 0.9rem; background: #2d6a4f; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+    button:hover, .btn:hover { background: #1b4332; color: #fff; }
+    .risk { background: #f8d7da; border: 1px solid #9b2226; color: #9b2226; padding: 0.75rem; margin: 1rem 0; border-radius: 4px; font-size: 0.9rem; }
+    .success { background: #d8f3dc; border: 1px solid #2d6a4f; color: #1b4332; padding: 0.5rem 0.75rem; margin-bottom: 1rem; border-radius: 4px; font-size: 0.9rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #e8f5e9; }
+    th { color: #2d6a4f; font-weight: 600; font-size: 0.875rem; }
+    .status-active { color: #2d6a4f; font-weight: 500; }
+    .status-inactive { color: #9b2226; }
+    .card { border: 1px solid #b7d4bc; border-radius: 6px; padding: 1.25rem; margin-bottom: 1.25rem; background: #fff; }
+    form.inline { display: inline; }
   </style>
 </head>
 <body>
@@ -22,18 +36,26 @@
     <a href="/sites">Sites</a>
     <a href="/databases">Databases</a>
     <a href="/mail">Mail</a>
-    <a href="/settings">Settings</a>
-    <span style="float:right"><a href="/auth/logout">Logout</a></span>
+    <a href="/settings" class="nav-active">Settings</a>
+    <span class="nav-right"><a href="/auth/logout">Logout</a></span>
   </nav>
   <main>
     <h1>Settings</h1>
     <% if (typeof settingsError === 'string' && settingsError) { %>
     <div class="risk"><strong>Error:</strong> <%= settingsError %></div>
     <% } %>
+    <% if (typeof serviceError === 'string' && serviceError) { %>
+    <div class="risk"><strong>Service:</strong> <%= serviceError %></div>
+    <% } %>
     <% if (typeof saved !== 'undefined' && saved) { %>
-    <p style="color:#2d6a4f; margin-bottom:1rem;">Settings saved.</p>
+    <p class="success">Settings saved.</p>
+    <% } %>
+    <% if (typeof serviceRestarted === 'string' && serviceRestarted) { %>
+    <p class="success">Service <strong><%= serviceRestarted %></strong> restarted.</p>
     <% } %>
     <div class="risk"><strong>This panel runs as root.</strong> Protect access and use a strong password.</div>
+
+    <h2>Paths &amp; credentials</h2>
     <form method="post" action="/settings">
       <label>Nginx sites-available path</label>
       <input type="text" name="nginx_sites_available" value="<%= nginxSites %>">
@@ -45,7 +67,34 @@
       <input type="password" name="mysql_root_password" value="<%= typeof mysqlRootPassword !== 'undefined' ? mysqlRootPassword : '' %>" placeholder="Enter password to set or change; leave blank to keep current">
       <button type="submit">Save</button>
     </form>
-    <p style="margin-top:2rem;">Wizard completed: <%= state && state.completed ? 'Yes' : 'No' %></p>
+
+    <h2>Installed services</h2>
+    <p style="color:#52796f; font-size:0.9rem; margin:0 0 0.5rem 0;">Services installed by the wizard. Restart a service to apply config changes.</p>
+    <% if (typeof installedServices !== 'undefined' && installedServices.length) { %>
+    <div class="card">
+      <table>
+        <thead><tr><th>Service</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          <% installedServices.forEach(function(s) { %>
+          <tr>
+            <td><%= s.label %></td>
+            <td><span class="<%= s.status === 'active' ? 'status-active' : 'status-inactive' %>"><%= s.status === 'active' ? 'Running' : 'Stopped' %></span></td>
+            <td>
+              <form method="post" action="/settings/services/restart" class="inline">
+                <input type="hidden" name="service" value="<%= s.unit %>">
+                <button type="submit">Restart</button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+    <p style="color:#52796f; font-size:0.9rem;">Complete the <a href="/wizard">setup wizard</a> to install PHP, database, mail, and FTP. Services will appear here.</p>
+    <% } %>
+
+    <p style="margin-top:1.5rem; font-size:0.9rem; color:#52796f;">Wizard completed: <%= state && state.completed ? 'Yes' : 'No' %> · Certbot installed: <%= state && state.certbot_installed ? 'Yes' : 'No' %></p>
   </main>
 </body>
 </html>
