@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+const https = require('https');
 const { getDb, getDbPath, getSetting } = require('../config/database');
 const siteManager = require('../services/siteManager');
 const sslManager = require('../services/sslManager');
@@ -126,7 +128,9 @@ router.get('/:id', async (req, res) => {
   }
   const renew = req.query.renew || null;
   const sslRemoved = req.query.ssl === 'removed';
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved });
+  const wordpress = req.query.wordpress || null;
+  const wp_folder = req.query.wp_folder || null;
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, wordpress, wp_folder });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {
@@ -155,6 +159,47 @@ router.post('/:id/ssl/delete', async (req, res) => {
     siteManager.reloadNginx();
   } catch (_) {}
   res.redirect('/sites/' + site.id + '?ssl=removed#ssl');
+});
+
+router.post('/:id/scripts/wordpress', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  const rawFolder = (req.body.folder || '').trim().replace(/^\/+/, '').replace(/\\/g, '');
+  const folder = rawFolder.replace(/[^a-zA-Z0-9_.-]/g, '');
+  if (rawFolder !== folder) return res.redirect('/sites/' + site.id + '?wordpress=error&msg=invalid#scripts');
+  const targetDir = resolveDocrootPath(site.docroot, folder || '.');
+  if (!targetDir) return res.redirect('/sites/' + site.id + '?wordpress=error&msg=invalid#scripts');
+  let tmpDir = null;
+  try {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wp-'));
+    const zipPath = path.join(tmpDir, 'latest.zip');
+    await new Promise((resolve, reject) => {
+      const file = fs.createWriteStream(zipPath);
+      https.get('https://wordpress.org/latest.zip', (resp) => {
+        if (resp.statusCode !== 200) return reject(new Error('Download failed'));
+        resp.pipe(file);
+        file.on('finish', () => { file.close(resolve); });
+      }).on('error', reject);
+    });
+    execSync('unzip -o -q ' + zipPath.replace(/ /g, '\\ ') + ' -d ' + tmpDir.replace(/ /g, '\\ '), { stdio: 'pipe' });
+    const wpDir = path.join(tmpDir, 'wordpress');
+    if (!fs.existsSync(wpDir)) throw new Error('Invalid zip');
+    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+    const entries = fs.readdirSync(wpDir, { withFileTypes: true });
+    for (const e of entries) {
+      const src = path.join(wpDir, e.name);
+      const dest = path.join(targetDir, e.name);
+      if (e.isDirectory()) fs.cpSync(src, dest, { recursive: true });
+      else fs.copyFileSync(src, dest);
+    }
+    execFileSync('chown', ['-R', 'www-data:www-data', targetDir], { stdio: 'pipe' });
+  } catch (e) {
+    if (tmpDir && fs.existsSync(tmpDir)) try { fs.rmSync(tmpDir, { recursive: true }); } catch (_) {}
+    return res.redirect('/sites/' + site.id + '?wordpress=error&msg=install#scripts');
+  }
+  if (tmpDir && fs.existsSync(tmpDir)) try { fs.rmSync(tmpDir, { recursive: true }); } catch (_) {}
+  res.redirect('/sites/' + site.id + '?wordpress=installed&wp_folder=' + encodeURIComponent(folder) + '#scripts');
 });
 
 router.get('/:id/files/api/entries', async (req, res) => {
