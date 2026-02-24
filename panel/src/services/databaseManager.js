@@ -118,4 +118,25 @@ async function grantDatabase(settings, username, databaseName, host, privileges)
   await conn.end();
 }
 
-module.exports = { getConnection, createDatabase, dropDatabase, createUser, setUserPassword, grantDatabase, PRIVILEGE_SETS };
+async function revokeDatabase(settings, username, databaseName, host) {
+  const conn = await getConnection(settings);
+  if (!conn) return;
+  const safeDb = databaseName.replace(/[^a-z0-9_]/gi, '');
+  const safeUser = username.replace(/[^a-z0-9_]/gi, '');
+  const h = host || 'localhost';
+  await conn.execute('REVOKE ALL PRIVILEGES ON ' + escapeId(safeDb) + '.* FROM ' + escapeAccountPart(safeUser) + '@' + escapeAccountPart(h));
+  await conn.execute('FLUSH PRIVILEGES');
+  await conn.end();
+}
+
+async function dropUser(settings, username, host) {
+  const conn = await getConnection(settings);
+  if (!conn) return;
+  const safeUser = username.replace(/[^a-z0-9_]/gi, '');
+  const h = host || 'localhost';
+  await conn.execute('DROP USER IF EXISTS ' + escapeAccountPart(safeUser) + '@' + escapeAccountPart(h));
+  await conn.execute('FLUSH PRIVILEGES');
+  await conn.end();
+}
+
+module.exports = { getConnection, createDatabase, dropDatabase, createUser, setUserPassword, grantDatabase, revokeDatabase, dropUser, PRIVILEGE_SETS };

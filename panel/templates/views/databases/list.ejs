@@ -30,8 +30,17 @@
     .form-row input { padding: 0.5rem 0.75rem; font-size: 0.95rem; font-family: inherit; color: #1b4332; background: #fff; border: 1px solid #b7d4bc; border-radius: 6px; }
     .form-row input:focus { outline: none; border-color: #2d6a4f; box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.15); }
     .form-row input[type="text"], .form-row input[type="password"] { min-width: 140px; }
+    .input-small { width: 8rem; padding: 0.25rem 0.4rem; font-size: 0.85rem; font-family: inherit; color: #1b4332; background: #fff; border: 1px solid #b7d4bc; border-radius: 6px; }
     .btn { padding: 0.4rem 0.9rem; background: #2d6a4f; color: #fff; text-decoration: none; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; font-family: inherit; font-weight: 500; }
     .btn:hover { background: #1b4332; color: #fff; }
+    .btn-danger { background: #b91c1c; }
+    .btn-danger:hover { background: #991b1b; color: #fff; }
+    .btn-small { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+    form.inline { display: inline; }
+    .form-row select { padding: 0.5rem 0.75rem; font-size: 0.95rem; font-family: inherit; color: #1b4332; background: #fff; border: 1px solid #b7d4bc; border-radius: 6px; min-width: 120px; }
+    .privilege-badge { display: inline-block; background: #e8f5e9; color: #2d6a4f; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.25rem; }
+    .grant-list { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .grant-list .revoke-form { display: inline; }
     .section-title { margin: 1.5rem 0 0.75rem 0; color: #2d6a4f; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
     .section-title .ic { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     table { width: 100%; border-collapse: collapse; }
@@ -93,23 +102,103 @@
         <p class="risk"><strong>Risk:</strong> Using host <code>%</code> allows connections from any host; use <code>localhost</code> when possible.</p>
       </form>
     </div>
+    <% if (databases.length && users.length) { %>
+    <div class="card">
+      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><path d="M12 11a4 4 0 100-8 4 4 0 000 8z"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Assign user to database</h2>
+      <form method="post" action="/databases/grants">
+        <div class="form-row">
+          <div>
+            <label for="grant-db">Database</label>
+            <select id="grant-db" name="database_id" required>
+              <option value="">Select database</option>
+              <% databases.forEach(function(d) { %><option value="<%= d.id %>"><%= d.name %></option><% }); %>
+            </select>
+          </div>
+          <div>
+            <label for="grant-user">User</label>
+            <select id="grant-user" name="db_user_id" required>
+              <option value="">Select user</option>
+              <% users.forEach(function(u) { %><option value="<%= u.id %>"><%= u.username %>@<%= u.host %></option><% }); %>
+            </select>
+          </div>
+          <div>
+            <label for="grant-priv">Privileges</label>
+            <select id="grant-priv" name="privileges">
+              <option value="ALL">All</option>
+              <option value="READ_WRITE">Read + Write</option>
+              <option value="READ_ONLY">Read only</option>
+            </select>
+          </div>
+          <button type="submit" class="btn">Assign</button>
+        </div>
+      </form>
+    </div>
+    <% } %>
     <h2 class="section-title"><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</h2>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th></tr></thead>
+        <thead><tr><th>Name</th><th>Users with access</th><th>Actions</th></tr></thead>
         <tbody>
-          <% databases.forEach(function(d) { %><tr><td><%= d.name %></td></tr><% }); %>
-          <% if (!databases.length) { %><tr><td class="empty-msg">None yet. Create one above.</td></tr><% } %>
+          <% databases.forEach(function(d) {
+            var dbGrants = typeof grants !== 'undefined' ? grants.filter(function(g){ return g.database_id === d.id; }) : [];
+          %>
+          <tr>
+            <td><strong><%= d.name %></strong></td>
+            <td>
+              <div class="grant-list">
+                <% if (dbGrants.length) { dbGrants.forEach(function(gr) { %>
+                <span><%= gr.username %>@<%= gr.host %></span><span class="privilege-badge"><%= gr.privileges %></span>
+                <form method="post" action="/databases/grants/revoke" class="revoke-form">
+                  <input type="hidden" name="database_id" value="<%= gr.database_id %>">
+                  <input type="hidden" name="db_user_id" value="<%= gr.db_user_id %>">
+                  <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Revoke <%= gr.username %> access to <%= d.name %>?');">Revoke</button>
+                </form>
+                <% }); } else { %><span class="empty-msg">No users assigned</span><% } %>
+              </div>
+            </td>
+            <td>
+              <form method="post" action="/databases/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm('Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.');">
+                <button type="submit" class="btn btn-small btn-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+          <% if (!databases.length) { %><tr><td colspan="3" class="empty-msg">None yet. Create one above.</td></tr><% } %>
         </tbody>
       </table>
     </div>
     <h2 class="section-title"><svg class="ic" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Users</h2>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Username</th><th>Host</th></tr></thead>
+        <thead><tr><th>Username</th><th>Host</th><th>Databases</th><th>Reset password</th><th>Actions</th></tr></thead>
         <tbody>
-          <% users.forEach(function(u) { %><tr><td><%= u.username %></td><td><%= u.host %></td></tr><% }); %>
-          <% if (!users.length) { %><tr><td colspan="2" class="empty-msg">None yet. Create one above.</td></tr><% } %>
+          <% users.forEach(function(u) {
+            var userGrants = typeof grants !== 'undefined' ? grants.filter(function(g){ return g.db_user_id === u.id; }) : [];
+          %>
+          <tr>
+            <td><strong><%= u.username %></strong></td>
+            <td><%= u.host %></td>
+            <td>
+              <div class="grant-list">
+                <% if (userGrants.length) { userGrants.forEach(function(gr) { %>
+                <span><%= gr.database_name %></span><span class="privilege-badge"><%= gr.privileges %></span>
+                <% }); } else { %><span class="empty-msg">None</span><% } %>
+              </div>
+            </td>
+            <td>
+              <form method="post" action="/databases/users/<%= u.id %>/password" class="inline">
+                <input type="password" name="password" placeholder="New password" class="input-small" required>
+                <button type="submit" class="btn btn-small">Set</button>
+              </form>
+            </td>
+            <td>
+              <form method="post" action="/databases/users/<%= u.id %>/delete" class="inline" onsubmit="return confirm('Delete user <%= u.username %>@<%= u.host %>? This will DROP the user in MySQL. Cannot be undone.');">
+                <button type="submit" class="btn btn-small btn-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+          <% if (!users.length) { %><tr><td colspan="5" class="empty-msg">None yet. Create one above.</td></tr><% } %>
         </tbody>
       </table>
     </div>
