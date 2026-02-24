@@ -4,18 +4,22 @@ const crypto = require('crypto');
 /**
  * Run MySQL/MariaDB commands when root password is configured in settings.
  * Panel runs as root; connects to local MySQL and runs CREATE DATABASE, CREATE USER, GRANT.
+ * Tries localhost (socket) first, then 127.0.0.1 (TCP) if Access denied.
  */
 async function getConnection(settings) {
   const password = settings && settings.mysql_root_password;
   if (!password) return null;
+  const opts = { user: 'root', password, multipleStatements: true };
   try {
-    return await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password,
-      multipleStatements: true
-    });
+    return await mysql.createConnection({ ...opts, host: 'localhost' });
   } catch (err) {
+    if (err.message && err.message.includes('Access denied') && err.message.includes('root')) {
+      try {
+        return await mysql.createConnection({ ...opts, host: '127.0.0.1' });
+      } catch (err2) {
+        throw new Error('MySQL access denied for root. Check that the password in Settings matches the MySQL root password (e.g. run: sudo mysql -u root -p).');
+      }
+    }
     throw new Error(err.message || 'MySQL connection failed');
   }
 }
