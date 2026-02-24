@@ -242,11 +242,7 @@ router.post('/:id/databases/:dbId/delete', async (req, res) => {
   const settings = getSettings(db);
   if (settings.mysql_root_password) {
     try {
-      const conn = await databaseManager.getConnection(settings);
-      if (conn) {
-        await conn.execute('DROP DATABASE IF EXISTS ??', [row.name.replace(/[^a-z0-9_]/gi, '')]);
-        await conn.end();
-      }
+      await databaseManager.dropDatabase(settings, row.name);
     } catch (_) {}
   }
   res.redirect('/sites/' + siteId);

@@ -18,6 +18,10 @@ function findSocket() {
   return null;
 }
 
+function escapeId(id) {
+  return '`' + String(id).replace(/`/g, '``') + '`';
+}
+
 /**
  * Run MySQL/MariaDB commands when root password is configured in settings.
  * Panel runs as root; connects to local MySQL and runs CREATE DATABASE, CREATE USER, GRANT.
@@ -54,7 +58,15 @@ async function createDatabase(settings, name) {
   if (!conn) throw new Error('MySQL root password not set in Settings');
   const safe = name.replace(/[^a-z0-9_]/gi, '');
   if (safe !== name) throw new Error('Invalid database name');
-  await conn.execute('CREATE DATABASE IF NOT EXISTS ??', [safe]);
+  await conn.execute('CREATE DATABASE IF NOT EXISTS ' + escapeId(safe));
+  await conn.end();
+}
+
+async function dropDatabase(settings, name) {
+  const conn = await getConnection(settings);
+  if (!conn) return;
+  const safe = name.replace(/[^a-z0-9_]/gi, '');
+  await conn.execute('DROP DATABASE IF EXISTS ' + escapeId(safe));
   await conn.end();
 }
 
@@ -63,7 +75,8 @@ async function createUser(settings, username, password, host) {
   if (!conn) throw new Error('MySQL root password not set in Settings');
   const safeUser = username.replace(/[^a-z0-9_]/gi, '');
   if (safeUser !== username) throw new Error('Invalid username');
-  await conn.execute("CREATE USER IF NOT EXISTS ??@?? IDENTIFIED BY ?", [safeUser, host || 'localhost', password]);
+  const h = host || 'localhost';
+  await conn.execute('CREATE USER IF NOT EXISTS ' + escapeId(safeUser) + '@' + escapeId(h) + ' IDENTIFIED BY ?', [password]);
   await conn.end();
 }
 
@@ -72,7 +85,8 @@ async function setUserPassword(settings, username, newPassword, host) {
   if (!conn) throw new Error('MySQL root password not set in Settings');
   const safeUser = username.replace(/[^a-z0-9_]/gi, '');
   if (safeUser !== username) throw new Error('Invalid username');
-  await conn.execute('ALTER USER ??@?? IDENTIFIED BY ?', [safeUser, host || 'localhost', newPassword]);
+  const h = host || 'localhost';
+  await conn.execute('ALTER USER ' + escapeId(safeUser) + '@' + escapeId(h) + ' IDENTIFIED BY ?', [newPassword]);
   await conn.execute('FLUSH PRIVILEGES');
   await conn.end();
 }
@@ -88,10 +102,11 @@ async function grantDatabase(settings, username, databaseName, host, privileges)
   if (!conn) throw new Error('MySQL root password not set in Settings');
   const safeDb = databaseName.replace(/[^a-z0-9_]/gi, '');
   const safeUser = username.replace(/[^a-z0-9_]/gi, '');
+  const h = host || 'localhost';
   const priv = PRIVILEGE_SETS[privileges === 'READ_ONLY' || privileges === 'READ_WRITE' ? privileges : 'ALL'] || PRIVILEGE_SETS.ALL;
-  await conn.execute(`GRANT ${priv} ON ??.* TO ??@??`, [safeDb, safeUser, host || 'localhost']);
+  await conn.execute('GRANT ' + priv + ' ON ' + escapeId(safeDb) + '.* TO ' + escapeId(safeUser) + '@' + escapeId(h));
   await conn.execute('FLUSH PRIVILEGES');
   await conn.end();
 }
 
-module.exports = { getConnection, createDatabase, createUser, setUserPassword, grantDatabase, PRIVILEGE_SETS };
+module.exports = { getConnection, createDatabase, dropDatabase, createUser, setUserPassword, grantDatabase, PRIVILEGE_SETS };
