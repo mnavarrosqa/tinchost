@@ -57,19 +57,19 @@
     <a href="/databases"><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</a>
     <a href="/mail"><svg class="ic" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Mail</a>
     <a href="/settings"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a>
-    <span class="nav-right"><% if (typeof user !== 'undefined' && user) { %><%= user.username %> · <% } %><a href="/auth/logout"><svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</a></span>
+    <span class="nav-right"><% if (typeof user !== "undefined" && user) { %><%= user.username %> · <% } %><a href="/auth/logout"><svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</a></span>
   </nav>
   <main>
     <div class="breadcrumb"><a href="/sites">Sites</a> → <strong><%= site.domain %></strong></div>
     <h1><%= site.domain %></h1>
 
-    <% if (typeof error !== 'undefined' && error) { %>
-    <div class="error-msg"><%= error %><% if (typeof panelDbPath !== 'undefined' && panelDbPath) { %> <br><br>Panel database path: <code style="font-size:0.85em; word-break:break-all;"><%= panelDbPath %></code><% } %></div>
+    <% if (typeof error !== "undefined" && error) { %>
+    <div class="error-msg"><%= error %><% if (typeof panelDbPath !== "undefined" && panelDbPath) { %> <br><br>Panel database path: <code style="font-size:0.85em; word-break:break-all;"><%= panelDbPath %></code><% } %></div>
     <% } %>
-    <% if (typeof reset !== 'undefined' && reset === 'ftp') { %>
+    <% if (typeof reset !== "undefined" && reset === "ftp") { %>
     <div class="success-msg">FTP password updated. Use the new password and the <strong>FTP login</strong> name below to connect.</div>
     <% } %>
-    <% if (typeof reset !== 'undefined' && reset === 'db') { %>
+    <% if (typeof reset !== "undefined" && reset === "db") { %>
     <div class="success-msg">Database user password updated. Use the new password to connect to MySQL.</div>
     <% } %>
 
@@ -77,13 +77,13 @@
       <h2><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Site settings</h2>
       <div class="site-meta">
         <span><strong>Docroot</strong> <%= site.docroot %></span>
-        <span><strong>PHP</strong> <%= site.php_version || '-' %></span>
-        <span><strong>SSL</strong> <%= site.ssl ? 'Yes' : 'No' %></span>
-        <span><strong>FTP</strong> <%= site.ftp_enabled ? 'Enabled' : 'Off' %></span>
+        <span><strong>PHP</strong> <%= site.php_version || "-" %></span>
+        <span><strong>SSL</strong> <%= site.ssl ? "Yes" : "No" %></span>
+        <span><strong>FTP</strong> <%= site.ftp_enabled ? "Enabled" : "Off" %></span>
       </div>
       <div class="site-actions">
         <a href="/sites/<%= site.id %>/edit" class="btn">Edit settings</a>
-        <form method="post" action="/sites/<%= site.id %>/delete" class="inline" onsubmit="return confirm(&#39;Delete this site? Nginx vhost and site-specific databases/FTP users will be removed. This cannot be undone.&#39;);">
+        <form method="post" action="/sites/<%= site.id %>/delete" class="inline" data-confirm="Delete this site? Nginx vhost and site-specific databases/FTP users will be removed. This cannot be undone.">
           <button type="submit" class="btn btn-danger">Delete site</button>
         </form>
       </div>
@@ -94,11 +94,11 @@
       <% if (!hasMysqlPassword) { %>
       <p class="empty-msg">Set the MySQL root password in <a href="/settings">Settings</a> to create databases from the panel.</p>
       <% } else { %>
-      <% if (typeof newDbCredentials !== 'undefined' && newDbCredentials) { %>
+      <% if (typeof newDbCredentials !== "undefined" && newDbCredentials) { %>
       <div class="credential-box">
         <strong>New user created — save these credentials (shown once)</strong>
         Database: <strong><%= newDbCredentials.database %></strong> · User: <strong><%= newDbCredentials.username %></strong> · Password: <span class="password"><%= newDbCredentials.password %></span>
-        <button type="button" class="btn btn-small btn-secondary" onclick="var el=this.closest(&#39;.credential-box&#39;).querySelector(&#39;.password&#39;); if(el && navigator.clipboard){ navigator.clipboard.writeText(el.textContent); this.textContent=&#39;Copied&#39;; var t=this; setTimeout(function(){ t.textContent=&#39;Copy&#39;; }, 1500); }">Copy password</button>
+        <button type="button" class="btn btn-small btn-secondary js-copy-password">Copy password</button>
       </div>
       <% } %>
       <% if (siteDatabases.length) { %>
@@ -106,14 +106,14 @@
         <thead><tr><th>Database</th><th>User</th><th>Privileges</th><th>Password</th><th></th></tr></thead>
         <tbody>
           <% siteDatabases.forEach(function(d) {
-            const grants = (typeof databaseGrants !== 'undefined' ? databaseGrants : []).filter(function(g) { return g.database_id === d.id; });
+            const grants = (typeof databaseGrants !== "undefined" ? databaseGrants : []).filter(function(g) { return g.database_id === d.id; });
           %>
           <% if (grants.length) { %>
             <% grants.forEach(function(g, gIdx) { %>
           <tr>
             <td><%= d.name %></td>
             <td><%= g.username %></td>
-            <td><%= (g.privileges || 'ALL').replace(/_/g, ' ') %></td>
+            <td><%= (g.privileges || "ALL").replace(/_/g, " ") %></td>
             <td class="password-cell">
               <span class="pwd-mask">••••••</span>
               <button type="button" class="btn btn-small btn-secondary show-pwd-btn">Show</button>
@@ -125,7 +125,7 @@
             </td>
             <td>
               <% if (gIdx === 0) { %>
-              <form method="post" action="/sites/<%= site.id %>/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm(&#39;Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.&#39;);">
+              <form method="post" action="/sites/<%= site.id %>/databases/<%= d.id %>/delete" class="inline" data-confirm="Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.">
                 <button type="submit" class="btn btn-danger">Delete DB</button>
               </form>
               <% } %>
@@ -139,7 +139,7 @@
             <td>—</td>
             <td>—</td>
             <td>
-              <form method="post" action="/sites/<%= site.id %>/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm(&#39;Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.&#39;);">
+              <form method="post" action="/sites/<%= site.id %>/databases/<%= d.id %>/delete" class="inline" data-confirm="Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.">
                 <button type="submit" class="btn btn-danger">Delete DB</button>
               </form>
             </td>
@@ -161,7 +161,7 @@
           <select name="assign_user" id="assign_user">
             <option value="">— None —</option>
             <option value="new">— New user —</option>
-            <% (typeof existingDbUsers !== 'undefined' ? existingDbUsers : []).forEach(function(u) { %>
+            <% (typeof existingDbUsers !== "undefined" ? existingDbUsers : []).forEach(function(u) { %>
             <option value="<%= u.id %>"><%= u.username %></option>
             <% }); %>
           </select>
@@ -177,30 +177,13 @@
         <div class="form-row">
           <label>Privileges</label>
           <select name="privileges">
-            <% (typeof privilegeOptions !== 'undefined' ? privilegeOptions : ['ALL','READ_WRITE','READ_ONLY']).forEach(function(p) { %>
-            <option value="<%= p %>" <%= p === 'ALL' ? 'selected' : '' %>><%= p === 'ALL' ? 'All' : (p === 'READ_WRITE' ? 'Read / Write' : 'Read only') %></option>
+            <% (typeof privilegeOptions !== "undefined" ? privilegeOptions : ["ALL","READ_WRITE","READ_ONLY"]).forEach(function(p) { %>
+            <option value="<%= p %>" <%= p === "ALL" ? "selected" : "" %>><%= p === "ALL" ? "All" : (p === "READ_WRITE" ? "Read / Write" : "Read only") %></option>
             <% }); %>
           </select>
         </div>
         <button type="submit" class="btn">Add database</button>
       </form>
-      <script>
-        (function(){
-          var sel = document.getElementById(&#39;assign_user&#39;);
-          var rowUser = document.getElementById(&#39;row-new-user&#39;);
-          var rowPwd = document.getElementById(&#39;row-new-password&#39;);
-          if (!sel || !rowUser) return;
-          function toggle(){
-            var show = sel.value === &#39;new&#39;;
-            rowUser.style.display = show ? &#39;block&#39; : &#39;none&#39;;
-            rowPwd.style.display = show ? &#39;block&#39; : &#39;none&#39;;
-            rowUser.querySelector(&#39;input&#39;).required = show;
-            rowPwd.querySelector(&#39;input&#39;).required = show;
-          }
-          sel.addEventListener(&#39;change&#39;, toggle);
-          toggle();
-        })();
-      </script>
       <% } %>
     </div>
 
@@ -209,13 +192,13 @@
       <% if (!site.ftp_enabled) { %>
       <p class="empty-msg">Enable FTP for this site in <a href="/sites/<%= site.id %>/edit">Edit settings</a> to add FTP users.</p>
       <% } else { %>
-      <% if (typeof newFtpCredentials !== 'undefined' && newFtpCredentials) {
-        const newFtpLogin = (typeof site !== 'undefined' && site.domain) ? (site.domain.replace(/\./g, '_') + '_' + newFtpCredentials.username) : newFtpCredentials.username;
+      <% if (typeof newFtpCredentials !== "undefined" && newFtpCredentials) {
+        const newFtpLogin = (typeof site !== "undefined" && site.domain) ? (site.domain.replace(/\./g, "_") + "_" + newFtpCredentials.username) : newFtpCredentials.username;
       %>
       <div class="credential-box">
         <strong>New FTP user created — save these credentials (shown once)</strong>
         Use <strong>FTP login</strong> in your client: <code><%= newFtpLogin %></code> · Password: <span class="password"><%= newFtpCredentials.password %></span>
-        <button type="button" class="btn btn-small btn-secondary" onclick="var el=this.closest(&#39;.credential-box&#39;).querySelector(&#39;.password&#39;); if(el && navigator.clipboard){ navigator.clipboard.writeText(el.textContent); this.textContent=&#39;Copied&#39;; var t=this; setTimeout(function(){ t.textContent=&#39;Copy&#39;; }, 1500); }">Copy password</button>
+        <button type="button" class="btn btn-small btn-secondary js-copy-password">Copy password</button>
       </div>
       <% } %>
       <p class="empty-msg">Use the <strong>FTP login</strong> name (domain_username) in your FTP client, not the username alone.</p>
@@ -224,14 +207,14 @@
         <thead><tr><th>Username</th><th>FTP login</th><th>Default route</th><th>Password</th><th></th></tr></thead>
         <tbody>
           <% ftpUsers.forEach(function(u) {
-            const ftpLogin = (typeof site !== 'undefined' && site.domain) ? (site.domain.replace(/\./g, '_') + '_' + u.username) : u.username;
+            const ftpLogin = (typeof site !== "undefined" && site.domain) ? (site.domain.replace(/\./g, "_") + "_" + u.username) : u.username;
           %>
           <tr>
             <td><%= u.username %></td>
             <td><code><%= ftpLogin %></code></td>
-            <td><%= (u.default_route && u.default_route !== '') ? u.default_route : '(docroot)' %></td>
+            <td><%= (u.default_route && u.default_route !== "") ? u.default_route : "(docroot)" %></td>
             <td class="password-cell">
-              <% if (!u.crypt_hash || u.crypt_hash === '') { %>
+              <% if (!u.crypt_hash || u.crypt_hash === "") { %>
               <span class="show-hint">FTP login disabled — set password below to enable.</span>
               <% } else { %>
               <span class="pwd-mask">••••••</span>
@@ -243,7 +226,7 @@
               </form>
             </td>
             <td>
-              <form method="post" action="/sites/<%= site.id %>/ftp-users/<%= u.id %>/delete" class="inline" onsubmit="return confirm(&#39;Remove FTP user <%= u.username %>?&#39;);">
+              <form method="post" action="/sites/<%= site.id %>/ftp-users/<%= u.id %>/delete" class="inline" data-confirm="Remove FTP user <%= u.username %>?">
                 <button type="submit" class="btn btn-danger">Remove</button>
               </form>
             </td>
@@ -272,19 +255,6 @@
       <% } %>
     </div>
   </main>
-  <script>
-  document.addEventListener(&#39;click&#39;, function(e) {
-    var btn = e.target.closest(&#39;.show-pwd-btn&#39;);
-    if (!btn) return;
-    var c = btn.closest(&#39;.password-cell&#39;);
-    if (!c) return;
-    var pwd = c.querySelector(&#39;.pwd-value&#39;);
-    var hint = c.querySelector(&#39;.show-hint&#39;);
-    if (pwd && pwd.textContent) { pwd.style.display = &#39;inline&#39;; pwd.classList.add(&#39;password&#39;); } else if (hint) { hint.style.display = &#39;inline&#39;; }
-    var mask = c.querySelector(&#39;.pwd-mask&#39;);
-    if (mask) mask.style.display = &#39;none&#39;;
-    btn.style.display = &#39;none&#39;;
-  });
-  </script>
+  <script src="/js/sites-show.js"></script>
 </body>
 </html>
