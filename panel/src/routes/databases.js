@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
   const databases = db.prepare('SELECT * FROM databases ORDER BY name').all();
   const users = db.prepare('SELECT * FROM db_users ORDER BY username').all();
   const settings = getSettings(db);
-  res.render('databases/list', { databases, users, hasMysqlPassword: !!(settings && settings.mysql_root_password) });
+  res.render('databases/list', { databases, users, hasMysqlPassword: !!(settings && settings.mysql_root_password), user: req.session.user });
 });
 
 router.post('/databases', async (req, res) => {

@@ -6,63 +6,113 @@
   <title>Databases – Tinchost Panel</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #f5f5f5; }
-    .nav { background: #222; color: #fff; padding: 0.75rem 1.5rem; }
-    .nav a { color: #fff; text-decoration: none; margin-right: 1rem; }
-    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
+    .nav { background: #2d6a4f; color: #fff; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .nav a { color: #d8f3dc; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; }
+    .nav a:hover { color: #fff; }
+    .nav .nav-right { margin-left: auto; }
+    .nav .ic { width: 18px; height: 18px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .nav .nav-active { color: #fff; font-weight: 600; }
+    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
+    h1 { margin-top: 0; color: #1b4332; font-size: 1.5rem; }
+    .intro { color: #52796f; margin-bottom: 1.5rem; }
+    .card { border: 1px solid #b7d4bc; border-radius: 6px; padding: 1.25rem; margin-bottom: 1.25rem; background: #fff; }
+    .card h2 { margin: 0 0 0.75rem 0; color: #2d6a4f; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .card h2 .ic { width: 20px; height: 20px; color: #2d6a4f; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .card p { margin: 0.5rem 0; color: #1b4332; }
+    .card a { color: #2d6a4f; font-weight: 500; text-decoration: none; }
+    .card a:hover { color: #1b4332; text-decoration: underline; }
+    .risk { background: #fff8e1; border-left: 4px solid #b7a53a; padding: 0.75rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: 0.9rem; color: #5c4d1f; }
+    .risk a { color: #2d6a4f; font-weight: 500; }
+    .risk code { background: rgba(0,0,0,0.06); padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.9em; }
+    .form-row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; margin-bottom: 0.5rem; }
+    .form-row label { display: block; font-size: 0.875rem; font-weight: 500; color: #1b4332; margin-bottom: 0.25rem; }
+    .form-row input { padding: 0.5rem 0.75rem; font-size: 0.95rem; font-family: inherit; color: #1b4332; background: #fff; border: 1px solid #b7d4bc; border-radius: 6px; }
+    .form-row input:focus { outline: none; border-color: #2d6a4f; box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.15); }
+    .form-row input[type="text"], .form-row input[type="password"] { min-width: 140px; }
+    .btn { padding: 0.4rem 0.9rem; background: #2d6a4f; color: #fff; text-decoration: none; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; font-family: inherit; font-weight: 500; }
+    .btn:hover { background: #1b4332; color: #fff; }
+    .section-title { margin: 1.5rem 0 0.75rem 0; color: #2d6a4f; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .section-title .ic { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #ddd; }
-    .card { border: 1px solid #ddd; padding: 1rem; margin: 1rem 0; }
-    .btn { padding: 0.35rem 0.75rem; background: #007bff; color: #fff; border: none; cursor: pointer; border-radius: 4px; }
+    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #e8f5e9; }
+    th { color: #2d6a4f; font-weight: 600; font-size: 0.875rem; }
+    .table-wrap { border: 1px solid #b7d4bc; border-radius: 6px; overflow: hidden; margin-bottom: 1.5rem; }
+    .table-wrap table { margin: 0; }
+    .table-wrap th, .table-wrap td { padding: 0.6rem 0.75rem; }
+    .table-wrap thead th { background: #f1f8f2; }
+    .empty-msg { color: #52796f; font-size: 0.95rem; padding: 0.75rem 0; }
   </style>
 </head>
 <body>
   <nav class="nav">
-    <a href="/">Dashboard</a>
-    <a href="/sites">Sites</a>
-    <a href="/databases">Databases</a>
-    <a href="/mail">Mail</a>
-    <a href="/settings">Settings</a>
-    <span style="float:right"><a href="/auth/logout">Logout</a></span>
+    <a href="/"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard</a>
+    <a href="/wizard"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4V2m0 2v2m4-2v2m-2 4h2m2 4v2m0-4v-2m0 4h-2m-4 0h-2v2m0-4v-2m0 4H9m8-8h-2V4m0 2v2m0 8v2m0-4v-2m0 4h2M9 4H7v2h2V4zM5 20v-2H3v2h2zm0-4v-2H3v2h2z"/></svg>Wizard</a>
+    <a href="/sites"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Sites</a>
+    <a href="/databases" class="nav-active"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</a>
+    <a href="/mail"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Mail</a>
+    <a href="/settings"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a>
+    <% if (typeof user !== 'undefined' && user) { %><span class="nav-right"><%= user.username %> · <a href="/auth/logout"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</a></span><% } else { %><span class="nav-right"><a href="/auth/logout">Logout</a></span><% } %>
   </nav>
   <main>
     <h1>Databases</h1>
+    <p class="intro">Create MySQL/MariaDB databases and users for your applications.</p>
     <% if (typeof hasMysqlPassword !== 'undefined' && !hasMysqlPassword) { %>
-    <p class="risk" style="background:#fff3cd;padding:0.75rem;">Set MySQL root password in <a href="/settings">Settings</a> so the panel can create databases and users on the server.</p>
+    <div class="risk">Set the MySQL root password in <a href="/settings">Settings</a> so the panel can create databases and users on the server.</div>
     <% } %>
     <div class="card">
-      <h2>Create database</h2>
+      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Create database</h2>
       <form method="post" action="/databases/databases">
-        <input type="text" name="name" placeholder="Database name" required>
-        <button type="submit" class="btn">Create</button>
+        <div class="form-row">
+          <div>
+            <label for="db-name">Database name</label>
+            <input type="text" id="db-name" name="name" placeholder="e.g. myapp_db" required>
+          </div>
+          <button type="submit" class="btn">Create</button>
+        </div>
       </form>
     </div>
     <div class="card">
-      <h2>Create user</h2>
+      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Create user</h2>
       <form method="post" action="/databases/users">
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password">
-        <input type="text" name="host" value="localhost" placeholder="Host">
-        <button type="submit" class="btn">Create user</button>
+        <div class="form-row">
+          <div>
+            <label for="user-username">Username</label>
+            <input type="text" id="user-username" name="username" placeholder="Username" required>
+          </div>
+          <div>
+            <label for="user-password">Password</label>
+            <input type="password" id="user-password" name="password" placeholder="Password">
+          </div>
+          <div>
+            <label for="user-host">Host</label>
+            <input type="text" id="user-host" name="host" value="localhost" placeholder="Host">
+          </div>
+          <button type="submit" class="btn">Create user</button>
+        </div>
+        <p class="risk"><strong>Risk:</strong> Using host <code>%</code> allows connections from any host; use <code>localhost</code> when possible.</p>
       </form>
-      <p class="risk" style="background:#fff3cd;padding:0.5rem;margin-top:0.5rem;"><strong>Risk:</strong> Using host <code>%</code> allows connections from any host; use localhost when possible.</p>
     </div>
-    <h2>Databases</h2>
-    <table>
-      <thead><tr><th>Name</th></tr></thead>
-      <tbody>
-        <% databases.forEach(function(d) { %><tr><td><%= d.name %></td></tr><% }); %>
-        <% if (!databases.length) { %><tr><td>None yet.</td></tr><% } %>
-      </tbody>
-    </table>
-    <h2>Users</h2>
-    <table>
-      <thead><tr><th>Username</th><th>Host</th></tr></thead>
-      <tbody>
-        <% users.forEach(function(u) { %><tr><td><%= u.username %></td><td><%= u.host %></td></tr><% }); %>
-        <% if (!users.length) { %><tr><td colspan="2">None yet.</td></tr><% } %>
-      </tbody>
-    </table>
+    <h2 class="section-title"><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th></tr></thead>
+        <tbody>
+          <% databases.forEach(function(d) { %><tr><td><%= d.name %></td></tr><% }); %>
+          <% if (!databases.length) { %><tr><td class="empty-msg">None yet. Create one above.</td></tr><% } %>
+        </tbody>
+      </table>
+    </div>
+    <h2 class="section-title"><svg class="ic" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Users</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Username</th><th>Host</th></tr></thead>
+        <tbody>
+          <% users.forEach(function(u) { %><tr><td><%= u.username %></td><td><%= u.host %></td></tr><% }); %>
+          <% if (!users.length) { %><tr><td colspan="2" class="empty-msg">None yet. Create one above.</td></tr><% } %>
+        </tbody>
+      </table>
+    </div>
   </main>
 </body>
 </html>
