@@ -174,20 +174,26 @@
       <% if (!site.ftp_enabled) { %>
       <p class="empty-msg">Enable FTP for this site in <a href="/sites/<%= site.id %>/edit">Edit settings</a> to add FTP users.</p>
       <% } else { %>
-      <% if (typeof newFtpCredentials !== 'undefined' && newFtpCredentials) { %>
+      <% if (typeof newFtpCredentials !== 'undefined' && newFtpCredentials) {
+        const newFtpLogin = (typeof site !== 'undefined' && site.domain) ? (site.domain.replace(/\./g, '_') + '_' + newFtpCredentials.username) : newFtpCredentials.username;
+      %>
       <div class="credential-box">
         <strong>New FTP user created — save these credentials (shown once)</strong>
-        User: <strong><%= newFtpCredentials.username %></strong> · Password: <span class="password"><%= newFtpCredentials.password %></span>
+        Use <strong>FTP login</strong> in your client: <code><%= newFtpLogin %></code> · Password: <span class="password"><%= newFtpCredentials.password %></span>
         <button type="button" class="btn btn-small btn-secondary" onclick="var el=this.closest('.credential-box').querySelector('.password'); if(el && navigator.clipboard){ navigator.clipboard.writeText(el.textContent); this.textContent='Copied'; var t=this; setTimeout(function(){ t.textContent='Copy'; }, 1500); }">Copy password</button>
       </div>
       <% } %>
+      <p class="empty-msg">Use the <strong>FTP login</strong> name (domain_username) in your FTP client, not the username alone.</p>
       <% if (ftpUsers.length) { %>
       <table>
-        <thead><tr><th>Username</th><th>Default route</th><th>Password</th><th></th></tr></thead>
+        <thead><tr><th>Username</th><th>FTP login</th><th>Default route</th><th>Password</th><th></th></tr></thead>
         <tbody>
-          <% ftpUsers.forEach(function(u) { %>
+          <% ftpUsers.forEach(function(u) {
+            const ftpLogin = (typeof site !== 'undefined' && site.domain) ? (site.domain.replace(/\./g, '_') + '_' + u.username) : u.username;
+          %>
           <tr>
             <td><%= u.username %></td>
+            <td><code><%= ftpLogin %></code></td>
             <td><%= (u.default_route && u.default_route !== '') ? u.default_route : '(docroot)' %></td>
             <td class="password-cell">
               <span class="pwd-mask">••••••</span>

@@ -1,35 +1,72 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { execFileSync } = require('child_process');
 const { getDb } = require('../config/database');
 
 const PROFTPD_PASSWD_FILE = process.env.PROFTPD_PASSWD_FILE || '/etc/proftpd/ftpd.passwd';
+const PROFTPD_CONF_DIR = process.env.PROFTPD_CONF_DIR || '/etc/proftpd/conf.d';
+const FTP_UID = process.env.FTP_UID || '33';
+const FTP_GID = process.env.FTP_GID || '33';
 
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
+/** Generate crypt hash for ProFTPD AuthUserFile (SHA-512, $6$) */
+function cryptHash(password) {
+  try {
+    return execFileSync('openssl', ['passwd', '-6', '-stdin'], { input: password + '\n', encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+  } catch (_) {
+    return null;
+  }
+}
+
 async function syncFtpUsers() {
   const db = await getDb();
   const users = db.prepare(`
-    SELECT fu.username, fu.password_hash, s.docroot
+    SELECT fu.username, fu.crypt_hash, fu.default_route, s.docroot, s.domain
     FROM ftp_users fu
     JOIN sites s ON s.id = fu.site_id
-    WHERE s.ftp_enabled = 1
+    WHERE s.ftp_enabled = 1 AND fu.crypt_hash IS NOT NULL AND fu.crypt_hash != ''
   `).all();
-  // ProFTPD with mod_sql or passwd file: write passwd file format if used
-  // Stub: just ensure dir exists; actual ProFTPD config is wizard/install
   try {
     fs.mkdirSync(path.dirname(PROFTPD_PASSWD_FILE), { recursive: true });
   } catch (_) {}
+  const lines = users.map((u) => {
+    const homedir = (u.default_route && u.default_route !== '') ? path.join(u.docroot, u.default_route) : u.docroot;
+    const loginName = `${String(u.domain).replace(/\./g, '_')}_${u.username}`;
+    return `${loginName}:${u.crypt_hash}:${FTP_UID}:${FTP_GID}::${homedir}:/sbin/nologin`;
+  });
+  fs.writeFileSync(PROFTPD_PASSWD_FILE, lines.join('\n') + (lines.length ? '\n' : ''), 'utf8');
+  try {
+    execFileSync('chown', ['root:root', PROFTPD_PASSWD_FILE], { stdio: 'pipe' });
+    execFileSync('chmod', ['640', PROFTPD_PASSWD_FILE], { stdio: 'pipe' });
+  } catch (_) {}
+  writeProftpdConf();
   return users.length;
+}
+
+function writeProftpdConf() {
+  try {
+    fs.mkdirSync(PROFTPD_CONF_DIR, { recursive: true });
+    const conf = `# Tinchost panel – virtual FTP users from panel
+AuthOrder mod_auth_file.c mod_auth_unix.c
+AuthUserFile ${PROFTPD_PASSWD_FILE}
+RequireValidShell off
+`;
+    const confPath = path.join(PROFTPD_CONF_DIR, 'tinchost.conf');
+    fs.writeFileSync(confPath, conf, 'utf8');
+    execFileSync('systemctl', ['reload', 'proftpd'], { stdio: 'pipe' });
+  } catch (_) {}
 }
 
 async function addFtpUser(siteId, username, password, defaultRoute) {
   const db = await getDb();
   const hash = hashPassword(password);
+  const crypt = cryptHash(password);
   const route = (defaultRoute != null && String(defaultRoute).trim() !== '') ? String(defaultRoute).trim() : '';
-  db.prepare('INSERT INTO ftp_users (site_id, username, password_hash, default_route) VALUES (?, ?, ?, ?)').run(siteId, username, hash, route);
+  db.prepare('INSERT INTO ftp_users (site_id, username, password_hash, default_route, crypt_hash) VALUES (?, ?, ?, ?, ?)').run(siteId, username, hash, route, crypt || '');
   await syncFtpUsers();
 }
 
@@ -39,7 +76,8 @@ async function updateFtpUser(siteId, userId, updates) {
   if (!row) return;
   if (updates.password != null) {
     const hash = hashPassword(updates.password);
-    db.prepare('UPDATE ftp_users SET password_hash = ? WHERE id = ? AND site_id = ?').run(hash, userId, siteId);
+    const crypt = cryptHash(updates.password);
+    db.prepare('UPDATE ftp_users SET password_hash = ?, crypt_hash = ? WHERE id = ? AND site_id = ?').run(hash, crypt || '', userId, siteId);
   }
   if (updates.default_route !== undefined) {
     const route = String(updates.default_route).trim();

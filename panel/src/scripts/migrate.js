@@ -2,11 +2,9 @@ require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
+const { getDbPath } = require('../config/database');
 
-const dbPath = process.env.DATABASE_PATH
-  ? (path.isAbsolute(process.env.DATABASE_PATH) ? process.env.DATABASE_PATH : path.join(process.cwd(), process.env.DATABASE_PATH))
-  : path.join(process.cwd(), 'data', 'panel.sqlite');
-
+const dbPath = getDbPath();
 const dir = path.dirname(dbPath);
 if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
@@ -51,6 +49,9 @@ try {
 } catch (_) { /* column may already exist */ }
 try {
   db.exec('ALTER TABLE ftp_users ADD COLUMN default_route TEXT DEFAULT ""');
+} catch (_) { /* column may already exist */ }
+try {
+  db.exec('ALTER TABLE ftp_users ADD COLUMN crypt_hash TEXT');
 } catch (_) { /* column may already exist */ }
 db.exec(`
 

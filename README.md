@@ -36,6 +36,10 @@ This pulls the latest code (if you haven’t already), syncs the `panel/` files 
 
 The panel surfaces these risks in the relevant forms and pages.
 
+## Data and settings
+
+The panel stores its SQLite database at `panel/data/panel.sqlite` (relative to the panel install directory, e.g. `/opt/tinchohost/panel/data/panel.sqlite`). Settings (including the MySQL root password) are saved in this database. If you previously ran the panel with a different working directory, the DB may have been created elsewhere; set the `DATABASE_PATH` environment variable to the full path of your existing `panel.sqlite` so the panel and migrations use the same file.
+
 ## Process management
 
 The install script installs **PM2**, starts the panel with it, and configures it to start on boot. To manage manually:

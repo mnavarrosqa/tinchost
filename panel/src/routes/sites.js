@@ -8,10 +8,10 @@ const sslManager = require('../services/sslManager');
 const databaseManager = require('../services/databaseManager');
 const { PRIVILEGE_SETS } = require('../services/databaseManager');
 const ftpManager = require('../services/ftpManager');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const crypto = require('crypto');
 
-const DEFAULT_INDEX_PATH = path.join(__dirname, '..', 'templates', 'default-site-index.html');
+const DEFAULT_INDEX_PATH = path.join(__dirname, '..', '..', 'templates', 'default-site-index.html');
 
 function getSettings(db) {
   const rows = db.prepare('SELECT key, value FROM settings').all();
@@ -54,12 +54,15 @@ router.post('/', async (req, res) => {
     await siteManager.writeVhost(site, settings);
     if (create_docroot === 'on' || create_docroot === true) {
       try {
-        execSync(`mkdir -p ${docrootPath} && chown www-data:www-data ${docrootPath}`, { stdio: 'pipe' });
+        execFileSync('mkdir', ['-p', docrootPath], { stdio: 'pipe' });
+        execFileSync('chown', ['www-data:www-data', docrootPath], { stdio: 'pipe' });
+        execFileSync('chmod', ['755', docrootPath], { stdio: 'pipe' });
         if (fs.existsSync(DEFAULT_INDEX_PATH)) {
           const html = fs.readFileSync(DEFAULT_INDEX_PATH, 'utf8').replace(/\{\{domain\}\}/g, domain);
           const indexFile = path.join(docrootPath, 'index.html');
           fs.writeFileSync(indexFile, html, 'utf8');
-          execSync(`chown www-data:www-data ${indexFile}`, { stdio: 'pipe' });
+          execFileSync('chown', ['www-data:www-data', indexFile], { stdio: 'pipe' });
+          execFileSync('chmod', ['644', indexFile], { stdio: 'pipe' });
         }
       } catch (_) {}
     }

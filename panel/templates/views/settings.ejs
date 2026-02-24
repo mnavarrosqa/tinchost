@@ -27,6 +27,12 @@
   </nav>
   <main>
     <h1>Settings</h1>
+    <% if (typeof settingsError === 'string' && settingsError) { %>
+    <div class="risk"><strong>Error:</strong> <%= settingsError %></div>
+    <% } %>
+    <% if (typeof saved !== 'undefined' && saved) { %>
+    <p style="color:#2d6a4f; margin-bottom:1rem;">Settings saved.</p>
+    <% } %>
     <div class="risk"><strong>This panel runs as root.</strong> Protect access and use a strong password.</div>
     <form method="post" action="/settings">
       <label>Nginx sites-available path</label>
@@ -35,8 +41,8 @@
       <input type="text" name="php_pool_dir" value="<%= phpPoolDir %>">
       <label>Mail path (Maildir base)</label>
       <input type="text" name="mail_path" value="<%= mailPath %>">
-      <label>MySQL root password (for creating DBs/users; leave blank to keep current)</label>
-      <input type="password" name="mysql_root_password" value="<%= typeof mysqlRootPassword !== 'undefined' ? mysqlRootPassword : '' %>" placeholder="Set in wizard or here">
+      <label>MySQL root password (for creating DBs/users)</label>
+      <input type="password" name="mysql_root_password" value="<%= typeof mysqlRootPassword !== 'undefined' ? mysqlRootPassword : '' %>" placeholder="Enter password to set or change; leave blank to keep current">
       <button type="submit">Save</button>
     </form>
     <p style="margin-top:2rem;">Wizard completed: <%= state && state.completed ? 'Yes' : 'No' %></p>
