@@ -109,7 +109,8 @@ router.get('/:id', async (req, res) => {
   if (req.session.newFtpCredentials) delete req.session.newFtpCredentials;
   const errorMsg = (req.query.error && SITE_ERROR_MESSAGES[req.query.error]) || req.query.error || null;
   const panelDbPath = (req.query.error === 'mysql_password' ? getDbPath() : null) || null;
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath });
+  const existingDbUsers = db.prepare('SELECT id, username FROM db_users ORDER BY username').all();
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers });
 });
 
 router.post('/:id', async (req, res) => {
@@ -148,7 +149,7 @@ router.post('/:id/delete', async (req, res) => {
 });
 
 router.post('/:id/databases', async (req, res) => {
-  const { name, db_username, db_password, privileges } = req.body || {};
+  const { name, assign_user, db_username, db_password, privileges } = req.body || {};
   const siteId = req.params.id;
   const db = await getDb();
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(siteId);
@@ -165,7 +166,8 @@ router.post('/:id/databases', async (req, res) => {
     const ftpUsers = ftpManager.getFtpUsersBySite(db, site.id);
     const dbPath = getDbPath();
     const errorMsg = 'MySQL root password not set in Settings. Set it in Settings and click Save. If you already did, set DATABASE_PATH to this panel database path and restart the panel: ' + dbPath;
-    return res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: false, error: errorMsg, reset: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials: null, newFtpCredentials: null, panelDbPath: dbPath });
+    const existingDbUsersErr = db.prepare('SELECT id, username FROM db_users ORDER BY username').all();
+    return res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: false, error: errorMsg, reset: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials: null, newFtpCredentials: null, panelDbPath: dbPath, existingDbUsers: existingDbUsersErr });
   }
   const priv = (privileges === 'READ_ONLY' || privileges === 'READ_WRITE') ? privileges : 'ALL';
   settings.mysql_root_password = settings.mysql_root_password || mysqlPassword;
@@ -176,11 +178,17 @@ router.post('/:id/databases', async (req, res) => {
     if (db.prepare('SELECT id FROM databases WHERE name = ?').get(safeName)) throw new Error('A database with this name already exists');
     db.prepare('INSERT INTO databases (name, site_id) VALUES (?, ?)').run(safeName, siteId);
     await databaseManager.createDatabase(settings, safeName);
-    if (db_username && db_password) {
-      const safeUser = db_username.replace(/[^a-z0-9_]/gi, '');
+    let uid = null;
+    let safeUser = null;
+    let isNewUser = false;
+    if (assign_user === 'new') {
+      if (!db_username || !db_password) throw new Error('New user selected: enter username and password');
+    }
+    if (assign_user === 'new' && db_username && db_password) {
+      safeUser = db_username.replace(/[^a-z0-9_]/gi, '');
       if (safeUser !== db_username) throw new Error('Invalid username');
-      const isNewUser = !db.prepare('SELECT id FROM db_users WHERE username = ?').get(safeUser);
-      let uid = db.prepare('SELECT id FROM db_users WHERE username = ?').get(safeUser)?.id;
+      isNewUser = !db.prepare('SELECT id FROM db_users WHERE username = ?').get(safeUser);
+      uid = db.prepare('SELECT id FROM db_users WHERE username = ?').get(safeUser)?.id;
       if (!uid) {
         const hash = crypto.createHash('sha256').update(db_password).digest('hex');
         db.prepare('INSERT INTO db_users (username, password_hash, host) VALUES (?, ?, ?)').run(safeUser, hash, 'localhost');
@@ -190,7 +198,16 @@ router.post('/:id/databases', async (req, res) => {
       await databaseManager.grantDatabase(settings, safeUser, safeName, 'localhost', priv);
       const did = db.prepare('SELECT id FROM databases WHERE name = ?').get(safeName).id;
       db.prepare('INSERT OR IGNORE INTO db_grants (database_id, db_user_id, privileges) VALUES (?, ?, ?)').run(did, uid, priv);
-      if (isNewUser) newDbCredentials = { username: safeUser, password: db_password, database: safeName };
+      newDbCredentials = isNewUser ? { username: safeUser, password: db_password, database: safeName } : null;
+    } else if (assign_user && assign_user !== 'new') {
+      const existing = db.prepare('SELECT id, username FROM db_users WHERE id = ?').get(assign_user);
+      if (existing) {
+        safeUser = existing.username;
+        uid = existing.id;
+        await databaseManager.grantDatabase(settings, safeUser, safeName, 'localhost', priv);
+        const did = db.prepare('SELECT id FROM databases WHERE name = ?').get(safeName).id;
+        db.prepare('INSERT OR IGNORE INTO db_grants (database_id, db_user_id, privileges) VALUES (?, ?, ?)').run(did, uid, priv);
+      }
     }
   } catch (e) {
     const msg = (e.message && e.message.includes('UNIQUE constraint failed')) ? 'A database with this name already exists' : (e.message || 'Database creation failed');
@@ -203,7 +220,8 @@ router.post('/:id/databases', async (req, res) => {
     JOIN databases d ON d.id = g.database_id WHERE d.site_id = ?
   `).all(site.id);
   const ftpUsers = ftpManager.getFtpUsersBySite(db, site.id);
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials: null });
+  const existingDbUsersSuccess = db.prepare('SELECT id, username FROM db_users ORDER BY username').all();
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials: null, existingDbUsers: existingDbUsersSuccess });
 });
 
 
@@ -268,7 +286,8 @@ router.post('/:id/ftp-users', async (req, res) => {
   const ftpUsers = ftpManager.getFtpUsersBySite(db, site.id);
   const settings = getSettings(db);
   const newFtpCredentials = { username: String(username).trim(), password };
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!(settings && settings.mysql_root_password), error: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials: null, newFtpCredentials });
+  const existingDbUsersFtp = db.prepare('SELECT id, username FROM db_users ORDER BY username').all();
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!(settings && settings.mysql_root_password), error: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials: null, newFtpCredentials, existingDbUsers: existingDbUsersFtp });
 });
 
 router.post('/:id/ftp-users/:uid/reset-password', async (req, res) => {

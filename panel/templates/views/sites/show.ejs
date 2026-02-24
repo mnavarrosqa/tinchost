@@ -156,11 +156,21 @@
           <input type="text" name="name" required pattern="[a-zA-Z0-9_]+" title="Letters, numbers, underscore only">
         </div>
         <div class="form-row">
-          <label>Database user (optional)</label>
-          <input type="text" name="db_username" placeholder="Username for DB access">
+          <label>Assign user</label>
+          <select name="assign_user" id="assign_user">
+            <option value="">— None —</option>
+            <option value="new">— New user —</option>
+            <% (typeof existingDbUsers !== 'undefined' ? existingDbUsers : []).forEach(function(u) { %>
+            <option value="<%= u.id %>"><%= u.username %></option>
+            <% }); %>
+          </select>
         </div>
-        <div class="form-row">
-          <label>Password (optional, required if user set)</label>
+        <div class="form-row" id="row-new-user" style="display:none;">
+          <label>New username</label>
+          <input type="text" name="db_username" placeholder="Username for DB access" pattern="[a-zA-Z0-9_]+" title="Letters, numbers, underscore only">
+        </div>
+        <div class="form-row" id="row-new-password" style="display:none;">
+          <label>Password (required for new user)</label>
           <input type="password" name="db_password" placeholder="User password">
         </div>
         <div class="form-row">
@@ -173,6 +183,23 @@
         </div>
         <button type="submit" class="btn">Add database</button>
       </form>
+      <script>
+        (function(){
+          var sel = document.getElementById('assign_user');
+          var rowUser = document.getElementById('row-new-user');
+          var rowPwd = document.getElementById('row-new-password');
+          if (!sel || !rowUser) return;
+          function toggle(){
+            var show = sel.value === 'new';
+            rowUser.style.display = show ? 'block' : 'none';
+            rowPwd.style.display = show ? 'block' : 'none';
+            rowUser.querySelector('input').required = show;
+            rowPwd.querySelector('input').required = show;
+          }
+          sel.addEventListener('change', toggle);
+          toggle();
+        })();
+      </script>
       <% } %>
     </div>
 
