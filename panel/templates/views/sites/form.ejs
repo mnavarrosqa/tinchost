@@ -6,64 +6,140 @@
   <title><%= site ? 'Edit site' : 'New site' %> – Tinchost Panel</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #f5f5f5; }
-    .nav { background: #222; color: #fff; padding: 0.75rem 1.5rem; }
-    .nav a { color: #fff; text-decoration: none; margin-right: 1rem; }
-    main { max-width: 560px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; }
-    .error { background: #f8d7da; padding: 0.75rem; margin-bottom: 1rem; }
-    .risk { background: #fff3cd; border-left: 4px solid #ffc107; padding: 0.75rem; margin: 1rem 0; }
-    label { display: block; margin-top: 0.75rem; }
-    input[type=text], select { width: 100%; padding: 0.5rem; }
-    input[type=checkbox] { width: auto; margin-right: 0.5rem; }
-    button { padding: 0.5rem 1rem; background: #007bff; color: #fff; border: none; cursor: pointer; margin-top: 1rem; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
+    .nav { background: #2d6a4f; color: #fff; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .nav a { color: #d8f3dc; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; }
+    .nav a:hover { color: #fff; }
+    .nav .nav-right { margin-left: auto; }
+    .ic { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .nav .ic { width: 18px; height: 18px; flex-shrink: 0; }
+    .nav .nav-active { color: #fff; font-weight: 600; }
+    main { max-width: 640px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
+    h1 { margin-top: 0; color: #1b4332; font-size: 1.5rem; }
+    .breadcrumb { margin-bottom: 1rem; }
+    .breadcrumb a { color: #2d6a4f; text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .card { border: 1px solid #b7d4bc; border-radius: 6px; padding: 1.25rem; margin-bottom: 1.25rem; background: #fff; }
+    .card h2 { margin: 0 0 0.75rem 0; color: #2d6a4f; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .card h2 .ic { width: 20px; height: 20px; }
+    .form-row { margin-bottom: 0.75rem; }
+    .form-row label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; color: #1b4332; font-weight: 500; }
+    .form-row input[type="text"], .form-row input[type="number"], .form-row select { padding: 0.5rem 0.6rem; border: 1px solid #b7d4bc; border-radius: 6px; font-size: 0.95rem; width: 100%; max-width: 320px; }
+    .form-row input:focus, .form-row select:focus { outline: none; border-color: #2d6a4f; box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.15); }
+    .form-row .hint { font-size: 0.85rem; color: #52796f; margin-top: 0.25rem; }
+    .risk { background: #fff8e1; border-left: 4px solid #b7a53a; padding: 0.6rem 0.75rem; margin: 0.5rem 0 0 0; border-radius: 0 6px 6px 0; font-size: 0.875rem; color: #5c4d1f; }
+    .risk code { background: rgba(0,0,0,0.06); padding: 0.1rem 0.3rem; border-radius: 4px; font-size: 0.9em; }
+    .error-msg { background: #f8d7da; border: 1px solid #9b2226; color: #9b2226; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .checkbox-option { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.6rem; cursor: pointer; }
+    .checkbox-option input { margin-top: 0.2rem; accent-color: #2d6a4f; }
+    .checkbox-option .label { font-weight: 500; color: #1b4332; }
+    .checkbox-option .desc { font-size: 0.85rem; color: #52796f; margin-top: 0.15rem; }
+    .step-actions { margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .btn { padding: 0.5rem 1rem; background: #2d6a4f; color: #fff; text-decoration: none; border: none; border-radius: 6px; font-size: 0.95rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; font-family: inherit; font-weight: 500; }
+    .btn:hover { background: #1b4332; color: #fff; }
+    .btn-secondary { background: #52796f; color: #fff; }
+    .btn-secondary:hover { background: #354f52; color: #fff; }
+    form.inline { display: inline; }
   </style>
 </head>
 <body>
   <nav class="nav">
-    <a href="/">Dashboard</a>
-    <a href="/sites">Sites</a>
-    <a href="/databases">Databases</a>
-    <a href="/mail">Mail</a>
-    <a href="/settings">Settings</a>
-    <span style="float:right"><a href="/auth/logout">Logout</a></span>
+    <a href="/"><svg class="ic" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard</a>
+    <a href="/sites" class="nav-active"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Sites</a>
+    <a href="/databases"><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</a>
+    <a href="/mail"><svg class="ic" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Mail</a>
+    <a href="/settings"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a>
+    <span class="nav-right"><% if (typeof user !== 'undefined' && user) { %><%= user.username %> · <% } %><a href="/auth/logout"><svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</a></span>
   </nav>
   <main>
+    <div class="breadcrumb">
+      <a href="/sites">Sites</a>
+      <% if (site) { %> → <a href="/sites/<%= site.id %>"><%= site.domain %></a> → <strong>Edit</strong><% } else { %> → <strong>New site</strong><% } %>
+    </div>
     <h1><%= site ? 'Edit site' : 'New site' %></h1>
+
     <% if (typeof error !== 'undefined' && error) { %>
-    <div class="error"><%= error %></div>
+    <div class="error-msg"><%= error %></div>
     <% } %>
-    <div class="risk"><strong>Risk:</strong> Wrong docroot or invalid config can break the site. Ensure the path exists. After saving, the panel writes Nginx config and reloads nginx.</div>
+
     <form method="post" action="<%= site ? '/sites/' + site.id : '/sites' %>">
-      <label>Domain</label>
-      <input type="text" name="domain" value="<%= site ? site.domain : '' %>" required placeholder="example.com">
-      <label>Docroot</label>
-      <input type="text" name="docroot" value="<%= site ? site.docroot : '' %>" placeholder="/var/www/example.com">
-      <label>App type</label>
-      <select name="app_type" id="app_type">
-        <option value="php" <%= (!site || site.app_type !== 'node') ? 'selected' : '' %>>PHP</option>
-        <option value="node" <%= (site && site.app_type === 'node') ? 'selected' : '' %>>Node</option>
-      </select>
-      <div id="php-options">
-        <label>PHP version</label>
-        <select name="php_version">
-          <% (phpVersions.length ? phpVersions : ['8.2']).forEach(function(v) { %>
-          <option value="<%= v %>" <%= (site && site.php_version === v) ? 'selected' : '' %>><%= v %></option>
-          <% }); %>
-        </select>
+      <div class="card">
+        <h2><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Domain &amp; docroot</h2>
+        <div class="form-row">
+          <label for="domain">Domain</label>
+          <input type="text" id="domain" name="domain" value="<%= site ? site.domain : '' %>" required placeholder="example.com">
+          <span class="hint">The site hostname (e.g. <code>example.com</code> or <code>www.example.com</code>).</span>
+        </div>
+        <div class="form-row">
+          <label for="docroot">Docroot</label>
+          <input type="text" id="docroot" name="docroot" value="<%= site ? site.docroot : '' %>" placeholder="/var/www/example.com">
+          <span class="hint">Absolute path on the server where the site files live. Nginx will serve from here.</span>
+        </div>
+        <% if (!site) { %>
+        <label class="checkbox-option">
+          <input type="checkbox" name="create_docroot" value="on">
+          <span>
+            <span class="label">Create docroot directory</span>
+            <span class="desc">Create the docroot path and set ownership to <code>www-data</code>. A default <code>index.html</code> will be placed there.</span>
+          </span>
+        </label>
+        <% } %>
       </div>
-      <div id="node-options" style="display:none;">
-        <label>Node app port</label>
-        <input type="number" name="node_port" id="node_port" min="1" max="65535" placeholder="e.g. 3001" value="<%= (site && site.app_type === 'node' && site.node_port) ? site.node_port : '' %>">
-        <p class="risk" style="margin-top:0.35rem;">Your Node app must listen on this port (e.g. <code>app.listen(3001)</code> or PM2). Nginx will proxy requests to 127.0.0.1:port.</p>
+
+      <div class="card">
+        <h2><svg class="ic" viewBox="0 0 24 24"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>App type</h2>
+        <p class="form-row" style="margin-top:0;">Choose how this site is served: PHP (via PHP-FPM) or Node (reverse proxy to a local port).</p>
+        <div class="form-row">
+          <label for="app_type">Runtime</label>
+          <select name="app_type" id="app_type">
+            <option value="php" <%= (!site || site.app_type !== 'node') ? 'selected' : '' %>>PHP</option>
+            <option value="node" <%= (site && site.app_type === 'node') ? 'selected' : '' %>>Node</option>
+          </select>
+        </div>
+        <div id="php-options">
+          <div class="form-row">
+            <label for="php_version">PHP version</label>
+            <select name="php_version" id="php_version">
+              <% (phpVersions.length ? phpVersions : ['8.2']).forEach(function(v) { %>
+              <option value="<%= v %>" <%= (site && site.php_version === v) ? 'selected' : '' %>><%= v %></option>
+              <% }); %>
+            </select>
+            <span class="hint">Must be a version installed in the <a href="/wizard" style="color:#2d6a4f;">setup wizard</a>. Nginx will use the matching PHP-FPM socket.</span>
+          </div>
+        </div>
+        <div id="node-options" style="display:none;">
+          <div class="form-row">
+            <label for="node_port">Node app port</label>
+            <input type="number" name="node_port" id="node_port" min="1" max="65535" placeholder="e.g. 3001" value="<%= (site && site.app_type === 'node' && site.node_port) ? site.node_port : '' %>">
+            <span class="hint">Your Node app must listen on this port (e.g. <code>app.listen(3001)</code> or via PM2). Nginx will proxy requests to <code>127.0.0.1:port</code>.</span>
+          </div>
+        </div>
       </div>
-      <% if (!site) { %>
-      <label><input type="checkbox" name="create_docroot" value="on"> Create docroot directory</label>
-      <% } %>
-      <label><input type="checkbox" name="ssl" value="on" <%= (site && site.ssl) ? 'checked' : '' %>> Enable SSL (Let's Encrypt)</label>
-      <div class="risk"><strong>Risk:</strong> SSL issuance will fail unless this domain's DNS points to this server and ports 80 and 443 are open.</div>
-      <label><input type="checkbox" name="ftp_enabled" value="on" <%= (site && site.ftp_enabled) ? 'checked' : '' %>> Enable FTP access</label>
-      <div class="risk"><strong>Risk:</strong> FTP may not work from some networks if the server's FTP passive port range is not open in the firewall.</div>
-      <button type="submit"><%= site ? 'Update' : 'Create' %> site</button>
+
+      <div class="card">
+        <h2><svg class="ic" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SSL &amp; FTP</h2>
+        <label class="checkbox-option">
+          <input type="checkbox" name="ssl" value="on" <%= (site && site.ssl) ? 'checked' : '' %>>
+          <span>
+            <span class="label">Enable SSL (Let's Encrypt)</span>
+            <span class="desc">Obtain a free certificate and serve the site over HTTPS. DNS for this domain must point to this server and ports 80 and 443 must be open.</span>
+          </span>
+        </label>
+        <div class="risk"><strong>SSL:</strong> Issuance will fail unless the domain's DNS points here and ports 80/443 are reachable.</div>
+        <label class="checkbox-option">
+          <input type="checkbox" name="ftp_enabled" value="on" <%= (site && site.ftp_enabled) ? 'checked' : '' %>>
+          <span>
+            <span class="label">Enable FTP access</span>
+            <span class="desc">Allow FTP users for this site (login format <code>username@domain</code>). You can add users in the site's FTP tab. Passive port range may need to be open in the firewall.</span>
+          </span>
+        </label>
+        <div class="risk"><strong>FTP:</strong> May not work from some networks if the server's FTP passive port range is not open.</div>
+      </div>
+
+      <div class="step-actions">
+        <% if (site) { %><a href="/sites/<%= site.id %>" class="btn btn-secondary">Cancel</a><% } else { %><a href="/sites" class="btn btn-secondary">Cancel</a><% } %>
+        <button type="submit" class="btn"><%= site ? 'Update site' : 'Create site' %></button>
+      </div>
     </form>
     <script>
       (function() {
@@ -75,9 +151,9 @@
           var isNode = appType.value === 'node';
           phpOpts.style.display = isNode ? 'none' : 'block';
           nodeOpts.style.display = isNode ? 'block' : 'none';
-          nodePort.required = isNode;
+          if (nodePort) nodePort.required = isNode;
         }
-        appType.addEventListener('change', toggle);
+        if (appType) appType.addEventListener('change', toggle);
         toggle();
       })();
     </script>
