@@ -113,7 +113,7 @@
           <tr>
             <td><%= d.name %></td>
             <td><%= g.username %></td>
-            <td><%= (g.privileges || "ALL").replace(/_/g, " ") %></td>
+            <td><%= (g.privileges || "ALL").split("_").join(" ") %></td>
             <td class="password-cell">
               <span class="pwd-mask">••••••</span>
               <button type="button" class="btn btn-small btn-secondary show-pwd-btn">Show</button>
@@ -193,7 +193,7 @@
       <p class="empty-msg">Enable FTP for this site in <a href="/sites/<%= site.id %>/edit">Edit settings</a> to add FTP users.</p>
       <% } else { %>
       <% if (typeof newFtpCredentials !== "undefined" && newFtpCredentials) {
-        const newFtpLogin = (typeof site !== "undefined" && site.domain) ? (site.domain.replace(/\./g, "_") + "_" + newFtpCredentials.username) : newFtpCredentials.username;
+        const newFtpLogin = (typeof site !== "undefined" && site.domain) ? (site.domain.split(".").join("_") + "_" + newFtpCredentials.username) : newFtpCredentials.username;
       %>
       <div class="credential-box">
         <strong>New FTP user created — save these credentials (shown once)</strong>
@@ -207,7 +207,7 @@
         <thead><tr><th>Username</th><th>FTP login</th><th>Default route</th><th>Password</th><th></th></tr></thead>
         <tbody>
           <% ftpUsers.forEach(function(u) {
-            const ftpLogin = (typeof site !== "undefined" && site.domain) ? (site.domain.replace(/\./g, "_") + "_" + u.username) : u.username;
+            const ftpLogin = (typeof site !== "undefined" && site.domain) ? (site.domain.split(".").join("_") + "_" + u.username) : u.username;
           %>
           <tr>
             <td><%= u.username %></td>
@@ -231,7 +231,7 @@
               </form>
             </td>
           </tr>
-          <% }); %>
+          <% } %><% }); %>
         </tbody>
       </table>
       <% } else { %>
