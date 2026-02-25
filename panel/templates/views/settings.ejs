@@ -54,7 +54,8 @@
     <p class="success">Service <strong><%= serviceRestarted %></strong> restarted.</p>
     <% } %>
     <% if (typeof settingsInstalled === 'string' && settingsInstalled) { %>
-    <p class="success">Component <strong><%= settingsInstalled === 'php' ? 'PHP-FPM' : settingsInstalled === 'node' ? 'Node.js' : settingsInstalled === 'database' ? 'Database' : settingsInstalled === 'mail' ? 'Mail' : settingsInstalled === 'ftp' ? 'FTP' : 'Certbot' %></strong> installed successfully.</p>
+    <% const installedLabel = settingsInstalled === 'php' ? 'PHP-FPM' : settingsInstalled === 'node' ? 'Node.js' : settingsInstalled === 'database' ? 'Database' : settingsInstalled === 'mail' ? 'Mail' : settingsInstalled === 'ftp' ? 'FTP' : 'Certbot'; %>
+    <p class="success">Component <strong><%= installedLabel %></strong> installed successfully.</p>
     <% } %>
     <div class="risk"><strong>This panel runs as root.</strong> Protect access and use a strong password.</div>
 
@@ -63,8 +64,10 @@
     <p style="font-size:0.85rem; color:#52796f; margin:0 0 0.75rem 0;">Panel database: <code style="word-break:break-all;"><%= dbPath %></code></p>
     <% } %>
     <% if (typeof hasMysqlPassword !== 'undefined' && !hasMysqlPassword) { %>
-    <p style="font-size:0.9rem; color:#9b2226; margin:0 0 0.75rem 0;">MySQL root password is not set. Enter it below and click Save. If you saved it before but still see &quot;not set&quot; on other pages, set the <code>DATABASE_PATH</code> environment variable to the full path of your panel database (e.g. <code><%= typeof dbPath !== 'undefined' ? dbPath : '/opt/tinchohost/panel/data/panel.sqlite' %></code>) and restart the panel.</p>
+    <% const dbPathExample = typeof dbPath !== 'undefined' && dbPath ? dbPath : '/opt/tinchohost/panel/data/panel.sqlite'; %>
+    <p style="font-size:0.9rem; color:#9b2226; margin:0 0 0.75rem 0;">MySQL root password is not set. Enter it below and click Save. If you saved it before but still see &quot;not set&quot; on other pages, set the <code>DATABASE_PATH</code> environment variable to the full path of your panel database (e.g. <code><%= dbPathExample %></code>) and restart the panel.</p>
     <% } %>
+    <% const mysqlPwdValue = (typeof mysqlRootPassword !== 'undefined' && mysqlRootPassword) ? mysqlRootPassword : ''; %>
     <form method="post" action="/settings">
       <label>Nginx sites-available path</label>
       <input type="text" name="nginx_sites_available" value="<%= nginxSites %>">
@@ -73,7 +76,7 @@
       <label>Mail path (Maildir base)</label>
       <input type="text" name="mail_path" value="<%= mailPath %>">
       <label>MySQL root password (for creating DBs/users)</label>
-      <input type="password" name="mysql_root_password" value="<%= typeof mysqlRootPassword !== 'undefined' ? mysqlRootPassword : '' %>" placeholder="Enter password to set or change; leave blank to keep current" autocomplete="new-password">
+      <input type="password" name="mysql_root_password" value="<%= mysqlPwdValue %>" placeholder="Enter password to set or change; leave blank to keep current" autocomplete="new-password">
       <button type="submit">Save</button>
     </form>
 
