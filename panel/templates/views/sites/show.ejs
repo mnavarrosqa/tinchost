@@ -135,14 +135,35 @@
     <div id="panel-node-apps" class="tabs-panel" role="tabpanel" aria-labelledby="tab-node-apps">
     <p style="font-size:0.9rem; color:#52796f; margin:0 0 1rem 0;">Manage your Node app: clone a repo, install dependencies, set environment variables, and run the app with PM2. To change the <strong>Node port</strong>, domain, docroot, SSL, or FTP, use <a href="/sites/<%= site.id %>/edit" class="btn btn-secondary" style="padding:0.35rem 0.7rem; font-size:0.85rem;">Edit site settings</a>.</p>
     <div class="card">
-      <h2><svg class="ic" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>Clone repository</h2>
-      <p style="font-size:0.9rem; color:#52796f; margin:0 0 1rem 0;">Clone a Git repository into the site docroot. Use the docroot path to put the app at the root, or a subfolder (e.g. <code>app</code>) to clone into a subdirectory.</p>
+      <h2><svg class="ic" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>Repository</h2>
       <% if (typeof cloneOk !== 'undefined' && cloneOk) { %>
       <div class="success-msg">Repository cloned successfully. Install dependencies and start the app below.</div>
       <% } %>
-      <% if (typeof cloneError !== 'undefined' && cloneError) { %>
-      <div class="error-msg"><%= cloneError %></div>
-      <% } %>
+      <% if (typeof cloneError !== 'undefined' && cloneError) { %><div class="error-msg"><%= cloneError %></div><% } %>
+      <% if (typeof repoUpdated !== 'undefined' && repoUpdated) { %><div class="success-msg">Repository URL and branch updated.</div><% } %>
+      <% if (typeof repoError !== 'undefined' && repoError) { %><div class="error-msg"><%= repoError %></div><% } %>
+      <% if (typeof pullOk !== 'undefined' && pullOk) { %><div class="success-msg">App updated from repo. Run npm install and restart the app if needed.</div><% } %>
+      <% if (typeof pullError !== 'undefined' && pullError) { %><div class="error-msg"><%= pullError %></div><% } %>
+      <% if (site.clone_repo_url) { %>
+      <p style="font-size:0.9rem; color:#52796f; margin:0 0 0.5rem 0;"><strong>Current:</strong> <code style="font-size:0.85em; word-break:break-all;"><%= site.clone_repo_url %></code> <% if (site.clone_branch) { %> · branch <code><%= site.clone_branch %></code><% } %> <% if (site.clone_subfolder) { %> · in <code>/<%= site.clone_subfolder %></code><% } else { %> · in docroot<% } %></p>
+      <form method="post" action="/sites/<%= site.id %>/repo/update" style="margin:1rem 0 0.75rem 0; padding:0.75rem 0; border-top:1px solid #b7d4bc;">
+        <p style="font-size:0.9rem; color:#52796f; margin:0 0 0.5rem 0;"><strong>Edit repository URL or branch</strong></p>
+        <div class="form-row">
+          <label for="edit_repo_url">Repository URL</label>
+          <input type="text" id="edit_repo_url" name="repo_url" required value="<%= site.clone_repo_url ? String(site.clone_repo_url).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '' %>" placeholder="https://github.com/user/repo.git">
+        </div>
+        <div class="form-row">
+          <label for="edit_repo_branch">Branch (optional)</label>
+          <input type="text" id="edit_repo_branch" name="branch" value="<%= site.clone_branch ? String(site.clone_branch).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '' %>" placeholder="main">
+        </div>
+        <button type="submit" class="btn">Save repo settings</button>
+      </form>
+      <form method="post" action="/sites/<%= site.id %>/repo/pull" class="inline" style="margin-top:0.5rem;">
+        <button type="submit" class="btn btn-secondary">Update app from repo</button>
+      </form>
+      <p style="font-size:0.85rem; color:#52796f; margin:1rem 0 0 0;">Pulls latest changes from the remote. After updating, run <strong>npm install</strong> and <strong>Restart app</strong> if dependencies or code changed.</p>
+      <% } else { %>
+      <p style="font-size:0.9rem; color:#52796f; margin:0 0 1rem 0;">Clone a Git repository into the site docroot. Use the docroot path to put the app at the root, or a subfolder (e.g. <code>app</code>) to clone into a subdirectory.</p>
       <form method="post" action="/sites/<%= site.id %>/clone" style="margin-top:0.5rem;">
         <div class="form-row">
           <label for="clone_repo_url">Repository URL</label>
@@ -159,6 +180,7 @@
         </div>
         <button type="submit" class="btn">Clone repository</button>
       </form>
+      <% } %>
     </div>
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24"><path d="M12 2L22 8v8l-10 6L2 16V8l10-6z"/></svg>Node app</h2>

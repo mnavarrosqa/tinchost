@@ -71,6 +71,15 @@ try {
 try {
   db.exec('ALTER TABLE sites ADD COLUMN node_port INTEGER');
 } catch (_) { /* column may already exist */ }
+try {
+  db.exec('ALTER TABLE sites ADD COLUMN clone_repo_url TEXT');
+} catch (_) { /* column may already exist */ }
+try {
+  db.exec('ALTER TABLE sites ADD COLUMN clone_branch TEXT');
+} catch (_) { /* column may already exist */ }
+try {
+  db.exec('ALTER TABLE sites ADD COLUMN clone_subfolder TEXT');
+} catch (_) { /* column may already exist */ }
 db.exec(`
 
   CREATE TABLE IF NOT EXISTS sites (

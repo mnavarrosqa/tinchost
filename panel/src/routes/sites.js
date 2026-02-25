@@ -305,7 +305,11 @@ router.get('/:id', async (req, res) => {
   const currentEnvSubfolder = (req.query.env_subfolder || '').trim().replace(/[^a-zA-Z0-9_.-]/g, '');
   const scriptUninstallOk = req.query.script_uninstall === 'ok';
   const scriptUninstallError = req.query.script_uninstall === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, nodePm2Status, nodePm2Name, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeDeleted, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError });
+  const repoUpdated = req.query.repo === 'updated';
+  const repoError = req.query.repo === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
+  const pullOk = req.query.pull === 'ok';
+  const pullError = req.query.pull === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, repoUpdated, repoError, pullOk, pullError, nodePm2Status, nodePm2Name, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeDeleted, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {
@@ -369,10 +373,69 @@ router.post('/:id/clone', async (req, res) => {
     args.push('--', safeUrl, targetPath);
     execFileSync('git', args, { stdio: 'pipe', timeout: 120000 });
     execFileSync('chown', ['-R', 'www-data:www-data', targetPath], { stdio: 'pipe' });
+    const safeRepoUrl = safeUrl.slice(0, 2048);
+    db.prepare('UPDATE sites SET clone_repo_url = ?, clone_branch = ?, clone_subfolder = ? WHERE id = ?').run(
+      safeRepoUrl || null, branch || null, subfolder || null, site.id
+    );
     res.redirect('/sites/' + site.id + '?clone=ok#node-apps');
   } catch (e) {
     const msg = (e.message || 'Clone failed').toString().slice(0, 200);
     res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent(msg) + '#node-apps');
+  }
+});
+
+router.post('/:id/repo/update', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
+  const repoUrl = (req.body.repo_url || '').trim();
+  const branch = (req.body.branch || '').trim().replace(/[^a-zA-Z0-9/_.-]/g, '');
+  if (!repoUrl) return res.redirect('/sites/' + site.id + '?repo=error&msg=' + encodeURIComponent('Repository URL is required') + '#node-apps');
+  const cloneSubfolder = (site.clone_subfolder != null && site.clone_subfolder !== '') ? String(site.clone_subfolder) : '';
+  const workDir = getNodeWorkDir(site, cloneSubfolder);
+  if (!workDir || !fs.existsSync(workDir)) return res.redirect('/sites/' + site.id + '?repo=error&msg=' + encodeURIComponent('Clone directory not found') + '#node-apps');
+  const gitDir = path.join(workDir, '.git');
+  if (!fs.existsSync(gitDir) || !fs.statSync(gitDir).isDirectory()) return res.redirect('/sites/' + site.id + '?repo=error&msg=' + encodeURIComponent('Not a git repository') + '#node-apps');
+  const safeUrl = repoUrl.replace(/[\0-\x1f\x7f]/g, '').slice(0, 2048);
+  try {
+    db.prepare('UPDATE sites SET clone_repo_url = ?, clone_branch = ? WHERE id = ?').run(safeUrl, branch || null, site.id);
+    execFileSync('git', ['remote', 'set-url', 'origin', safeUrl], { cwd: workDir, stdio: 'pipe' });
+    execFileSync('git', ['fetch', 'origin'], { cwd: workDir, stdio: 'pipe', timeout: 60000 });
+    if (branch) {
+      execFileSync('git', ['checkout', branch], { cwd: workDir, stdio: 'pipe' });
+      execFileSync('git', ['branch', '--set-upstream-to', 'origin/' + branch, branch], { cwd: workDir, stdio: 'pipe' });
+    }
+    res.redirect('/sites/' + site.id + '?repo=updated#node-apps');
+  } catch (e) {
+    const msg = (e.message || 'Update failed').toString().slice(0, 200);
+    res.redirect('/sites/' + site.id + '?repo=error&msg=' + encodeURIComponent(msg) + '#node-apps');
+  }
+});
+
+router.post('/:id/repo/pull', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
+  const cloneSubfolder = (site.clone_subfolder != null && site.clone_subfolder !== '') ? String(site.clone_subfolder) : '';
+  const workDir = getNodeWorkDir(site, cloneSubfolder);
+  if (!workDir || !fs.existsSync(workDir)) return res.redirect('/sites/' + site.id + '?pull=error&msg=' + encodeURIComponent('Clone directory not found') + '#node-apps');
+  const gitDir = path.join(workDir, '.git');
+  if (!fs.existsSync(gitDir) || !fs.statSync(gitDir).isDirectory()) return res.redirect('/sites/' + site.id + '?pull=error&msg=' + encodeURIComponent('Not a git repository') + '#node-apps');
+  try {
+    execFileSync('git', ['fetch', 'origin'], { cwd: workDir, stdio: 'pipe', timeout: 60000 });
+    const branch = (site.clone_branch && String(site.clone_branch).trim()) || null;
+    if (branch) {
+      execFileSync('git', ['checkout', branch], { cwd: workDir, stdio: 'pipe' });
+      execFileSync('git', ['pull', 'origin', branch], { cwd: workDir, stdio: 'pipe', timeout: 60000 });
+    } else {
+      const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: workDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+      if (currentBranch) execFileSync('git', ['pull', 'origin', currentBranch], { cwd: workDir, stdio: 'pipe', timeout: 60000 });
+    }
+    execFileSync('chown', ['-R', 'www-data:www-data', workDir], { stdio: 'pipe' });
+    res.redirect('/sites/' + site.id + '?pull=ok#node-apps');
+  } catch (e) {
+    const msg = (e.message || 'Pull failed').toString().slice(0, 200);
+    res.redirect('/sites/' + site.id + '?pull=error&msg=' + encodeURIComponent(msg) + '#node-apps');
   }
 });
 
