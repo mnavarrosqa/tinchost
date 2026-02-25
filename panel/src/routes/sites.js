@@ -12,7 +12,54 @@ const { PRIVILEGE_SETS, getDatabaseSizes } = require('../services/databaseManage
 const ftpManager = require('../services/ftpManager');
 const { execSync, execFileSync, spawn } = require('child_process');
 const crypto = require('crypto');
+const dns = require('dns');
 const multer = require('multer');
+
+const dnsPromises = dns.promises;
+
+function isInternalIPv4(addr) {
+  if (!addr || addr === '127.0.0.1') return true;
+  const parts = addr.split('.').map(Number);
+  if (parts.length !== 4 || parts.some(isNaN)) return true;
+  if (parts[0] === 10) return true;
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+  if (parts[0] === 192 && parts[1] === 168) return true;
+  if (parts[0] === 169 && parts[1] === 254) return true;
+  return false;
+}
+
+function isInternalIPv6(addr) {
+  if (!addr || addr === '::1') return true;
+  const lower = addr.toLowerCase();
+  if (lower.startsWith('fe80:')) return true;
+  if (lower.startsWith('fc') || lower.startsWith('fd')) return true;
+  return false;
+}
+
+function getServerIps(db) {
+  const fromSettingV4 = getSetting(db, 'server_public_ip');
+  const fromSettingV6 = getSetting(db, 'server_public_ipv6');
+  if (fromSettingV4 && fromSettingV4.trim()) {
+    return { serverIp: fromSettingV4.trim(), serverIpv6: (fromSettingV6 && fromSettingV6.trim()) || null };
+  }
+  let serverIp = null;
+  let serverIpv6 = null;
+  try {
+    const ifaces = os.networkInterfaces();
+    for (const name of Object.keys(ifaces || {})) {
+      for (const iface of ifaces[name] || []) {
+        if (iface.internal) continue;
+        if (iface.family === 'IPv4' && !isInternalIPv4(iface.address)) {
+          if (!serverIp) serverIp = iface.address;
+        }
+        if (iface.family === 'IPv6' && !isInternalIPv6(iface.address)) {
+          if (!serverIpv6) serverIpv6 = iface.address;
+        }
+      }
+    }
+  } catch (_) {}
+  return { serverIp: serverIp || null, serverIpv6: serverIpv6 || null };
+}
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 const DEFAULT_INDEX_PATH = path.join(__dirname, '..', '..', 'templates', 'default-site-index.html');
@@ -311,7 +358,26 @@ router.get('/:id', async (req, res) => {
   const repoError = req.query.repo === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
   const pullOk = req.query.pull === 'ok';
   const pullError = req.query.pull === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, sslInstalled, sslInstallError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, repoUpdated, repoError, pullOk, pullError, nodePm2Status, nodePm2Name, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeDeleted, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError });
+
+  const { serverIp, serverIpv6 } = getServerIps(db);
+  let dnsResolvedA = null;
+  let dnsResolvedAAAA = null;
+  let dnsPointsHere = false;
+  try {
+    const [v4, v6] = await Promise.all([
+      dnsPromises.resolve4(site.domain).catch(() => []),
+      dnsPromises.resolve6(site.domain).catch(() => [])
+    ]);
+    dnsResolvedA = Array.isArray(v4) && v4.length > 0 ? v4 : null;
+    dnsResolvedAAAA = Array.isArray(v6) && v6.length > 0 ? v6 : null;
+    const serverIps = [serverIp, serverIpv6].filter(Boolean);
+    if (serverIps.length > 0 && (dnsResolvedA || dnsResolvedAAAA)) {
+      const resolved = [...(dnsResolvedA || []), ...(dnsResolvedAAAA || [])];
+      dnsPointsHere = resolved.some(addr => serverIps.includes(addr));
+    }
+  } catch (_) {}
+
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, sslInstalled, sslInstallError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, repoUpdated, repoError, pullOk, pullError, nodePm2Status, nodePm2Name, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeDeleted, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError, serverIp, serverIpv6, dnsResolvedA, dnsResolvedAAAA, dnsPointsHere });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {

@@ -117,6 +117,7 @@
         <li><a href="#databases" class="tabs-trigger" data-tab="databases" id="tab-databases"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</a></li>
         <li><a href="#ftp" class="tabs-trigger" data-tab="ftp" id="tab-ftp"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>FTP</a></li>
         <li><a href="#ssl" class="tabs-trigger" data-tab="ssl" id="tab-ssl"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SSL</a></li>
+        <li><a href="#dns" class="tabs-trigger" data-tab="dns" id="tab-dns"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>DNS</a></li>
         <% if (site.app_type !== 'node') { %><li><a href="#php" class="tabs-trigger" data-tab="php" id="tab-php"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>PHP</a></li><% } %>
         <li><a href="#scripts" class="tabs-trigger" data-tab="scripts" id="tab-scripts"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Scripts</a></li>
         <% if (site.app_type === 'node') { %><li><a href="#node-apps" class="tabs-trigger" data-tab="node-apps" id="tab-node-apps"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L22 8v8l-10 6L2 16V8l10-6z"/></svg>My Node apps</a></li><% } %>
@@ -522,6 +523,38 @@
           <a href="/sites/<%= site.id %>/edit" class="btn btn-secondary">Edit site settings</a>
         </div>
         <p class="empty-msg">Get a free Let's Encrypt certificate to serve this site over HTTPS. DNS for <strong><%= site.domain %></strong> must point to this server.</p>
+      <% } %>
+    </div>
+    </div>
+
+    <div id="panel-dns" class="tabs-panel" role="tabpanel" aria-labelledby="tab-dns">
+    <div class="card">
+      <h2><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>DNS for this site</h2>
+      <p class="empty-msg">For the site and SSL to work, DNS for this domain must point to this server.</p>
+      <div class="site-meta" style="margin-bottom:1rem;">
+        <div class="site-meta-item">
+          <span class="label">Domain</span>
+          <span class="value"><strong><%= site.domain %></strong></span>
+        </div>
+      </div>
+      <h3 style="font-size:0.95rem; color:#2d6a4f; margin:0 0 0.5rem 0;">Suggested records</h3>
+      <p class="empty-msg" style="margin-bottom:0.75rem;">Set these at your domain registrar or DNS provider (e.g. Cloudflare, your host).</p>
+      <table style="max-width:520px;">
+        <thead><tr><th>Type</th><th>Name</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>A</td><td>@ / <%= site.domain %></td><td><%= typeof serverIp !== 'undefined' && serverIp ? serverIp : 'Set at your DNS provider' %></td></tr>
+          <% if (typeof serverIpv6 !== 'undefined' && serverIpv6) { %><tr><td>AAAA</td><td>@ / <%= site.domain %></td><td><%= serverIpv6 %></td></tr><% } %>
+          <tr><td>CNAME</td><td>www</td><td><%= site.domain %></td></tr>
+        </tbody>
+      </table>
+      <% if (typeof dnsResolvedA !== 'undefined' && dnsResolvedA !== null) || (typeof dnsResolvedAAAA !== 'undefined' && dnsResolvedAAAA !== null) { %>
+      <h3 style="font-size:0.95rem; color:#2d6a4f; margin:1.25rem 0 0.5rem 0;">Current resolution</h3>
+      <% if (dnsResolvedA && dnsResolvedA.length) { %><p class="empty-msg" style="margin:0.25rem 0;">A: <%= dnsResolvedA.join(', ') %></p><% } %>
+      <% if (typeof dnsResolvedAAAA !== 'undefined' && dnsResolvedAAAA && dnsResolvedAAAA.length) { %><p class="empty-msg" style="margin:0.25rem 0;">AAAA: <%= dnsResolvedAAAA.join(', ') %></p><% } %>
+      <p class="empty-msg" style="margin-top:0.5rem;"><% if (typeof dnsPointsHere !== 'undefined' && dnsPointsHere) { %><span class="success-msg" style="display:inline-block; padding:0.35rem 0.6rem;">Points to this server: <strong>Yes</strong></span><% } else { %><span class="error-msg" style="display:inline-block; padding:0.35rem 0.6rem;">Points to this server: <strong>No</strong></span> — Update DNS so the domain points to this server.<% } %></p>
+      <% } else if (typeof dnsResolvedA !== 'undefined' || typeof dnsPointsHere !== 'undefined') { %>
+      <h3 style="font-size:0.95rem; color:#2d6a4f; margin:1.25rem 0 0.5rem 0;">Current resolution</h3>
+      <p class="empty-msg">Could not resolve domain. Ensure the domain has DNS records set.</p>
       <% } %>
     </div>
     </div>

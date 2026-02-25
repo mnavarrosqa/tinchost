@@ -1,5 +1,5 @@
 (function() {
-  var TAB_IDS = ["overview", "databases", "ftp", "ssl", "php", "scripts", "node-apps"];
+  var TAB_IDS = ["overview", "databases", "ftp", "ssl", "dns", "php", "scripts", "node-apps"];
   function getTabFromHash() {
     var hash = (window.location.hash || "").replace(/^#/, "");
     var panel = hash ? document.getElementById("panel-" + hash) : null;
