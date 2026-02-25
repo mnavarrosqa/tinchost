@@ -36,6 +36,7 @@
     .form-row { margin-bottom: 0.75rem; }
     .form-row label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; color: #1b4332; }
     .form-row input { padding: 0.4rem 0.5rem; border: 1px solid #b7d4bc; border-radius: 4px; width: 100%; max-width: 240px; }
+    .form-row .hint { font-size: 0.85rem; color: #52796f; margin-top: 0.25rem; display: block; }
     .form-inline { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; margin-top: 0.75rem; }
     .error-msg { background: #f8d7da; border: 1px solid #9b2226; color: #9b2226; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
     .success-msg { background: #d8f3dc; border: 1px solid #2d6a4f; color: #1b4332; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
@@ -127,6 +128,34 @@
         </form>
       </div>
     </div>
+    <% if (site.app_type === 'node') { %>
+    <div class="card">
+      <h2><svg class="ic" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>Clone repository</h2>
+      <p style="font-size:0.9rem; color:#52796f; margin:0 0 1rem 0;">Clone a Git repository into the site docroot. Use the docroot path to put the app at the root, or a subfolder (e.g. <code>app</code>) to clone into a subdirectory.</p>
+      <% if (typeof cloneOk !== 'undefined' && cloneOk) { %>
+      <div class="success-msg">Repository cloned successfully. Run <code>npm install</code> and start your app (e.g. with PM2) on port <%= site.node_port || '' %>.</div>
+      <% } %>
+      <% if (typeof cloneError !== 'undefined' && cloneError) { %>
+      <div class="error-msg"><%= cloneError %></div>
+      <% } %>
+      <form method="post" action="/sites/<%= site.id %>/clone" style="margin-top:0.5rem;">
+        <div class="form-row">
+          <label for="clone_repo_url">Repository URL</label>
+          <input type="text" id="clone_repo_url" name="repo_url" required placeholder="https://github.com/user/repo.git or git@github.com:user/repo.git">
+        </div>
+        <div class="form-row">
+          <label for="clone_branch">Branch (optional)</label>
+          <input type="text" id="clone_branch" name="branch" placeholder="main">
+        </div>
+        <div class="form-row">
+          <label for="clone_target">Subfolder (optional)</label>
+          <input type="text" id="clone_target" name="target" placeholder="Leave empty for docroot; or e.g. app">
+          <span class="hint">Empty = clone into docroot (docroot must be empty). Otherwise the repo is cloned into this subfolder.</span>
+        </div>
+        <button type="submit" class="btn">Clone repository</button>
+      </form>
+    </div>
+    <% } %>
     </div>
 
     <div id="panel-databases" class="tabs-panel" role="tabpanel" aria-labelledby="tab-databases">

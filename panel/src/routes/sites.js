@@ -237,7 +237,9 @@ router.get('/:id', async (req, res) => {
   }
   const installedScripts = detectInstalledScripts(site);
   const docrootSizeFormatted = getDocrootSizeFormatted(site);
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted });
+  const cloneOk = req.query.clone === 'ok';
+  const cloneError = req.query.clone === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : 'Clone failed') : null;
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {
@@ -267,6 +269,44 @@ router.post('/:id/ssl/delete', async (req, res) => {
     res.redirect('/sites/' + site.id + '?ssl=removed#ssl');
   } catch (e) {
     res.redirect('/sites/' + site.id + '?ssl=error&msg=' + encodeURIComponent((e && e.message) ? e.message : 'Remove failed') + '#ssl');
+  }
+});
+
+router.post('/:id/clone', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  if (site.app_type !== 'node') return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Clone is only available for Node sites'));
+  const repoUrl = (req.body.repo_url || '').trim();
+  if (!repoUrl) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Repository URL is required'));
+  const branch = (req.body.branch || '').trim().replace(/[^a-zA-Z0-9/_.-]/g, '');
+  const rawSubfolder = (req.body.target || '').trim().replace(/^\/+/, '').replace(/\\/g, '');
+  const subfolder = rawSubfolder.replace(/[^a-zA-Z0-9_.-]/g, '');
+  if (rawSubfolder !== subfolder) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Invalid subfolder name'));
+  const docroot = path.resolve(site.docroot);
+  let targetPath;
+  if (!subfolder) {
+    try {
+      if (!fs.existsSync(docroot)) fs.mkdirSync(docroot, { recursive: true });
+      if (fs.readdirSync(docroot).length > 0) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Docroot is not empty; clear it or use a subfolder'));
+    } catch (e) { return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent(e.message || 'Docroot not accessible')); }
+    targetPath = docroot;
+  } else {
+    targetPath = resolveDocrootPath(site.docroot, subfolder);
+    if (!targetPath) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Invalid path'));
+    if (fs.existsSync(targetPath)) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Subfolder already exists'));
+  }
+  const safeUrl = repoUrl.replace(/[\0-\x1f\x7f]/g, '');
+  try {
+    const args = ['clone'];
+    if (branch) args.push('-b', branch);
+    args.push('--', safeUrl, targetPath);
+    execFileSync('git', args, { stdio: 'pipe', timeout: 120000 });
+    execFileSync('chown', ['-R', 'www-data:www-data', targetPath], { stdio: 'pipe' });
+    res.redirect('/sites/' + site.id + '?clone=ok');
+  } catch (e) {
+    const msg = (e.message || 'Clone failed').toString().slice(0, 200);
+    res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent(msg));
   }
 });
 
