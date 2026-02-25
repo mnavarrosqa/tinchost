@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { getDb } = require('../config/database');
+const { getDb, getSetting } = require('../config/database');
 const { runWizardInstall, runWizardInstallStreaming } = require('../services/wizardInstall');
+
+function setSetting(db, key, value) {
+  db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)').run(key, value);
+}
 
 async function getState() {
   const db = await getDb();
@@ -43,7 +47,20 @@ router.post('/php', async (req, res) => {
 router.post('/database', async (req, res) => {
   const choice = req.body.choice === 'mariadb' ? 'mariadb' : 'mysql';
   const databaseConfig = req.body.database_config === 'optimized' ? 'optimized' : 'default';
+  const password = (req.body.mysql_root_password || '').trim();
+  const passwordAgain = (req.body.mysql_root_password_again || '').trim();
+
+  if (password.length < 8) {
+    const state = await getState();
+    return res.render('wizard', { step: 'database', state, databaseError: 'Root password must be at least 8 characters.' });
+  }
+  if (password !== passwordAgain) {
+    const state = await getState();
+    return res.render('wizard', { step: 'database', state, databaseError: 'Passwords do not match.' });
+  }
+
   const db = await getDb();
+  setSetting(db, 'mysql_root_password', password);
   db.prepare('UPDATE wizard_state SET database_choice = ?, database_config = ?, step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run(choice, databaseConfig, 'options');
   res.redirect('/wizard');
 });
@@ -59,8 +76,9 @@ router.post('/options', async (req, res) => {
 
 router.post('/install', async (req, res) => {
   const state = await getState();
-  const result = runWizardInstall(state);
   const db = await getDb();
+  const mysqlRootPassword = getSetting(db, 'mysql_root_password') || null;
+  const result = runWizardInstall(state, { mysqlRootPassword });
   if (result.success) {
     db.prepare('UPDATE wizard_state SET completed = 1, step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run('finish');
   }
@@ -81,8 +99,9 @@ router.post('/install/stream', async (req, res) => {
   };
 
   try {
-    const result = await runWizardInstallStreaming(state, (text) => send({ msg: text }));
     const db = await getDb();
+    const mysqlRootPassword = getSetting(db, 'mysql_root_password') || null;
+    const result = await runWizardInstallStreaming(state, (text) => send({ msg: text }), { mysqlRootPassword });
     if (result.success) {
       db.prepare('UPDATE wizard_state SET completed = 1, step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run('finish');
     }

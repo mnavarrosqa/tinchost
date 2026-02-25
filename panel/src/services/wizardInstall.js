@@ -138,8 +138,43 @@ innodb_flush_method = O_DIRECT
 
 /**
  * Install database: 'mysql' or 'mariadb'. If config === 'optimized', applies InnoDB tuning after install.
+ * If rootPassword is set, configures it via debconf before apt install so the package uses it during setup.
  */
-function installDatabase(choice, config) {
+function installDatabase(choice, config, rootPassword) {
+  const safePassword = rootPassword ? String(rootPassword).replace(/\r?\n/g, ' ').trim() : '';
+  if (choice === 'mysql' && safePassword) {
+    const lines = [
+      'mysql-server mysql-server/root_password password ' + safePassword,
+      'mysql-server mysql-server/root_password_again password ' + safePassword
+    ];
+    try {
+      const result = require('child_process').spawnSync('debconf-set-selections', [], {
+        input: lines.join('\n') + '\n',
+        encoding: 'utf8',
+        env: { ...process.env, DEBIAN_FRONTEND: 'noninteractive' }
+      });
+      if (result.status !== 0) return { ok: false, out: (result.stderr || result.stdout || 'debconf-set-selections failed').toString() };
+    } catch (e) {
+      return { ok: false, out: (e.message || 'debconf-set-selections failed') };
+    }
+  }
+  if (choice === 'mariadb' && safePassword) {
+    const lines = [
+      'mariadb-server mysql-server/root_password password ' + safePassword,
+      'mariadb-server mysql-server/root_password_again password ' + safePassword
+    ];
+    try {
+      const result = require('child_process').spawnSync('debconf-set-selections', [], {
+        input: lines.join('\n') + '\n',
+        encoding: 'utf8',
+        env: { ...process.env, DEBIAN_FRONTEND: 'noninteractive' }
+      });
+      if (result.status !== 0) return { ok: false, out: (result.stderr || result.stdout || 'debconf-set-selections failed').toString() };
+    } catch (e) {
+      return { ok: false, out: (e.message || 'debconf-set-selections failed') };
+    }
+  }
+
   if (choice === 'mysql') {
     const r = run('apt-get install -y -qq mysql-server');
     if (!r.ok) return r;
@@ -204,7 +239,9 @@ function installNode(version) {
  * Run full wizard install from state object (from wizard_state row).
  * Returns { success, log }.
  */
-function runWizardInstall(state) {
+function runWizardInstall(state, opts) {
+  const opts_ = opts || {};
+  const mysqlRootPassword = opts_.mysqlRootPassword || null;
   const log = [];
   const phpVersions = (state.php_versions || '')
     .split(',')
@@ -239,7 +276,7 @@ function runWizardInstall(state) {
   }
 
   const databaseConfig = state.database_config || 'default';
-  const r3 = step('Database (' + databaseChoice + (databaseConfig === 'optimized' ? ', optimized' : '') + ')', () => installDatabase(databaseChoice, databaseConfig));
+  const r3 = step('Database (' + databaseChoice + (databaseConfig === 'optimized' ? ', optimized' : '') + ')', () => installDatabase(databaseChoice, databaseConfig, mysqlRootPassword));
   if (!r3.ok) return { success: false, log: log.join('\n') };
 
   if (installEmail) {
@@ -264,7 +301,9 @@ function runWizardInstall(state) {
  * Run full wizard install with live streaming. Calls onOutput(text) for each chunk.
  * Returns Promise<{ success: boolean }>. Uses apt without -qq so output is visible.
  */
-async function runWizardInstallStreaming(state, onOutput) {
+async function runWizardInstallStreaming(state, onOutput, opts) {
+  const opts_ = opts || {};
+  const mysqlRootPassword = opts_.mysqlRootPassword || null;
   const out = (text) => { if (onOutput && text) onOutput(text); };
   const phpVersions = (state.php_versions || '')
     .split(',')
@@ -313,6 +352,21 @@ async function runWizardInstallStreaming(state, onOutput) {
     }
 
     out('\n[Database: ' + databaseChoice + (useDbOptimized ? ' (optimized)' : '') + ']\n');
+    const safePassword = mysqlRootPassword ? String(mysqlRootPassword).replace(/\r?\n/g, ' ').trim() : '';
+    if (databaseChoice === 'mysql' && safePassword) {
+      const lines = 'mysql-server mysql-server/root_password password ' + safePassword + '\nmysql-server mysql-server/root_password_again password ' + safePassword + '\n';
+      const debconf = spawn('debconf-set-selections', [], { env: { ...env, DEBIAN_FRONTEND: 'noninteractive' }, stdio: ['pipe', 'ignore', 'ignore'] });
+      debconf.stdin.write(lines);
+      debconf.stdin.end();
+      await new Promise((res) => debconf.on('close', res));
+    }
+    if (databaseChoice === 'mariadb' && safePassword) {
+      const lines = 'mariadb-server mysql-server/root_password password ' + safePassword + '\nmariadb-server mysql-server/root_password_again password ' + safePassword + '\n';
+      const debconf = spawn('debconf-set-selections', [], { env: { ...env, DEBIAN_FRONTEND: 'noninteractive' }, stdio: ['pipe', 'ignore', 'ignore'] });
+      debconf.stdin.write(lines);
+      debconf.stdin.end();
+      await new Promise((res) => debconf.on('close', res));
+    }
     const dbPkg = databaseChoice === 'mariadb' ? 'mariadb-server' : 'mysql-server';
     const r3 = await runStreaming('apt-get install -y -q ' + dbPkg, out);
     if (!r3.ok) return { success: false };

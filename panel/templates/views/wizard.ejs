@@ -6,67 +6,96 @@
   <title>Setup wizard – Tinchost Panel</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: linear-gradient(180deg, #e8f5e9 0%, #eef5ef 100%); color: #1b4332; line-height: 1.5; }
     <%- include('partials/nav-styles') %>
     .ic { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    main { max-width: 720px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
-    .stack { background: #d8f3dc; border: 1px solid #95d5b2; border-radius: 6px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
-    .stack h2 .ic { width: 16px; height: 16px; flex-shrink: 0; }
-    .stack h2 { margin: 0 0 0.5rem 0; font-size: 0.875rem; font-weight: 600; color: #2d6a4f; text-transform: uppercase; letter-spacing: 0.03em; display: flex; align-items: center; gap: 0.4rem; }
-    .stack ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
-    .stack li { font-size: 0.9rem; color: #1b4332; display: flex; align-items: center; gap: 0.35rem; }
+    main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; border-radius: 0 0 12px 12px; box-shadow: 0 4px 24px rgba(45, 106, 79, 0.08); }
+    .wizard-intro { font-size: 1.05rem; color: #2d5a4a; margin: 0 0 1.5rem 0; line-height: 1.6; }
+    .wizard-progress { display: flex; align-items: center; gap: 0.25rem; margin-bottom: 1.75rem; padding-bottom: 1rem; border-bottom: 1px solid #e8f5e9; flex-wrap: wrap; }
+    .wizard-progress-item { font-size: 0.8rem; color: #52796f; display: flex; align-items: center; gap: 0.35rem; }
+    .wizard-progress-item.is-current { color: #2d6a4f; font-weight: 600; }
+    .wizard-progress-item .ic { width: 14px; height: 14px; }
+    .wizard-progress-sep { color: #95d5b2; font-size: 0.7rem; }
+    .stack { background: linear-gradient(135deg, #d8f3dc 0%, #e8f5e9 100%); border: 1px solid #95d5b2; border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1.75rem; box-shadow: 0 1px 3px rgba(45, 106, 79, 0.06); }
+    .stack h2 .ic { width: 18px; height: 18px; flex-shrink: 0; color: #2d6a4f; }
+    .stack h2 { margin: 0 0 0.75rem 0; font-size: 0.8rem; font-weight: 600; color: #2d6a4f; text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 0.5rem; }
+    .stack ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; }
+    .stack li { font-size: 0.9rem; color: #1b4332; display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.7); padding: 0.35rem 0.75rem; border-radius: 20px; border: 1px solid #b7d4bc; }
     .stack li .ic { width: 14px; height: 14px; color: #2d6a4f; flex-shrink: 0; }
+    .stack.empty { opacity: 0.92; background: #f1f8f2; border-color: #cce3d0; }
+    .stack.empty li { background: rgba(255,255,255,0.9); color: #52796f; }
     .stack.empty li .ic { color: #95d5b2; }
-    .stack.empty { opacity: 0.9; background: #f1f8f2; border-color: #cce3d0; }
-    .risk { background: #fff8e1; border-left: 4px solid #b7a53a; padding: 0.75rem 1rem; margin: 1rem 0; border-radius: 0 4px 4px 0; font-size: 0.9rem; color: #5c4d1f; }
-    pre { background: #1b4332; color: #d8f3dc; padding: 1rem; overflow-x: auto; border-radius: 6px; font-size: 0.85rem; border: 1px solid #2d6a4f; }
+    .risk { background: #fff8e1; border-left: 4px solid #b7a53a; padding: 0.75rem 1rem; margin: 1rem 0; border-radius: 0 8px 8px 0; font-size: 0.9rem; color: #5c4d1f; }
+    pre { background: #1b4332; color: #d8f3dc; padding: 1rem; overflow-x: auto; border-radius: 8px; font-size: 0.8rem; border: 1px solid #2d6a4f; line-height: 1.45; }
     input[type="checkbox"], input[type="radio"] { margin-right: 0.5rem; vertical-align: middle; accent-color: #2d6a4f; }
     label { cursor: pointer; }
     .checkbox-group { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.75rem 0; }
-    .checkbox-option { display: block; padding: 0.4rem 0; }
+    .checkbox-option { display: block; padding: 0.6rem 0; border-radius: 6px; transition: color 0.15s; }
     .checkbox-option:hover { color: #2d6a4f; }
-    button, .btn { padding: 0.5rem 1rem; cursor: pointer; background: #2d6a4f; color: #fff; border: none; border-radius: 6px; font-size: 1rem; }
+    .form-input { width: 100%; max-width: 320px; padding: 0.6rem 0.75rem; border: 1px solid #b7d4bc; border-radius: 8px; font-size: 1rem; font-family: inherit; color: #1b4332; background: #fff; transition: border-color 0.15s; }
+    .form-input:focus { outline: none; border-color: #2d6a4f; box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15); }
+    .form-label { display: block; font-weight: 600; margin-bottom: 0.4rem; color: #1b4332; font-size: 0.95rem; }
+    .form-field { margin: 0.75rem 0 1.25rem 0; }
+    .form-field + .form-field { margin-top: 1rem; }
+    button, .btn { padding: 0.6rem 1.25rem; cursor: pointer; background: #2d6a4f; color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; transition: background 0.15s; }
     button:hover, .btn:hover { background: #1b4332; }
     .btn-secondary { background: #52796f; color: #fff; }
     .btn-secondary:hover { background: #354f52; }
-    .btn-success { background: #2d6a4f; color: #fff; }
+    .btn-success { padding: 0.65rem 1.35rem; font-size: 1.05rem; }
     .btn-success:hover { background: #1b4332; }
-    .step-actions { margin-top: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-    .step-actions .btn { margin-right: 0; }
-    .btn-back { color: #52796f; text-decoration: none; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.35rem; }
+    .step-actions { margin-top: 1.75rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid #e8f5e9; }
+    .btn-back { color: #52796f; text-decoration: none; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0; border-radius: 6px; transition: color 0.15s; }
     .btn-back:hover { color: #1b4332; }
-    .wizard-actions-disabled { opacity: 0.85; pointer-events: none; cursor: not-allowed; }
-    .result-log { white-space: pre-wrap; max-height: 320px; overflow-y: auto; }
+    .wizard-actions-disabled { opacity: 0.7; pointer-events: none; cursor: not-allowed; }
+    .result-log { white-space: pre-wrap; max-height: 320px; overflow-y: auto; border-radius: 8px; }
     .result-success { color: #2d6a4f; font-weight: 600; }
+    .wizard-error-msg { background: #fef2f2; border: 1px solid #fecaca; color: #9b2226; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.95rem; }
     .result-error { color: #9b2226; font-weight: 600; }
-    .install-log-container { margin-top: 1rem; border: 1px solid #b7d4bc; border-radius: 6px; overflow: hidden; }
-    .install-log { margin: 0; padding: 1rem; background: #1b4332; color: #d8f3dc; font-size: 0.8rem; max-height: 360px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; border: none; }
+    .install-log-container { margin-top: 1.25rem; border: 1px solid #b7d4bc; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(45, 106, 79, 0.06); }
+    .install-log { margin: 0; padding: 1.25rem; background: #1b4332; color: #d8f3dc; font-size: 0.8rem; max-height: 380px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; border: none; line-height: 1.45; }
     .install-log-status { margin: 0.75rem 1rem 0; }
     .install-log-status.result-success { color: #2d6a4f; font-weight: 600; }
     .install-log-status.result-error { color: #9b2226; font-weight: 600; }
-    .wizard-completion-summary { background: #d8f3dc; border: 1px solid #2d6a4f; border-radius: 6px; padding: 1.25rem; margin-top: 1rem; }
-    .wizard-completion-summary h3 { margin: 0 0 0.5rem 0; color: #1b4332; font-size: 1.1rem; }
-    .wizard-completion-summary p { margin: 0; color: #1b4332; }
-    .wizard-completion-actions { margin-top: 1rem; }
-    .wizard-completion-actions .btn { padding: 0.6rem 1.25rem; font-size: 1.05rem; }
-    h1 { margin-top: 0; color: #1b4332; }
-    .wizard-step { margin-bottom: 1rem; padding-bottom: 1rem; }
+    .wizard-completion-summary { background: linear-gradient(135deg, #d8f3dc 0%, #e8f5e9 100%); border: 1px solid #2d6a4f; border-radius: 10px; padding: 1.5rem; margin-top: 1rem; box-shadow: 0 1px 3px rgba(45, 106, 79, 0.08); }
+    .wizard-completion-summary h3 { margin: 0 0 0.5rem 0; color: #1b4332; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem; }
+    .wizard-completion-summary h3 .ic { width: 22px; height: 22px; color: #2d6a4f; }
+    .wizard-completion-summary p { margin: 0; color: #1b4332; line-height: 1.5; }
+    .wizard-completion-actions { margin-top: 1.25rem; }
+    .wizard-completion-actions .btn { padding: 0.65rem 1.35rem; font-size: 1.05rem; }
+    h1 { margin-top: 0; color: #1b4332; font-size: 1.65rem; font-weight: 700; letter-spacing: -0.02em; }
+    .wizard-step { margin-bottom: 0.5rem; }
     .wizard-step form { display: block; }
-    .wizard-step h2 { color: #2d6a4f; font-size: 1.1rem; }
-    .wizard-subhead { font-size: 1rem; margin: 1.5rem 0 0.5rem 0; color: #1b4332; }
-    .radio-group { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; }
-    .radio-option { display: block; padding: 0.75rem 1rem; border: 1px solid #b7d4bc; border-radius: 6px; cursor: pointer; background: #fff; }
-    .radio-option:has(input:checked) { border-color: #2d6a4f; background: #f1f8f2; }
-    .radio-option input { margin-right: 0.5rem; }
-    .radio-label { font-weight: 600; display: block; margin-bottom: 0.25rem; color: #1b4332; }
-    .radio-desc { font-size: 0.9rem; color: #52796f; display: block; }
+    .wizard-step h2 { color: #1b4332; font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem; }
+    .wizard-step h2 .ic { width: 22px; height: 22px; color: #2d6a4f; }
+    .wizard-step > p { margin: 0 0 1rem 0; color: #2d5a4a; font-size: 0.98rem; line-height: 1.55; }
+    .wizard-subhead { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem 0; color: #1b4332; }
+    .wizard-subhead-desc { margin: 0 0 0.75rem 0; color: #52796f; font-size: 0.92rem; }
+    .radio-group { display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0.5rem; }
+    .radio-option { display: block; padding: 0.9rem 1.1rem; border: 1px solid #b7d4bc; border-radius: 10px; cursor: pointer; background: #fff; transition: border-color 0.15s, background 0.15s; }
+    .radio-option:hover { border-color: #95d5b2; background: #fafdfb; }
+    .radio-option:has(input:checked) { border-color: #2d6a4f; background: #f1f8f2; box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.12); }
+    .radio-option input { margin-right: 0.6rem; }
+    .radio-label { font-weight: 600; display: block; margin-bottom: 0.25rem; color: #1b4332; font-size: 0.98rem; }
+    .radio-desc { font-size: 0.9rem; color: #52796f; display: block; line-height: 1.45; }
+    .option-inline-group { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; margin: 0.75rem 0; }
+    .option-inline-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0; }
+    .option-inline-item label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500; }
+    .options-cards { display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0.5rem; }
+    .options-card { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.9rem 1.1rem; border: 1px solid #b7d4bc; border-radius: 10px; background: #fff; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .options-card:hover { border-color: #95d5b2; background: #fafdfb; }
+    .options-card:has(input:checked) { border-color: #2d6a4f; background: #f1f8f2; box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.12); }
+    .options-card input { margin-top: 0.2rem; flex-shrink: 0; }
+    .options-card label { flex: 1; cursor: pointer; font-weight: 500; color: #1b4332; }
   </style>
 </head>
 <body>
   <%- include('partials/nav') %>
   <main>
     <h1>Setup wizard</h1>
-    <p>Choose what to install below. Your selection is summarized in <strong>Your stack</strong>. When you click <strong>Install all</strong>, the panel will install everything on this server and show a live log—you don’t need to run any commands yourself.</p>
+    <p class="wizard-intro">Choose what to install below. Your selection is summarized in <strong>Your stack</strong>. When you click <strong>Install all</strong>, the panel will install everything on this server and show a live log—you don’t need to run any commands yourself.</p>
+
+    <% const stepOrder = ['welcome', 'database', 'options', 'review']; const stepLabels = { welcome: 'PHP & Node', database: 'Database', options: 'Optional services', review: 'Review & install' }; const showProgress = step && ['welcome', 'database', 'options', 'review'].indexOf(step) >= 0; %>
+    <% if (showProgress) { %><nav class="wizard-progress" aria-label="Wizard steps"><% stepOrder.forEach(function(s, i) { var isCurrent = step === s; %><% if (i > 0) { %><span class="wizard-progress-sep" aria-hidden="true">→</span><% } %><span class="wizard-progress-item <%= isCurrent ? 'is-current' : '' %>"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><% if (isCurrent) { %><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/><% } else { %><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/><% } %></svg><%= stepLabels[s] %></span><% }); %></nav><% } %>
 
     <% const phpList = (state.php_versions || '').split(',').map(s => s.trim()).filter(Boolean); %>
     <% const hasDb = state.database_choice; %>
@@ -89,7 +118,7 @@
     <% const phpFpmConfig = state.php_fpm_config || 'default'; %>
     <% const defaultPhp = (phpList.length === 0 ? ['8.2'] : phpList); %>
     <div class="wizard-step">
-      <h2>PHP-FPM versions</h2>
+      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>PHP-FPM versions</h2>
       <p>Select which PHP-FPM versions to install (sites can use different versions). Nginx will use the matching FastCGI socket for each site. You can select none, one, or several.</p>
       <form method="post" action="/wizard/php">
         <div class="checkbox-group">
@@ -100,7 +129,7 @@
         </div>
 
         <h3 class="wizard-subhead">PHP-FPM configuration</h3>
-        <p>Choose how PHP-FPM is tuned for this server.</p>
+        <p class="wizard-subhead-desc">Choose how PHP-FPM is tuned for this server.</p>
         <div class="radio-group">
           <label class="radio-option">
             <input type="radio" name="php_fpm_config" value="default" <%= phpFpmConfig === 'default' ? 'checked' : '' %>>
@@ -115,7 +144,7 @@
         </div>
 
         <h3 class="wizard-subhead">Node.js version</h3>
-        <p>Select which Node.js version to install (for Node-type sites). Choose one: latest LTS or two versions behind. You can skip Node if you only use PHP.</p>
+        <p class="wizard-subhead-desc">Select which Node.js version to install (for Node-type sites). Choose one: latest LTS or two versions behind. You can skip Node if you only use PHP.</p>
         <div class="radio-group">
           <label class="radio-option">
             <input type="radio" name="node_version" value="" <%= !state.node_version || state.node_version === '' ? 'checked' : '' %>>
@@ -148,15 +177,32 @@
 
     <% if (step === 'database') { %>
     <% const databaseConfig = state.database_config || 'default'; %>
+    <% const dbError = typeof databaseError !== 'undefined' ? databaseError : null; %>
     <div class="wizard-step">
-      <h2>Database</h2>
-      <p>Choose MySQL or MariaDB. The panel can create databases and users if the root password is set in Settings.</p>
+      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Database</h2>
+      <p>Choose MySQL or MariaDB. Set the root password below so the panel can create databases and users for your sites. You won't need to configure it again in Settings.</p>
+      <% if (dbError) { %><div class="wizard-error-msg" role="alert"><%= dbError %></div><% } %>
       <form method="post" action="/wizard/database">
-        <label><input type="radio" name="choice" value="mysql" <%= state.database_choice !== 'mariadb' ? 'checked' : '' %>> MySQL 8</label>
-        <label><input type="radio" name="choice" value="mariadb" <%= state.database_choice === 'mariadb' ? 'checked' : '' %>> MariaDB 10</label>
+        <h3 class="wizard-subhead">Database engine</h3>
+        <p class="wizard-subhead-desc">Pick MySQL 8 or MariaDB 10. Both work with the panel.</p>
+        <div class="option-inline-group">
+          <span class="option-inline-item"><label><input type="radio" name="choice" value="mysql" <%= state.database_choice !== 'mariadb' ? 'checked' : '' %>> MySQL 8</label></span>
+          <span class="option-inline-item"><label><input type="radio" name="choice" value="mariadb" <%= state.database_choice === 'mariadb' ? 'checked' : '' %>> MariaDB 10</label></span>
+        </div>
+
+        <h3 class="wizard-subhead">Root password</h3>
+        <p class="wizard-subhead-desc">This password will be set for the database root user during installation. Choose a strong password and store it safely.</p>
+        <div class="form-field">
+          <label for="mysql_root_password" class="form-label">MySQL/MariaDB root password</label>
+          <input type="password" id="mysql_root_password" name="mysql_root_password" required minlength="8" autocomplete="new-password" class="form-input">
+        </div>
+        <div class="form-field">
+          <label for="mysql_root_password_again" class="form-label">Confirm root password</label>
+          <input type="password" id="mysql_root_password_again" name="mysql_root_password_again" required minlength="8" autocomplete="new-password" class="form-input">
+        </div>
 
         <h3 class="wizard-subhead">Database configuration</h3>
-        <p>Choose how the database engine is tuned.</p>
+        <p class="wizard-subhead-desc">Choose how the database engine is tuned.</p>
         <div class="radio-group">
           <label class="radio-option">
             <input type="radio" name="database_config" value="default" <%= databaseConfig === 'default' ? 'checked' : '' %>>
@@ -183,9 +229,11 @@
       <h2>Optional services</h2>
       <p>Optionally add mail (Postfix + Dovecot), FTP (ProFTPD), and Certbot for Let's Encrypt. All selected components will be installed together on the next step.</p>
       <form method="post" action="/wizard/options">
-        <label><input type="checkbox" name="install_email" value="1" <%= state.email_installed ? 'checked' : '' %>> Mail (Postfix + Dovecot)</label><br>
-        <label><input type="checkbox" name="install_ftp" value="1" <%= state.ftp_installed ? 'checked' : '' %>> FTP (ProFTPD)</label><br>
-        <label><input type="checkbox" name="install_certbot" value="1" <%= state.certbot_installed ? 'checked' : '' %>> Certbot (Let's Encrypt)</label>
+        <div class="options-cards">
+          <label class="options-card"><input type="checkbox" name="install_email" value="1" <%= state.email_installed ? 'checked' : '' %>><span>Mail (Postfix + Dovecot)</span></label>
+          <label class="options-card"><input type="checkbox" name="install_ftp" value="1" <%= state.ftp_installed ? 'checked' : '' %>><span>FTP (ProFTPD)</span></label>
+          <label class="options-card"><input type="checkbox" name="install_certbot" value="1" <%= state.certbot_installed ? 'checked' : '' %>><span>Certbot (Let's Encrypt)</span></label>
+        </div>
         <div class="step-actions">
           <a href="/wizard/step/database" class="btn-back">← Back to Database</a>
           <button type="submit">Next: Review &amp; install</button>
@@ -196,7 +244,7 @@
 
     <% if (step === 'review') { %>
     <div class="wizard-step">
-      <h2>Review &amp; install</h2>
+      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Review &amp; install</h2>
       <p>Everything in <strong>Your stack</strong> will be installed on this server when you click <strong>Install all</strong>. A live log will appear below; installation may take several minutes. You can go back to change your choices until you start the installation.</p>
       <div id="wizard-review-actions" class="step-actions">
         <a href="/wizard/step/options" id="wizard-back-link" class="btn-back">← Back to Optional services</a>
@@ -206,7 +254,8 @@
         <pre id="wizard-log" class="install-log"></pre>
         <p id="wizard-log-status" class="install-log-status" hidden></p>
         <div id="wizard-completion-summary" class="wizard-completion-summary" hidden>
-          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width:20px;height:20px;vertical-align:middle;margin-right:0.35rem;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Installation complete</h3>
+          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Installation complete</h3>
+          <!-- Icon styled via .wizard-completion-summary h3 .ic -->
           <p>All selected components were installed successfully. You can now use the dashboard to manage sites, databases, and optional services.</p>
           <div class="wizard-completion-actions">
             <a href="/" class="btn btn-success">Go to dashboard</a>
@@ -317,6 +366,31 @@
       <h2>Installation result</h2>
       <% if (typeof success !== 'undefined' && success) { %>
         <p class="result-success">All selected components were installed successfully.</p>
+      <% } else { %>
+        <p class="result-error">Installation reported errors. Check the log below. You can fix issues and run the wizard again or install packages manually.</p>
+      <% } %>
+      <% if (typeof log !== 'undefined' && log) { %>
+        <pre class="result-log"><%= log %></pre>
+      <% } %>
+      <div class="step-actions">
+        <a href="/" class="btn btn-success">Go to dashboard</a>
+        <a href="/wizard" class="btn btn-secondary">Back to wizard</a>
+      </div>
+    </div>
+    <% } %>
+
+    <% if (step === 'finish') { %>
+    <div class="wizard-step">
+      <p>Wizard complete. You can change paths and options in Settings.</p>
+      <div class="step-actions">
+        <a href="/" class="btn btn-success">Go to dashboard</a>
+      </div>
+    </div>
+    <% } %>
+  </main>
+</body>
+</html>
+talled successfully.</p>
       <% } else { %>
         <p class="result-error">Installation reported errors. Check the log below. You can fix issues and run the wizard again or install packages manually.</p>
       <% } %>
