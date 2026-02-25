@@ -717,6 +717,85 @@ router.post('/:id/files/delete', async (req, res) => {
   res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(parent === '.' ? '' : parent));
 });
 
+function normalizePathsBody(body) {
+  const p = body.paths;
+  if (Array.isArray(p)) return p.filter(Boolean).map(String).map(s => s.replace(/^\/+/, ''));
+  if (p != null && p !== '') return [String(p).replace(/^\/+/, '')];
+  return [];
+}
+
+router.post('/:id/files/bulk-delete', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  const currentPath = (req.body.currentPath || '').replace(/^\/+/, '');
+  const baseDir = resolveDocrootPath(site.docroot, currentPath);
+  if (!baseDir) return res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(currentPath) + '&error=invalid');
+  const paths = normalizePathsBody(req.body);
+  const docrootResolved = path.resolve(site.docroot);
+  for (const rel of paths) {
+    const full = resolveDocrootPath(site.docroot, rel);
+    if (!full || full === docrootResolved) continue;
+    try { fs.rmSync(full, { recursive: true }); } catch (_) {}
+  }
+  res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(currentPath));
+});
+
+router.post('/:id/files/bulk-move', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  const currentPath = (req.body.currentPath || '').replace(/^\/+/, '');
+  const destRel = (req.body.destination || '').trim().replace(/^\/+/, '').replace(/\\/g, path.sep);
+  const paths = normalizePathsBody(req.body);
+  const docrootResolved = path.resolve(site.docroot);
+  const destDir = resolveDocrootPath(site.docroot, destRel);
+  if (!destDir || !fs.existsSync(destDir) || !fs.statSync(destDir).isDirectory()) {
+    return res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(currentPath) + '&error=invalid');
+  }
+  for (const rel of paths) {
+    const full = resolveDocrootPath(site.docroot, rel);
+    if (!full || full === docrootResolved) continue;
+    const name = path.basename(full);
+    const target = path.join(destDir, name);
+    if (target === full) continue;
+    if (resolveDocrootPath(site.docroot, path.relative(site.docroot, target)) === null) continue;
+    try {
+      fs.renameSync(full, target);
+      if (fs.statSync(target).isDirectory()) execFileSync('chown', ['-R', 'www-data:www-data', target], { stdio: 'pipe' });
+      else execFileSync('chown', ['www-data:www-data', target], { stdio: 'pipe' });
+    } catch (_) {}
+  }
+  res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(currentPath));
+});
+
+router.post('/:id/files/bulk-copy', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  const currentPath = (req.body.currentPath || '').replace(/^\/+/, '');
+  const destRel = (req.body.destination || '').trim().replace(/^\/+/, '').replace(/\\/g, path.sep);
+  const paths = normalizePathsBody(req.body);
+  const docrootResolved = path.resolve(site.docroot);
+  const destDir = resolveDocrootPath(site.docroot, destRel);
+  if (!destDir || !fs.existsSync(destDir) || !fs.statSync(destDir).isDirectory()) {
+    return res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(currentPath) + '&error=invalid');
+  }
+  for (const rel of paths) {
+    const full = resolveDocrootPath(site.docroot, rel);
+    if (!full || full === docrootResolved) continue;
+    const name = path.basename(full);
+    const target = path.join(destDir, name);
+    if (target === full) continue;
+    if (resolveDocrootPath(site.docroot, path.relative(site.docroot, target)) === null) continue;
+    try {
+      fs.cpSync(full, target, { recursive: true });
+      execFileSync('chown', ['-R', 'www-data:www-data', target], { stdio: 'pipe' });
+    } catch (_) {}
+  }
+  res.redirect('/sites/' + site.id + '/files?path=' + encodeURIComponent(currentPath));
+});
+
 router.post('/:id/files/rename', async (req, res) => {
   const db = await getDb();
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);

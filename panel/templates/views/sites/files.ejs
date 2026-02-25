@@ -49,6 +49,13 @@
     .file-list .ic { width: 20px; height: 20px; vertical-align: middle; margin-right: 0.5rem; }
     .file-list a { color: #2d6a4f; text-decoration: none; }
     .file-list a:hover { text-decoration: underline; }
+    .file-list input[type="checkbox"] { accent-color: #2d6a4f; cursor: pointer; }
+    .bulk-bar { display: none; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0.75rem 1rem; background: #e8f5e9; border: 1px solid #b7d4bc; border-radius: 6px; margin-bottom: 1rem; }
+    .bulk-bar.is-visible { display: flex; }
+    .bulk-bar .bulk-count { font-weight: 600; color: #2d6a4f; }
+    .bulk-bar .bulk-forms { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+    .bulk-bar form { display: inline-flex; align-items: center; gap: 0.5rem; }
+    .bulk-bar input[type="text"] { padding: 0.35rem 0.5rem; border: 1px solid #b7d4bc; border-radius: 4px; width: 12rem; font-size: 0.9rem; }
     .error-msg { background: #f8d7da; border: 1px solid #9b2226; color: #9b2226; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
     .empty-msg { color: #52796f; font-size: 0.9rem; padding: 0.75rem 0; }
     form.inline { display: inline; }
@@ -102,12 +109,31 @@
         <button type="submit" class="btn">Upload</button>
       </form>
     </div>
+    <div class="bulk-bar" id="bulk-bar">
+      <span class="bulk-count" id="bulk-count">0 selected</span>
+      <div class="bulk-forms">
+        <form method="post" action="/sites/<%= site.id %>/files/bulk-delete" id="form-bulk-delete" class="inline" data-confirm="Delete selected items? Folders and all their contents will be removed. This cannot be undone.">
+          <input type="hidden" name="currentPath" value="<%= currentPath %>">
+          <button type="submit" class="btn btn-danger btn-small">Delete selected</button>
+        </form>
+        <form method="post" action="/sites/<%= site.id %>/files/bulk-move" id="form-bulk-move" class="inline">
+          <input type="hidden" name="currentPath" value="<%= currentPath %>">
+          <input type="text" name="destination" placeholder="Destination folder path" required title="Relative path, e.g. backup or subfolder/backup">
+          <button type="submit" class="btn btn-secondary btn-small">Move selected</button>
+        </form>
+        <form method="post" action="/sites/<%= site.id %>/files/bulk-copy" id="form-bulk-copy" class="inline">
+          <input type="hidden" name="currentPath" value="<%= currentPath %>">
+          <input type="text" name="destination" placeholder="Destination folder path" required title="Relative path, e.g. backup or subfolder/backup">
+          <button type="submit" class="btn btn-secondary btn-small">Copy selected</button>
+        </form>
+      </div>
+    </div>
     <table class="file-list">
-      <thead><tr><th>Name</th><th>Size</th><th>Actions</th></tr></thead>
+      <thead><tr><th style="width:2.5rem;"><label class="file-select-all"><input type="checkbox" id="select-all" aria-label="Select all"></label></th><th>Name</th><th>Size</th><th>Actions</th></tr></thead>
       <tbody>
         <% if (parentPath !== '' || currentPath !== '') { %>
         <tr>
-          <td colspan="3">
+          <td colspan="4">
             <a href="/sites/<%= site.id %>/files?path=<%= encodeURIComponent(parentPath) %>"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Up</a>
           </td>
         </tr>
@@ -117,6 +143,7 @@
           var sizeStr = e.size != null ? (e.size >= 1024*1024 ? (Math.round(e.size/1024/1024*100)/100 + ' MB') : (e.size >= 1024 ? (Math.round(e.size/1024*100)/100 + ' KB') : (e.size + ' B'))) : '—';
         %>
         <tr>
+          <td><input type="checkbox" class="file-path-cb" name="paths" value="<%= relPath %>" aria-label="Select <%= e.name %>"></td>
           <td>
             <% if (e.dir) { %>
             <a href="/sites/<%= site.id %>/files?path=<%= encodeURIComponent(relPath) %>"><svg class="ic" viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg><%= e.name %></a>
@@ -140,7 +167,7 @@
         </tr>
         <% }); %>
         <% if (!entries.length && parentPath === '' && currentPath === '') { %>
-        <tr><td colspan="3" class="empty-msg">This folder is empty. Create a folder or upload a file.</td></tr>
+        <tr><td colspan="4" class="empty-msg">This folder is empty. Create a folder or upload a file.</td></tr>
         <% } %>
       </tbody>
     </table>
@@ -247,7 +274,55 @@
         }
       });
     }
+
+    var bulkBar = document.getElementById('bulk-bar');
+    var bulkCount = document.getElementById('bulk-count');
+    var selectAllCb = document.getElementById('select-all');
+    var pathCheckboxes = document.querySelectorAll('.file-path-cb');
+    function updateBulkBar() {
+      var n = 0;
+      pathCheckboxes.forEach(function(cb) { if (cb.checked) n++; });
+      if (bulkCount) bulkCount.textContent = n + ' selected';
+      if (bulkBar) bulkBar.classList.toggle('is-visible', n > 0);
+      if (selectAllCb) {
+        selectAllCb.checked = n > 0 && n === pathCheckboxes.length;
+        selectAllCb.indeterminate = n > 0 && n < pathCheckboxes.length;
+      }
+    }
+    if (selectAllCb) {
+      selectAllCb.addEventListener('change', function() {
+        pathCheckboxes.forEach(function(cb) { cb.checked = selectAllCb.checked; });
+        updateBulkBar();
+      });
+    }
+    pathCheckboxes.forEach(function(cb) { cb.addEventListener('change', updateBulkBar); });
+    updateBulkBar();
+
+    function injectPathsIntoForm(form) {
+      var existing = form.querySelectorAll('input[name="paths"][data-bulk-injected]');
+      existing.forEach(function(el) { el.remove(); });
+      pathCheckboxes.forEach(function(cb) {
+        if (!cb.checked) return;
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'paths';
+        input.value = cb.value;
+        input.setAttribute('data-bulk-injected', '1');
+        form.appendChild(input);
+      });
+    }
+    ['form-bulk-delete', 'form-bulk-move', 'form-bulk-copy'].forEach(function(id) {
+      var form = document.getElementById(id);
+      if (!form) return;
+      form.addEventListener('submit', function(e) {
+        var n = 0;
+        pathCheckboxes.forEach(function(cb) { if (cb.checked) n++; });
+        if (n === 0) { e.preventDefault(); return; }
+        injectPathsIntoForm(form);
+      });
+    });
   })();
   </script>
 </body>
 </html>
+>
