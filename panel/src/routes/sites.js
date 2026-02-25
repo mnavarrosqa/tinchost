@@ -733,6 +733,51 @@ router.get('/:id/files/download', async (req, res) => {
   res.sendFile(filePath);
 });
 
+const EDITABLE_EXTENSIONS = new Set(['.txt', '.html', '.htm', '.css', '.js', '.json', '.php', '.md', '.xml', '.yml', '.yaml', '.env', '.htaccess', '.ini', '.conf', '.sh', '.bat', '.sql', '.log', '.csv', '.svg', '.vue', '.ts', '.tsx', '.jsx', '.scss', '.sass', '.less', '.ejs', '.tpl', '.twig', '.py', '.rb', '.go', '.rs', '.c', '.h', '.cpp', '.hpp', '.java', '.kt', '.rss', '.atom', '.map', '.lock', '.gitignore', '.editorconfig', '.htpasswd']);
+
+function isEditableExtension(relativePath) {
+  const ext = path.extname(relativePath).toLowerCase();
+  return EDITABLE_EXTENSIONS.has(ext) || EDITABLE_EXTENSIONS.has(relativePath.toLowerCase());
+}
+
+router.get('/:id/files/content', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.status(404).json({ error: 'Not found' });
+  const relativePath = (req.query.path || '').replace(/^\/+/, '');
+  const filePath = resolveDocrootPath(site.docroot, relativePath);
+  if (!filePath || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return res.status(400).json({ error: 'Invalid or not a file' });
+  if (!isEditableExtension(relativePath)) return res.status(400).json({ error: 'This file type cannot be edited as text' });
+  try {
+    const raw = fs.readFileSync(filePath);
+    if (raw.length > 2 * 1024 * 1024) return res.status(400).json({ error: 'File is too large to edit (max 2 MB)' });
+    const sample = raw.length > 8192 ? raw.subarray(0, 8192) : raw;
+    if (sample.indexOf(0) !== -1) return res.status(400).json({ error: 'File appears to be binary and cannot be edited' });
+    const content = raw.toString('utf8');
+    res.json({ content, path: relativePath });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Could not read file' });
+  }
+});
+
+router.post('/:id/files/save', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.status(404).json({ error: 'Not found' });
+  const relativePath = (req.body.path || '').replace(/^\/+/, '');
+  const content = typeof req.body.content === 'string' ? req.body.content : '';
+  const filePath = resolveDocrootPath(site.docroot, relativePath);
+  if (!filePath || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return res.status(400).json({ error: 'Invalid or not a file' });
+  if (!isEditableExtension(relativePath)) return res.status(400).json({ error: 'This file type cannot be edited' });
+  try {
+    fs.writeFileSync(filePath, content, 'utf8');
+    execFileSync('chown', ['www-data:www-data', filePath], { stdio: 'pipe' });
+    res.json({ ok: true, path: relativePath });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Could not save file' });
+  }
+});
+
 router.post('/:id/files/mkdir', async (req, res) => {
   const db = await getDb();
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);

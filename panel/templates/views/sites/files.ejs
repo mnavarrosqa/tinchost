@@ -56,6 +56,18 @@
     form.inline { display: inline; }
     .rename-inline { display: inline-flex; align-items: center; gap: 0.35rem; }
     .rename-inline input { padding: 0.25rem 0.4rem; border: 1px solid #b7d4bc; border-radius: 4px; width: 12rem; font-size: 0.9rem; }
+    .file-name-edit { background: none; border: none; padding: 0; font: inherit; color: #2d6a4f; cursor: pointer; text-align: left; display: inline-flex; align-items: center; }
+    .file-name-edit:hover { text-decoration: underline; }
+    .file-editor-overlay { display: none; position: fixed; inset: 0; background: rgba(27, 67, 50, 0.6); z-index: 10000; align-items: center; justify-content: center; padding: 1.5rem; }
+    .file-editor-overlay.is-active { display: flex; }
+    .file-editor-dialog { background: #fff; border: 1px solid #b7d4bc; border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; }
+    .file-editor-header { padding: 0.75rem 1rem; border-bottom: 1px solid #e8f5e9; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+    .file-editor-title { font-weight: 600; color: #1b4332; font-size: 0.95rem; word-break: break-all; }
+    .file-editor-body { flex: 1; min-height: 320px; display: flex; flex-direction: column; }
+    .file-editor-textarea { flex: 1; min-height: 280px; width: 100%; padding: 0.75rem 1rem; border: none; border-bottom: 1px solid #e8f5e9; font-family: ui-monospace, monospace; font-size: 0.875rem; line-height: 1.5; resize: none; }
+    .file-editor-textarea:focus { outline: none; }
+    .file-editor-footer { padding: 0.75rem 1rem; border-top: 1px solid #e8f5e9; display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; }
+    .file-editor-error { padding: 0.5rem 1rem; background: #f8d7da; color: #9b2226; font-size: 0.875rem; border-bottom: 1px solid #e8f5e9; }
     @media (max-width: 768px) { .file-manager-layout { flex-direction: column; } .file-manager-tree { max-height: 200px; } }
   </style>
 </head>
@@ -136,11 +148,14 @@
             <% if (e.dir) { %>
             <a href="/sites/<%= site.id %>/files?path=<%= encodeURIComponent(relPath) %>"><svg class="ic" viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg><%= e.name %></a>
             <% } else { %>
-            <a href="/sites/<%= site.id %>/files/download?path=<%= encodeURIComponent(relPath) %>"><svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="12" x3="15" y3="15"/></svg><%= e.name %></a>
+            <button type="button" class="js-edit-file file-name-edit" data-path="<%= relPath %>"><svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="12" x3="15" y3="15"/></svg><%= e.name %></button>
             <% } %>
           </td>
           <td><%= sizeStr %></td>
           <td>
+            <% if (!e.dir) { %>
+            <a href="/sites/<%= site.id %>/files/download?path=<%= encodeURIComponent(relPath) %>" class="btn btn-small btn-secondary">Download</a>
+            <% } %>
             <form method="post" action="/sites/<%= site.id %>/files/rename" class="rename-inline">
               <input type="hidden" name="path" value="<%= currentPath %>">
               <input type="hidden" name="name" value="<%= e.name %>">
@@ -162,6 +177,21 @@
       </div>
     </div>
     <% } %>
+    <div class="file-editor-overlay" id="file-editor-overlay" role="dialog" aria-modal="true" aria-labelledby="file-editor-title" aria-hidden="true">
+      <div class="file-editor-dialog">
+        <div class="file-editor-header">
+          <span class="file-editor-title" id="file-editor-title">Edit file</span>
+          <button type="button" class="btn btn-secondary btn-small" id="file-editor-close" aria-label="Close">Close</button>
+        </div>
+        <div class="file-editor-error" id="file-editor-error" style="display:none;"></div>
+        <div class="file-editor-body">
+          <textarea class="file-editor-textarea" id="file-editor-textarea" spellcheck="false" placeholder="Loading…"></textarea>
+        </div>
+        <div class="file-editor-footer">
+          <button type="button" class="btn" id="file-editor-save">Save changes</button>
+        </div>
+      </div>
+    </div>
   </main>
   <script src="/js/confirm-modal.js"></script>
   <script>
@@ -309,8 +339,99 @@
         injectPathsIntoForm(form);
       });
     });
+
+    var fileEditorOverlay = document.getElementById('file-editor-overlay');
+    var fileEditorTitle = document.getElementById('file-editor-title');
+    var fileEditorTextarea = document.getElementById('file-editor-textarea');
+    var fileEditorError = document.getElementById('file-editor-error');
+    var fileEditorSave = document.getElementById('file-editor-save');
+    var fileEditorClose = document.getElementById('file-editor-close');
+    var currentEditPath = null;
+    var contentUrl = '/sites/' + siteId + '/files/content';
+    var saveUrl = '/sites/' + siteId + '/files/save';
+
+    function showFileEditorError(msg) {
+      if (fileEditorError) {
+        fileEditorError.textContent = msg || '';
+        fileEditorError.style.display = msg ? 'block' : 'none';
+      }
+    }
+
+    function openFileEditor(relPath) {
+      currentEditPath = relPath;
+      if (fileEditorTitle) fileEditorTitle.textContent = 'Edit: ' + relPath;
+      if (fileEditorTextarea) fileEditorTextarea.value = '';
+      showFileEditorError(null);
+      if (fileEditorOverlay) {
+        fileEditorOverlay.classList.add('is-active');
+        fileEditorOverlay.setAttribute('aria-hidden', 'false');
+      }
+      fetch(contentUrl + '?path=' + encodeURIComponent(relPath))
+        .then(function(r) {
+          if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Could not load file'); });
+          return r.json();
+        })
+        .then(function(data) {
+          if (fileEditorTextarea) fileEditorTextarea.value = data.content || '';
+          if (fileEditorTextarea) fileEditorTextarea.focus();
+        })
+        .catch(function(err) {
+          showFileEditorError(err.message || 'Could not load file');
+        });
+    }
+
+    function closeFileEditor() {
+      currentEditPath = null;
+      if (fileEditorOverlay) {
+        fileEditorOverlay.classList.remove('is-active');
+        fileEditorOverlay.setAttribute('aria-hidden', 'true');
+      }
+      showFileEditorError(null);
+    }
+
+    function saveFileEditor() {
+      if (!currentEditPath || !fileEditorTextarea) return;
+      showFileEditorError(null);
+      fileEditorSave.disabled = true;
+      fetch(saveUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+        body: 'path=' + encodeURIComponent(currentEditPath) + '&content=' + encodeURIComponent(fileEditorTextarea.value)
+      })
+        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+        .then(function(result) {
+          fileEditorSave.disabled = false;
+          if (result.ok) {
+            closeFileEditor();
+          } else {
+            showFileEditorError(result.data.error || 'Could not save file');
+          }
+        })
+        .catch(function() {
+          fileEditorSave.disabled = false;
+          showFileEditorError('Could not save file');
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('.js-edit-file');
+      if (btn && btn.dataset.path) {
+        e.preventDefault();
+        openFileEditor(btn.dataset.path);
+      }
+    });
+
+    if (fileEditorClose) fileEditorClose.addEventListener('click', closeFileEditor);
+    if (fileEditorSave) fileEditorSave.addEventListener('click', saveFileEditor);
+    if (fileEditorOverlay) {
+      fileEditorOverlay.addEventListener('click', function(e) {
+        if (e.target === fileEditorOverlay) closeFileEditor();
+      });
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && fileEditorOverlay && fileEditorOverlay.classList.contains('is-active')) closeFileEditor();
+    });
   })();
   </script>
 </body>
 </html>
->
