@@ -1,8 +1,33 @@
 const os = require('os');
+const fs = require('fs');
 const { execSync } = require('child_process');
 
 /**
- * Get server info for dashboard: load, memory, disk, hostname, main IP.
+ * Read swap total and free from /proc/meminfo (Linux). Returns { total, used, usedPercent } in bytes.
+ * On non-Linux or error, returns { total: 0, used: 0, usedPercent: 0 }.
+ */
+function getSwapInfo() {
+  let swapTotalK = 0;
+  let swapFreeK = 0;
+  try {
+    const buf = fs.readFileSync('/proc/meminfo', { encoding: 'utf8', flag: 'r' });
+    const lines = buf.split('\n');
+    for (const line of lines) {
+      const m = line.match(/^SwapTotal:\s+(\d+)\s*kB/);
+      if (m) swapTotalK = parseInt(m[1], 10);
+      const n = line.match(/^SwapFree:\s+(\d+)\s*kB/);
+      if (n) swapFreeK = parseInt(n[1], 10);
+    }
+  } catch (_) {}
+  const total = swapTotalK * 1024;
+  const free = swapFreeK * 1024;
+  const used = total - free;
+  const usedPercent = total > 0 ? Math.round((used / total) * 100) : 0;
+  return { total, used, free, usedPercent };
+}
+
+/**
+ * Get server info for dashboard: load, memory, swap, disk, hostname, main IP.
  * Disk is read from root filesystem via df. All values are safe for template rendering.
  */
 function getServerInfo() {
@@ -11,6 +36,8 @@ function getServerInfo() {
   const totalMem = os.totalmem();
   const freeMem = os.freemem();
   const usedMem = totalMem - freeMem;
+
+  const swap = getSwapInfo();
 
   let diskTotal = 0;
   let diskUsed = 0;
@@ -56,6 +83,7 @@ function getServerInfo() {
       free: freeMem,
       usedPercent: totalMem > 0 ? Math.round((usedMem / totalMem) * 100) : 0
     },
+    swap,
     disk: {
       total: diskTotal,
       used: diskUsed,

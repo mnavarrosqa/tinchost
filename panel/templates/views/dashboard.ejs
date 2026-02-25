@@ -36,18 +36,23 @@
     .bar-fill.load { background: #2d6a4f; }
     .bar-fill.load.warn { background: #b7a53a; }
     .bar-fill.load.high { background: #9b2226; }
-    .bar-fill.mem, .bar-fill.disk { background: #2d6a4f; }
-    .bar-fill.mem.warn, .bar-fill.disk.warn { background: #b7a53a; }
-    .bar-fill.mem.high, .bar-fill.disk.high { background: #9b2226; }
-    .live-badge { font-size: 0.75rem; font-weight: normal; color: #52796f; margin-left: 0.35rem; }
-    .live-badge::before { content: ''; display: inline-block; width: 0.4rem; height: 0.4rem; border-radius: 50%; background: #2d6a4f; margin-right: 0.25rem; vertical-align: middle; animation: pulse 2s ease-in-out infinite; }
-    .quick-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 0.5rem; }
-    .quick-link { display: block; padding: 1.25rem; border: 1px solid #b7d4bc; border-radius: 8px; background: #f8fcf9; color: #1b4332; text-decoration: none; transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; }
+    .bar-fill.mem, .bar-fill.disk, .bar-fill.swap { background: #2d6a4f; }
+    .bar-fill.mem.warn, .bar-fill.disk.warn, .bar-fill.swap.warn { background: #b7a53a; }
+    .bar-fill.mem.high, .bar-fill.disk.high, .bar-fill.swap.high { background: #9b2226; }
+    .server-status { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 999px; background: #e8f5e9; color: #2d6a4f; font-size: 0.8rem; font-weight: 500; }
+    .server-status-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #2d6a4f; animation: pulse 2s ease-in-out infinite; flex-shrink: 0; }
+    .server-status-text { white-space: nowrap; }
+    .server-status-hint { color: #52796f; font-weight: normal; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .quick-links { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 0.5rem; }
+    @media (min-width: 640px) { .quick-links { grid-template-columns: repeat(3, 1fr); } }
+    .quick-link { display: flex; flex-direction: column; padding: 1.25rem; border: 1px solid #b7d4bc; border-radius: 8px; background: #f8fcf9; color: #1b4332; text-decoration: none; transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; min-height: 0; }
     .quick-link:hover { border-color: #2d6a4f; background: #fff; box-shadow: 0 2px 8px rgba(45, 106, 79, 0.12); }
     .quick-link:focus { outline: 2px solid #2d6a4f; outline-offset: 2px; }
-    .quick-link .quick-link-icon { width: 40px; height: 40px; padding: 0.5rem; border-radius: 8px; background: #e8f5e9; color: #2d6a4f; margin-bottom: 0.75rem; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .quick-link .quick-link-title { font-weight: 600; font-size: 1rem; color: #2d6a4f; margin-bottom: 0.25rem; }
-    .quick-link .quick-link-desc { font-size: 0.85rem; color: #52796f; line-height: 1.4; }
+    .quick-link-icon-wrap { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 10px; background: #d8f3dc; color: #2d6a4f; margin-bottom: 1rem; flex-shrink: 0; }
+    .quick-link-icon-wrap svg { width: 24px; height: 24px; display: block; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .quick-link-title { font-weight: 600; font-size: 1rem; color: #1b4332; margin-bottom: 0.35rem; }
+    .quick-link-desc { font-size: 0.875rem; color: #52796f; line-height: 1.4; min-height: 2.6em; }
   </style>
 </head>
 <body>
@@ -65,7 +70,7 @@
     <p class="intro">Tinchost Panel. Manage sites, databases, and mail from the menu.</p>
     <% if (typeof serverInfo !== 'undefined' && serverInfo) { %>
     <div class="card" id="server-card">
-      <h2><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>Server <span class="live-badge" aria-live="polite">Live</span></h2>
+      <h2><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>Server <span class="server-status" aria-live="polite"><span class="server-status-dot" aria-hidden="true"></span><span class="server-status-text">Live</span><span class="server-status-hint">· updates every 4s</span></span></h2>
       <div class="server-meta">
         <span><strong>Hostname</strong> <span id="server-hostname"><%= serverInfo.hostname %></span></span>
         <span><strong>IP</strong> <span id="server-ip"><%= serverInfo.mainIp %></span></span>
@@ -82,6 +87,14 @@
           <div id="memory-bar" class="bar-fill mem <%= serverInfo.memory.usedPercent >= 90 ? 'high' : (serverInfo.memory.usedPercent >= 75 ? 'warn' : '') %>" style="width: <%= serverInfo.memory.usedPercent %>%;"></div>
         </div>
       </div>
+      <% if (serverInfo.swap && serverInfo.swap.total > 0) { %>
+      <div class="metric" id="swap-metric">
+        <div class="metric-label"><span>Swap</span><span id="swap-detail"><%= serverInfo.swap.usedFormatted %> of <%= serverInfo.swap.totalFormatted %> (<%= serverInfo.swap.usedPercent %>%)</span></div>
+        <div class="bar-track">
+          <div id="swap-bar" class="bar-fill swap <%= serverInfo.swap.usedPercent >= 90 ? 'high' : (serverInfo.swap.usedPercent >= 75 ? 'warn' : '') %>" style="width: <%= serverInfo.swap.usedPercent %>%;"></div>
+        </div>
+      </div>
+      <% } %>
       <div class="metric">
         <div class="metric-label"><span>Disk (root)</span><span id="disk-detail"><%= serverInfo.disk.usedFormatted %> of <%= serverInfo.disk.totalFormatted %> (<%= serverInfo.disk.usedPercent %>%)</span></div>
         <div class="bar-track">
@@ -94,27 +107,27 @@
       <h2><svg class="ic" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Quick links</h2>
       <div class="quick-links" role="list">
         <a href="/wizard" class="quick-link" role="listitem">
-          <svg class="quick-link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4V2m0 2v2m4-2v2m-2 4h2m2 4v2m0-4v-2m0 4h-2m-4 0h-2v2m0-4v-2m0 4H9m8-8h-2V4m0 2v2m0 8v2m0-4v-2m0 4h2M9 4H7v2h2V4zM5 20v-2H3v2h2zm0-4v-2H3v2h2z"/></svg>
+          <span class="quick-link-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M15 4V2m0 2v2m4-2v2m-2 4h2m2 4v2m0-4v-2m0 4h-2m-4 0h-2v2m0-4v-2m0 4H9m8-8h-2V4m0 2v2m0 8v2m0-4v-2m0 4h2M9 4H7v2h2V4zM5 20v-2H3v2h2zm0-4v-2H3v2h2z"/></svg></span>
           <span class="quick-link-title">Wizard</span>
-          <span class="quick-link-desc">Set up your server: Nginx, PHP, MySQL, FTP, mail.</span>
+          <span class="quick-link-desc">Set up Nginx, PHP, MySQL, FTP and mail.</span>
         </a>
         <a href="/sites" class="quick-link" role="listitem">
-          <svg class="quick-link-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+          <span class="quick-link-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg></span>
           <span class="quick-link-title">Sites</span>
-          <span class="quick-link-desc">Add or edit websites, SSL, PHP version, FTP.</span>
+          <span class="quick-link-desc">Add or edit websites, SSL, PHP, FTP.</span>
         </a>
         <a href="/databases" class="quick-link" role="listitem">
-          <svg class="quick-link-icon" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          <span class="quick-link-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span>
           <span class="quick-link-title">Databases</span>
-          <span class="quick-link-desc">Create MySQL/MariaDB databases and users.</span>
+          <span class="quick-link-desc">MySQL/MariaDB databases and users.</span>
         </a>
         <a href="/mail" class="quick-link" role="listitem">
-          <svg class="quick-link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <span class="quick-link-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
           <span class="quick-link-title">Mail</span>
           <span class="quick-link-desc">Mail domains and mailboxes.</span>
         </a>
         <a href="/settings" class="quick-link" role="listitem">
-          <svg class="quick-link-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          <span class="quick-link-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
           <span class="quick-link-title">Settings</span>
           <span class="quick-link-desc">Paths, MySQL password, installed services.</span>
         </a>
@@ -130,13 +143,15 @@
     var loadBar = document.getElementById('load-bar');
     var memoryDetail = document.getElementById('memory-detail');
     var memoryBar = document.getElementById('memory-bar');
+    var swapDetail = document.getElementById('swap-detail');
+    var swapBar = document.getElementById('swap-bar');
     var diskDetail = document.getElementById('disk-detail');
     var diskBar = document.getElementById('disk-bar');
     var hostnameEl = document.getElementById('server-hostname');
     var ipEl = document.getElementById('server-ip');
     function barClass(type, pct) {
       if (type === 'load') return pct >= 90 ? 'high' : (pct >= 70 ? 'warn' : '');
-      if (type === 'mem') return pct >= 90 ? 'high' : (pct >= 75 ? 'warn' : '');
+      if (type === 'mem' || type === 'swap') return pct >= 90 ? 'high' : (pct >= 75 ? 'warn' : '');
       return pct >= 90 ? 'high' : (pct >= 85 ? 'warn' : '');
     }
     function update(data) {
@@ -152,6 +167,13 @@
       if (memoryBar) {
         memoryBar.style.width = data.memory.usedPercent + '%';
         memoryBar.className = 'bar-fill mem ' + barClass('mem', data.memory.usedPercent);
+      }
+      if (data.swap && data.swap.total > 0 && data.swap.usedFormatted) {
+        if (swapDetail) swapDetail.textContent = data.swap.usedFormatted + ' of ' + data.swap.totalFormatted + ' (' + data.swap.usedPercent + '%)';
+        if (swapBar) {
+          swapBar.style.width = data.swap.usedPercent + '%';
+          swapBar.className = 'bar-fill swap ' + barClass('swap', data.swap.usedPercent);
+        }
       }
       if (diskDetail) diskDetail.textContent = data.disk.usedFormatted + ' of ' + data.disk.totalFormatted + ' (' + data.disk.usedPercent + '%)';
       if (diskBar) {

@@ -64,6 +64,10 @@ app.get('/', requireAuth, requireWizardComplete, (req, res) => {
     serverInfo = getServerInfo();
     serverInfo.memory.totalFormatted = formatBytes(serverInfo.memory.total);
     serverInfo.memory.usedFormatted = formatBytes(serverInfo.memory.used);
+    if (serverInfo.swap && serverInfo.swap.total > 0) {
+      serverInfo.swap.totalFormatted = formatBytes(serverInfo.swap.total);
+      serverInfo.swap.usedFormatted = formatBytes(serverInfo.swap.used);
+    }
     serverInfo.disk.totalFormatted = formatBytes(serverInfo.disk.total);
     serverInfo.disk.usedFormatted = formatBytes(serverInfo.disk.used);
   } catch (_) {}
@@ -74,6 +78,10 @@ function serverInfoJson() {
   const info = getServerInfo();
   info.memory.totalFormatted = formatBytes(info.memory.total);
   info.memory.usedFormatted = formatBytes(info.memory.used);
+  if (info.swap && info.swap.total > 0) {
+    info.swap.totalFormatted = formatBytes(info.swap.total);
+    info.swap.usedFormatted = formatBytes(info.swap.used);
+  }
   info.disk.totalFormatted = formatBytes(info.disk.total);
   info.disk.usedFormatted = formatBytes(info.disk.used);
   return info;
