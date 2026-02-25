@@ -45,7 +45,9 @@ router.get('/', async (req, res) => {
   const sites = db.prepare('SELECT * FROM sites ORDER BY domain').all();
   const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
   const phpVersions = (state?.php_versions || '8.2').split(',').filter(Boolean);
-  res.render('sites/list', { sites, phpVersions, user: req.session?.user });
+  const listWarning = req.session.sitesListWarning || null;
+  if (req.session.sitesListWarning) delete req.session.sitesListWarning;
+  res.render('sites/list', { sites, phpVersions, user: req.session?.user, listWarning });
 });
 
 router.get('/new', async (req, res) => {
@@ -92,12 +94,18 @@ router.post('/', async (req, res) => {
           execFileSync('chown', ['www-data:www-data', indexFile], { stdio: 'pipe' });
           execFileSync('chmod', ['644', indexFile], { stdio: 'pipe' });
         }
-      } catch (_) {}
+      } catch (docrootErr) {
+        req.session.createDocrootWarning = 'Site created but the docroot directory could not be created or configured. Check path and permissions.';
+      }
     }
     siteManager.reloadNginx();
   } catch (e) {
     const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
     return res.render('sites/form', { site: null, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), error: e.message });
+  }
+  if (req.session.createDocrootWarning) {
+    req.session.sitesListWarning = req.session.createDocrootWarning;
+    delete req.session.createDocrootWarning;
   }
   res.redirect('/sites');
 });
@@ -108,7 +116,9 @@ router.get('/:id/edit', async (req, res) => {
   if (!site) return res.redirect('/sites');
   const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
   const phpVersions = (state?.php_versions || '8.2').split(',').filter(Boolean);
-  res.render('sites/form', { site, phpVersions });
+  const error = req.session.siteEditError || null;
+  if (req.session.siteEditError) delete req.session.siteEditError;
+  res.render('sites/form', { site, phpVersions, error });
 });
 
 router.get('/:id', async (req, res) => {
@@ -136,6 +146,7 @@ router.get('/:id', async (req, res) => {
   }
   const renew = req.query.renew || null;
   const sslRemoved = req.query.ssl === 'removed';
+  const sslError = req.query.ssl === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : 'Remove failed') : null;
   const wordpress = req.query.wordpress || null;
   const wp_folder = req.query.wp_folder || null;
   const phpOptionsSaved = req.query.php_options === 'saved';
@@ -145,7 +156,7 @@ router.get('/:id', async (req, res) => {
       databaseSizes = await getDatabaseSizes(settings, siteDatabases.map(d => d.name));
     } catch (_) {}
   }
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, wordpress, wp_folder, phpOptionsSaved, databaseSizes });
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {
@@ -172,8 +183,10 @@ router.post('/:id/ssl/delete', async (req, res) => {
     const settings = getSettings(db);
     await siteManager.writeVhost(updated, settings);
     siteManager.reloadNginx();
-  } catch (_) {}
-  res.redirect('/sites/' + site.id + '?ssl=removed#ssl');
+    res.redirect('/sites/' + site.id + '?ssl=removed#ssl');
+  } catch (e) {
+    res.redirect('/sites/' + site.id + '?ssl=error&msg=' + encodeURIComponent((e && e.message) ? e.message : 'Remove failed') + '#ssl');
+  }
 });
 
 router.post('/:id/scripts/wordpress', async (req, res) => {
@@ -401,9 +414,14 @@ router.post('/:id', async (req, res) => {
   );
   const updated = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
   const settings = getSettings(db);
-  await siteManager.writeVhost(updated, settings);
-  siteManager.reloadNginx();
-  res.redirect('/sites');
+  try {
+    await siteManager.writeVhost(updated, settings);
+    siteManager.reloadNginx();
+    res.redirect('/sites');
+  } catch (e) {
+    req.session.siteEditError = (e && e.message) ? e.message : 'Nginx config or reload failed. Site record was updated.';
+    res.redirect('/sites/' + req.params.id + '/edit');
+  }
 });
 
 router.post('/:id/delete', async (req, res) => {

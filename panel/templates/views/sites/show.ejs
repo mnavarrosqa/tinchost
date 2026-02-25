@@ -300,6 +300,9 @@
     <div id="panel-ssl" class="tabs-panel" role="tabpanel" aria-labelledby="tab-ssl">
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SSL certificate</h2>
+      <% if (typeof sslError === "string" && sslError) { %>
+      <div class="error-msg">SSL remove failed: <%= sslError %></div>
+      <% } %>
       <% if (site.ssl) { %>
         <% if (typeof sslStatus !== "undefined" && sslStatus && sslStatus.found) { %>
         <div class="site-meta">

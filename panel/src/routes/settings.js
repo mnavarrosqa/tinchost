@@ -72,11 +72,14 @@ router.post('/services/restart', async (req, res) => {
   res.redirect('/settings');
 });
 
+const ALLOWED_PHP_VERSIONS = ['7.4', '8.1', '8.2', '8.3'];
+
 router.post('/install/php', async (req, res) => {
-  const versions = (Array.isArray(req.body.versions) ? req.body.versions : [req.body.versions]).filter(Boolean);
+  const raw = (Array.isArray(req.body.versions) ? req.body.versions : [req.body.versions]).filter(Boolean);
+  const versions = raw.filter((v) => ALLOWED_PHP_VERSIONS.includes(String(v)));
   const phpFpmConfig = req.body.php_fpm_config === 'optimized' ? 'optimized' : 'default';
   if (versions.length === 0) {
-    req.session.settingsError = 'Select at least one PHP version.';
+    req.session.settingsError = 'Select at least one PHP version (7.4, 8.1, 8.2, 8.3).';
     return res.redirect('/settings');
   }
   const db = await getDb();
