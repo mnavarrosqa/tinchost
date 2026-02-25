@@ -148,6 +148,7 @@
     </div>
     <% } %>
   </main>
+  <script src="/js/confirm-modal.js"></script>
   <script>
   (function() {
     var siteId = '<%= site.id %>';
@@ -155,12 +156,6 @@
     var currentPath = '<%= (currentPath || "").replace(/'/g, "\\'") %>';
     var baseUrl = '/sites/' + siteId + '/files';
     var apiUrl = '/sites/' + siteId + '/files/api/entries';
-
-    document.addEventListener('submit', function(e) {
-      var form = e.target.closest('form[data-confirm]');
-      if (!form) return;
-      if (!confirm(form.getAttribute('data-confirm'))) e.preventDefault();
-    });
 
     function pathJoin(a, b) { return a ? a + pathSep + b : b; }
     function pathStartsWith(p, prefix) { if (!prefix) return true; return p === prefix || p.indexOf(prefix + pathSep) === 0; }

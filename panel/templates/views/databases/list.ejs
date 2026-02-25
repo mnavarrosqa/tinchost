@@ -165,10 +165,10 @@
               <div class="grant-list">
                 <% if (dbGrants.length) { dbGrants.forEach(function(gr) { %>
                 <span><%= gr.username %>@<%= gr.host %></span><span class="privilege-badge"><%= gr.privileges %></span>
-                <form method="post" action="/databases/grants/revoke" class="revoke-form">
+                <form method="post" action="/databases/grants/revoke" class="revoke-form" data-confirm="Revoke <%= gr.username %> access to <%= d.name %>?">
                   <input type="hidden" name="database_id" value="<%= gr.database_id %>">
                   <input type="hidden" name="db_user_id" value="<%= gr.db_user_id %>">
-                  <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Revoke <%= gr.username %> access to <%= d.name %>?');">Revoke</button>
+                  <button type="submit" class="btn btn-small btn-danger">Revoke</button>
                 </form>
                 <% }); } else { %><span class="empty-msg">No users assigned</span><% } %>
               </div>
@@ -179,7 +179,7 @@
                 <form method="post" action="/databases/databases/<%= d.id %>/repair" class="inline">
                   <button type="submit" class="btn btn-small btn-secondary">Repair</button>
                 </form>
-                <form method="post" action="/databases/databases/<%= d.id %>/delete" class="inline" onsubmit="return confirm('Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.');">
+                <form method="post" action="/databases/databases/<%= d.id %>/delete" class="inline" data-confirm="Delete database <%= d.name %>? This will DROP the database in MySQL. Cannot be undone.">
                   <button type="submit" class="btn btn-small btn-danger">Delete</button>
                 </form>
               </div>
@@ -215,7 +215,7 @@
               </form>
             </td>
             <td>
-              <form method="post" action="/databases/users/<%= u.id %>/delete" class="inline" onsubmit="return confirm('Delete user <%= u.username %>@<%= u.host %>? This will DROP the user in MySQL. Cannot be undone.');">
+              <form method="post" action="/databases/users/<%= u.id %>/delete" class="inline" data-confirm="Delete user <%= u.username %>@<%= u.host %>? This will DROP the user in MySQL. Cannot be undone.">
                 <button type="submit" class="btn btn-small btn-danger">Delete</button>
               </form>
             </td>
@@ -226,5 +226,6 @@
       </table>
     </div>
   </main>
+  <script src="/js/confirm-modal.js"></script>
 </body>
 </html>

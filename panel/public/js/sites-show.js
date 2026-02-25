@@ -53,13 +53,6 @@
     }
   });
 
-  document.addEventListener("submit", function(e) {
-    var form = e.target.closest("form[data-confirm]");
-    if (!form) return;
-    var msg = form.getAttribute("data-confirm");
-    if (msg && !confirm(msg)) e.preventDefault();
-  });
-
   var sel = document.getElementById("assign_user");
   var rowUser = document.getElementById("row-new-user");
   var rowPwd = document.getElementById("row-new-password");
