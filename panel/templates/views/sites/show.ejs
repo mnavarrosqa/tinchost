@@ -114,7 +114,12 @@
         <span><strong>App</strong> <%= (site.app_type === 'node') ? ('Node :' + (site.node_port || '')) : ('PHP ' + (site.php_version || '-')) %></span>
         <span><strong>SSL</strong> <%= site.ssl ? "Yes" : "No" %></span>
         <span><strong>FTP</strong> <%= site.ftp_enabled ? "Enabled" : "Off" %></span>
+        <span><strong>Space utilized</strong> <%= (typeof docrootSizeFormatted !== "undefined" && docrootSizeFormatted) ? docrootSizeFormatted : "—" %></span>
       </div>
+      <% const _dbCount = (typeof siteDatabases !== "undefined" && siteDatabases) ? siteDatabases.length : 0; const _ftpCount = (typeof ftpUsers !== "undefined" && ftpUsers) ? ftpUsers.length : 0; const _scriptsCount = (typeof installedScripts !== "undefined" && installedScripts) ? installedScripts.length : 0; %>
+      <p class="overview-summary" style="font-size:0.9rem; color:#52796f; margin:0.75rem 0 0 0;">
+        <a href="#databases">Databases</a>: <%= _dbCount %> · <a href="#ftp">FTP users</a>: <%= _ftpCount %> · <a href="#scripts">Scripts</a>: <%= _scriptsCount %>
+      </p>
       <div class="site-actions">
         <a href="/sites/<%= site.id %>/edit" class="btn">Edit settings</a>
         <form method="post" action="/sites/<%= site.id %>/delete" class="inline" data-confirm="Delete this site? Nginx vhost and site-specific databases/FTP users will be removed. This cannot be undone.">

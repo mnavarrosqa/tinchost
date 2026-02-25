@@ -39,7 +39,8 @@
     .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; }
     .badge-ok { background: #d8f3dc; color: #1b4332; }
     .badge-off { background: #e8f5e9; color: #52796f; }
-    .badge-app { background: #b7d4bc; color: #1b4332; }
+    .badge-app { background: #b7d4bc; color: #1b4332; display: inline-flex; align-items: center; gap: 0.35rem; }
+    .app-cell .ic { width: 14px; height: 14px; flex-shrink: 0; }
     .actions-cell { white-space: nowrap; }
     .actions-cell .btn { margin-right: 0.35rem; }
     .actions-cell .btn:last-child { margin-right: 0; }
@@ -91,12 +92,18 @@
         </thead>
         <tbody>
           <% sites.forEach(function(s) {
-            var appLabel = (s.app_type === 'node') ? ('Node :' + (s.node_port != null ? s.node_port : '')) : (s.php_version || 'PHP');
+            var isNode = s.app_type === 'node';
+            var appLabel = isNode ? ('Node' + (s.node_port != null ? ' :' + s.node_port : '')) : (s.php_version || 'PHP');
           %>
           <tr>
             <td class="domain-cell"><a href="/sites/<%= s.id %>"><%= s.domain %></a></td>
             <td class="docroot-cell" title="<%= s.docroot %>"><%= s.docroot %></td>
-            <td><span class="badge badge-app"><%= appLabel %></span></td>
+            <td class="app-cell">
+              <span class="badge badge-app">
+                <% if (isNode) { %><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L22 8v8l-10 6L2 16V8l10-6z"/></svg><% } else { %><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg><% } %>
+                <%= appLabel %>
+              </span>
+            </td>
             <td><span class="badge <%= s.ssl ? 'badge-ok' : 'badge-off' %>"><%= s.ssl ? 'Yes' : 'No' %></span></td>
             <td><span class="badge <%= s.ftp_enabled ? 'badge-ok' : 'badge-off' %>"><%= s.ftp_enabled ? 'Yes' : 'No' %></span></td>
             <td class="actions-cell">

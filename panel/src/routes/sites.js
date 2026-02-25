@@ -73,6 +73,25 @@ function detectInstalledScripts(site) {
   return list;
 }
 
+/** Get docroot disk usage. Returns formatted string (e.g. "125 MB") or null. */
+function getDocrootSizeFormatted(site) {
+  if (!site || !site.docroot) return null;
+  const root = path.resolve(site.docroot);
+  try {
+    if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) return null;
+    const out = execFileSync('du', ['-sb', root], { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+    const match = out.trim().match(/^(\d+)/);
+    if (!match) return null;
+    const bytes = parseInt(match[1], 10);
+    if (bytes >= 1e9) return (bytes / 1e9).toFixed(2) + ' GB';
+    if (bytes >= 1e6) return (bytes / 1e6).toFixed(2) + ' MB';
+    if (bytes >= 1e3) return (bytes / 1e3).toFixed(2) + ' KB';
+    return bytes + ' B';
+  } catch (_) {
+    return null;
+  }
+}
+
 const SITE_ERROR_MESSAGES = {
   mysql_password: 'MySQL root password not set in Settings. Set it in Settings and click Save.'
 };
@@ -205,7 +224,8 @@ router.get('/:id', async (req, res) => {
     } catch (_) {}
   }
   const installedScripts = detectInstalledScripts(site);
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts });
+  const docrootSizeFormatted = getDocrootSizeFormatted(site);
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {
