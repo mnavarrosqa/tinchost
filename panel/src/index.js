@@ -30,14 +30,17 @@ function requireAuth(req, res, next) {
   res.redirect('/login');
 }
 
-function requireWizardComplete(req, res, next) {
+async function requireWizardComplete(req, res, next) {
   const url = req.originalUrl || req.url;
   if (url.startsWith('/wizard') || url.startsWith('/auth') || url === '/login') return next();
-  getDb().then(db => {
-    const row = db.prepare("SELECT completed FROM wizard_state LIMIT 1").get();
+  try {
+    const db = await getDb();
+    const row = db.prepare('SELECT completed FROM wizard_state LIMIT 1').get();
     if (row && row.completed) return next();
     res.redirect('/wizard');
-  }).catch(() => next());
+  } catch (e) {
+    next(e);
+  }
 }
 
 app.use('/auth', authRouter);

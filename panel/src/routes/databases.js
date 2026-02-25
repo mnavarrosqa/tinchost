@@ -26,35 +26,77 @@ router.get('/', async (req, res) => {
   }
   const repair = req.query.repair || null;
   const repairMsg = req.query.msg || null;
-  res.render('databases/list', { databases, users, grants, hasMysqlPassword: !!(settings && settings.mysql_root_password), user: req.session.user, databaseSizes, repair, repairMsg });
+  const dbError = req.session.dbError || (req.query.error === 'mysql_password' ? 'MySQL root password not set. Set it in Settings and save.' : null);
+  const userError = req.session.dbUserError || null;
+  if (req.session.dbError) delete req.session.dbError;
+  if (req.session.dbUserError) delete req.session.dbUserError;
+  res.render('databases/list', { databases, users, grants, hasMysqlPassword: !!(settings && settings.mysql_root_password), user: req.session.user, databaseSizes, repair, repairMsg, dbError, userError });
 });
 
 router.post('/databases', async (req, res) => {
   const { name } = req.body || {};
-  if (!name) return res.redirect('/databases');
+  const trimmed = (name != null && typeof name === 'string') ? name.trim() : '';
+  if (!trimmed) {
+    req.session.dbError = 'Database name is required.';
+    return res.redirect('/databases');
+  }
+  const safeName = trimmed.replace(/[^a-z0-9_]/gi, '');
+  if (safeName !== trimmed) {
+    req.session.dbError = 'Database name can only contain letters, numbers, and underscore.';
+    return res.redirect('/databases');
+  }
   const db = await getDb();
+  if (db.prepare('SELECT id FROM databases WHERE name = ?').get(safeName)) {
+    req.session.dbError = 'A database with this name already exists.';
+    return res.redirect('/databases');
+  }
   try {
-    db.prepare('INSERT INTO databases (name) VALUES (?)').run(name);
+    db.prepare('INSERT INTO databases (name) VALUES (?)').run(safeName);
     const settings = getSettings(db);
-    await databaseManager.createDatabase(settings, name);
+    await databaseManager.createDatabase(settings, safeName);
   } catch (e) {
-    if (e.message && e.message.includes('MySQL root password')) {
-      return res.redirect('/databases?error=mysql_password');
-    }
+    db.prepare('DELETE FROM databases WHERE name = ?').run(safeName);
+    const msg = (e && e.message && e.message.includes('MySQL root password')) ? 'mysql_password' : (e.message || 'Creation failed');
+    if (msg === 'mysql_password') return res.redirect('/databases?error=mysql_password');
+    req.session.dbError = typeof msg === 'string' ? msg : 'Database creation failed.';
+    return res.redirect('/databases');
   }
   res.redirect('/databases');
 });
 
 router.post('/users', async (req, res) => {
   const { username, password, host } = req.body || {};
-  if (!username) return res.redirect('/databases');
+  const trimmedUser = (username != null && typeof username === 'string') ? username.trim() : '';
+  if (!trimmedUser) {
+    req.session.dbUserError = 'Username is required.';
+    return res.redirect('/databases');
+  }
+  const safeUser = trimmedUser.replace(/[^a-z0-9_]/gi, '');
+  if (safeUser !== trimmedUser) {
+    req.session.dbUserError = 'Username can only contain letters, numbers, and underscore.';
+    return res.redirect('/databases');
+  }
+  const h = (host != null && typeof host === 'string') ? host.trim() || 'localhost' : 'localhost';
   const db = await getDb();
-  const hash = password ? crypto.createHash('sha256').update(password).digest('hex') : '';
+  if (db.prepare('SELECT id FROM db_users WHERE username = ? AND host = ?').get(safeUser, h)) {
+    req.session.dbUserError = 'A user with this username and host already exists.';
+    return res.redirect('/databases');
+  }
+  if (!password || String(password).trim() === '') {
+    req.session.dbUserError = 'Password is required for new user.';
+    return res.redirect('/databases');
+  }
+  const hash = crypto.createHash('sha256').update(password).digest('hex');
   try {
-    db.prepare('INSERT INTO db_users (username, password_hash, host) VALUES (?, ?, ?)').run(username, hash, host || 'localhost');
+    db.prepare('INSERT INTO db_users (username, password_hash, host) VALUES (?, ?, ?)').run(safeUser, hash, h);
     const settings = getSettings(db);
-    if (password) await databaseManager.createUser(settings, username, password, host || 'localhost');
-  } catch (e) {}
+    await databaseManager.createUser(settings, safeUser, password, h);
+  } catch (e) {
+    db.prepare('DELETE FROM db_users WHERE username = ? AND host = ?').run(safeUser, h);
+    const msg = (e && e.message && e.message.includes('MySQL root password')) ? 'Set MySQL root password in Settings.' : (e.message || 'User creation failed.');
+    req.session.dbUserError = msg;
+    return res.redirect('/databases');
+  }
   res.redirect('/databases');
 });
 

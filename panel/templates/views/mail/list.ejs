@@ -27,6 +27,9 @@
   </nav>
   <main>
     <h1>Mail</h1>
+    <% if (typeof mailError === 'string' && mailError) { %>
+    <div class="error-msg" style="background:#f8d7da;border:1px solid #9b2226;color:#9b2226;padding:0.5rem 0.75rem;border-radius:4px;margin-bottom:1rem;"><%= mailError %></div>
+    <% } %>
     <div class="risk"><strong>Risk:</strong> Mail may not be delivered or may be marked as spam. Ensure DNS (SPF/DKIM/DMARC) and firewall (ports 25, 587) are configured for this server.</div>
     <form method="post" action="/mail/domains" style="margin-bottom:1rem;">
       <input type="text" name="domain" placeholder="Mail domain (e.g. example.com)" required>
