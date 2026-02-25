@@ -745,7 +745,7 @@ router.post('/:id', async (req, res) => {
   try {
     await siteManager.writeVhost(updated, settings);
     siteManager.reloadNginx();
-    res.redirect('/sites');
+    res.redirect('/sites/' + req.params.id + (appKind === 'node' ? '#node-apps' : ''));
   } catch (e) {
     req.session.siteEditError = (e && e.message) ? e.message : 'Nginx config or reload failed. Site record was updated.';
     res.redirect('/sites/' + req.params.id + '/edit');
