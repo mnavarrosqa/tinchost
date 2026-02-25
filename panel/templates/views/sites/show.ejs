@@ -547,15 +547,15 @@
           <tr><td>CNAME</td><td>www</td><td><%= site.domain %></td></tr>
         </tbody>
       </table>
-      <% if (typeof dnsResolvedA !== 'undefined' && dnsResolvedA !== null) || (typeof dnsResolvedAAAA !== 'undefined' && dnsResolvedAAAA !== null) { %>
+      <% var _hasDnsResolved = (typeof dnsResolvedA !== 'undefined' && dnsResolvedA !== null) || (typeof dnsResolvedAAAA !== 'undefined' && dnsResolvedAAAA !== null); if (_hasDnsResolved) { %>
       <h3 style="font-size:0.95rem; color:#2d6a4f; margin:1.25rem 0 0.5rem 0;">Current resolution</h3>
       <% if (dnsResolvedA && dnsResolvedA.length) { %><p class="empty-msg" style="margin:0.25rem 0;">A: <%= dnsResolvedA.join(', ') %></p><% } %>
       <% if (typeof dnsResolvedAAAA !== 'undefined' && dnsResolvedAAAA && dnsResolvedAAAA.length) { %><p class="empty-msg" style="margin:0.25rem 0;">AAAA: <%= dnsResolvedAAAA.join(', ') %></p><% } %>
       <p class="empty-msg" style="margin-top:0.5rem;"><% if (typeof dnsPointsHere !== 'undefined' && dnsPointsHere) { %><span class="success-msg" style="display:inline-block; padding:0.35rem 0.6rem;">Points to this server: <strong>Yes</strong></span><% } else { %><span class="error-msg" style="display:inline-block; padding:0.35rem 0.6rem;">Points to this server: <strong>No</strong></span> — Update DNS so the domain points to this server.<% } %></p>
-      <% } else if (typeof dnsResolvedA !== 'undefined' || typeof dnsPointsHere !== 'undefined') { %>
+      <% } else { var _dnsChecked = (typeof dnsResolvedA !== 'undefined') || (typeof dnsPointsHere !== 'undefined'); if (_dnsChecked) { %>
       <h3 style="font-size:0.95rem; color:#2d6a4f; margin:1.25rem 0 0.5rem 0;">Current resolution</h3>
       <p class="empty-msg">Could not resolve domain. Ensure the domain has DNS records set.</p>
-      <% } %>
+      <% } } %>
     </div>
     </div>
 
