@@ -14,7 +14,8 @@ function getSettings(db) {
 
 router.get('/', async (req, res) => {
   const db = await getDb();
-  const databases = db.prepare('SELECT * FROM databases ORDER BY name').all();
+  const databases = db.prepare('SELECT d.id, d.name, d.site_id, s.domain AS site_domain FROM databases d LEFT JOIN sites s ON s.id = d.site_id ORDER BY d.name').all();
+  const sites = db.prepare('SELECT id, domain FROM sites ORDER BY domain').all();
   const users = db.prepare('SELECT * FROM db_users ORDER BY username').all();
   const grants = db.prepare('SELECT g.id, g.database_id, g.db_user_id, g.privileges, d.name AS database_name, u.username, u.host FROM db_grants g JOIN databases d ON d.id = g.database_id JOIN db_users u ON u.id = g.db_user_id').all();
   const settings = getSettings(db);
@@ -30,11 +31,11 @@ router.get('/', async (req, res) => {
   const userError = req.session.dbUserError || null;
   if (req.session.dbError) delete req.session.dbError;
   if (req.session.dbUserError) delete req.session.dbUserError;
-  res.render('databases/list', { databases, users, grants, hasMysqlPassword: !!(settings && settings.mysql_root_password), user: req.session.user, databaseSizes, repair, repairMsg, dbError, userError });
+  res.render('databases/list', { databases, sites, users, grants, hasMysqlPassword: !!(settings && settings.mysql_root_password), user: req.session.user, databaseSizes, repair, repairMsg, dbError, userError });
 });
 
 router.post('/databases', async (req, res) => {
-  const { name } = req.body || {};
+  const { name, site_id: siteIdParam } = req.body || {};
   const trimmed = (name != null && typeof name === 'string') ? name.trim() : '';
   if (!trimmed) {
     req.session.dbError = 'Database name is required.';
@@ -50,8 +51,15 @@ router.post('/databases', async (req, res) => {
     req.session.dbError = 'A database with this name already exists.';
     return res.redirect('/databases');
   }
+  let siteId = null;
+  if (siteIdParam != null && String(siteIdParam).trim() !== '') {
+    const sid = parseInt(siteIdParam, 10);
+    if (!isNaN(sid) && db.prepare('SELECT id FROM sites WHERE id = ?').get(sid)) {
+      siteId = sid;
+    }
+  }
   try {
-    db.prepare('INSERT INTO databases (name) VALUES (?)').run(safeName);
+    db.prepare('INSERT INTO databases (name, site_id) VALUES (?, ?)').run(safeName, siteId);
     const settings = getSettings(db);
     await databaseManager.createDatabase(settings, safeName);
   } catch (e) {
