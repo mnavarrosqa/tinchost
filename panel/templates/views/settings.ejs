@@ -159,14 +159,16 @@
     <div class="card">
       <h3 style="margin:0 0 0.5rem 0; font-size:1rem;">Database (MySQL / MariaDB)</h3>
       <% if (hasDb) { %>
-      <p style="margin:0; font-size:0.9rem; color:#52796f;">Installed: <%= state.database_choice === 'mariadb' ? 'MariaDB' : 'MySQL' %> · Config: <%= databaseConfig %></p>
+      <% const dbLabel = state.database_choice === 'mariadb' ? 'MariaDB' : 'MySQL'; %>
+      <p style="margin:0; font-size:0.9rem; color:#52796f;">Installed: <%= dbLabel %> · Config: <%= databaseConfig %></p>
       <% } else { %>
+      <% const dbDefaultChecked = databaseConfig === 'default' ? 'checked' : ''; const dbOptimizedChecked = databaseConfig === 'optimized' ? 'checked' : ''; %>
       <form method="post" action="/settings/install/database">
         <label style="margin-right:1rem;"><input type="radio" name="choice" value="mysql" checked> MySQL 8</label>
         <label><input type="radio" name="choice" value="mariadb"> MariaDB 10</label>
         <div style="margin-top:0.5rem;">
-          <label style="margin-right:0.75rem;"><input type="radio" name="database_config" value="default" <%= databaseConfig === 'default' ? 'checked' : ''>> Default</label>
-          <label><input type="radio" name="database_config" value="optimized" <%= databaseConfig === 'optimized' ? 'checked' : ''>> Optimized</label>
+          <label style="margin-right:0.75rem;"><input type="radio" name="database_config" value="default" <%= dbDefaultChecked %>> Default</label>
+          <label><input type="radio" name="database_config" value="optimized" <%= dbOptimizedChecked %>> Optimized</label>
         </div>
         <button type="submit" style="margin-top:0.5rem;">Install database</button>
       </form>
@@ -206,7 +208,7 @@
       <% } %>
     </div>
 
-    <p style="margin-top:1.5rem; font-size:0.9rem; color:#52796f;">Wizard completed: <%= state && state.completed ? 'Yes' : 'No' %> · Certbot installed: <%= state && state.certbot_installed ? 'Yes' : 'No' %></p>
+    <p style="margin-top:1.5rem; font-size:0.9rem; color:#52796f;"><% const _w = state && state.completed ? 'Yes' : 'No'; const _c = state && state.certbot_installed ? 'Yes' : 'No'; %>Wizard completed: <%= _w %> · Certbot installed: <%= state && state.certbot_installed ? 'Yes' : 'No' %></p>
   </main>
 </body>
 </html>
