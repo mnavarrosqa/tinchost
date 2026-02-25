@@ -47,6 +47,7 @@ rsync -a --delete \
 echo "[3/5] Installing dependencies..."
 cd "$PANEL_PATH"
 npm install --production
+npm rebuild
 
 echo "[4/5] Running migrations..."
 node src/scripts/migrate.js
