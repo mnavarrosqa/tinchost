@@ -62,7 +62,15 @@ function vhostTemplate(site) {
 ${phpValueNginx}    }
 `;
   const root = site.docroot;
-  const phpLocationBlock = `    location / {
+  const htaccessCompat = site.htaccess_compat && !isNode;
+  const sensitiveBlock = htaccessCompat ? `    location ~ /\\. {
+        return 404;
+    }
+    location ~* \\.(htaccess|htpasswd|env)$ {
+        return 404;
+    }
+` : '';
+  const phpLocationBlock = `${sensitiveBlock}    location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
 ${phpBlock}

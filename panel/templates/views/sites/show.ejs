@@ -132,6 +132,12 @@
           <span class="label">FTP</span>
           <span class="value"><%= site.ftp_enabled ? "Enabled" : "Off" %></span>
         </div>
+        <% if (site.app_type !== 'node') { %>
+        <div class="site-meta-item">
+          <span class="label">Apache / .htaccess compat</span>
+          <span class="value"><%= site.htaccess_compat ? "On" : "Off" %></span>
+        </div>
+        <% } %>
       </div>
       <% const _dbCount = (typeof siteDatabases !== "undefined" && siteDatabases) ? siteDatabases.length : 0; const _ftpCount = (typeof ftpUsers !== "undefined" && ftpUsers) ? ftpUsers.length : 0; const _scriptsCount = (typeof installedScripts !== "undefined" && installedScripts) ? installedScripts.length : 0; %>
       <div class="overview-summary">

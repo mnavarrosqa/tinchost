@@ -103,6 +103,13 @@
             </select>
             <span class="hint">Must be a version installed in the <a href="/wizard" style="color:#2d6a4f;">setup wizard</a>. Nginx will use the matching PHP-FPM socket.</span>
           </div>
+          <label class="checkbox-option">
+            <input type="checkbox" name="htaccess_compat" value="on" <%= (site && site.htaccess_compat) ? 'checked' : '' %>>
+            <span>
+              <span class="label">Apache / .htaccess compatibility</span>
+              <span class="desc">Block access to <code>.htaccess</code>, <code>.env</code>, <code>.git</code> and other hidden files; use URL handling that works with many PHP apps designed for Apache.</span>
+            </span>
+          </label>
         </div>
         <div id="node-options" style="display:none;">
           <% if (typeof nodeVersion !== 'undefined' && nodeVersion) { %>

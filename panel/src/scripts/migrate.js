@@ -80,6 +80,9 @@ try {
 try {
   db.exec('ALTER TABLE sites ADD COLUMN clone_subfolder TEXT');
 } catch (_) { /* column may already exist */ }
+try {
+  db.exec('ALTER TABLE sites ADD COLUMN htaccess_compat INTEGER DEFAULT 0');
+} catch (_) { /* column may already exist */ }
 db.exec(`
 
   CREATE TABLE IF NOT EXISTS sites (
