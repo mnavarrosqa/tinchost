@@ -70,4 +70,74 @@
     sel.addEventListener("change", toggle);
     toggle();
   }
+
+  function getSiteBaseUrl(formAction) {
+    return formAction.replace(/\/ssl\/(delete|install)$/, "");
+  }
+
+  function showSslOverlay(message) {
+    var overlay = document.getElementById("ssl-progress-overlay");
+    var msgEl = document.getElementById("ssl-progress-msg");
+    if (msgEl) msgEl.textContent = message;
+    if (overlay) overlay.classList.add("is-active");
+  }
+
+  function hideSslOverlay() {
+    var overlay = document.getElementById("ssl-progress-overlay");
+    if (overlay) overlay.classList.remove("is-active");
+  }
+
+  document.addEventListener("submit", function(e) {
+    var form = e.target;
+    if (!form || !form.classList.contains("js-ssl-delete-form")) return;
+    e.preventDefault();
+    var msg = form.getAttribute("data-confirm-msg") || "Remove SSL for this site?";
+    if (!confirm(msg)) return;
+    showSslOverlay("Removing SSL…");
+    var baseUrl = getSiteBaseUrl(form.action);
+    fetch(form.action, {
+      method: "POST",
+      credentials: "same-origin",
+      redirect: "manual",
+      headers: { "Accept": "text/html" }
+    }).then(function(res) {
+      var loc = res.headers.get("Location");
+      if (res.redirected && res.url) {
+        window.location.href = res.url;
+      } else if (loc) {
+        window.location.href = loc;
+      } else {
+        window.location.href = baseUrl + "?ssl=removed#ssl";
+      }
+    }).catch(function() {
+      hideSslOverlay();
+      window.location.href = baseUrl + "?ssl=error&msg=" + encodeURIComponent("Request failed") + "#ssl";
+    });
+  });
+
+  document.addEventListener("submit", function(e) {
+    var form = e.target;
+    if (!form || !form.classList.contains("js-ssl-install-form")) return;
+    e.preventDefault();
+    showSslOverlay("Installing certificate…");
+    var baseUrl = getSiteBaseUrl(form.action);
+    fetch(form.action, {
+      method: "POST",
+      credentials: "same-origin",
+      redirect: "manual",
+      headers: { "Accept": "text/html" }
+    }).then(function(res) {
+      var loc = res.headers.get("Location");
+      if (res.redirected && res.url) {
+        window.location.href = res.url;
+      } else if (loc) {
+        window.location.href = loc;
+      } else {
+        window.location.href = baseUrl + "?ssl=install_error&msg=" + encodeURIComponent("Request failed") + "#ssl";
+      }
+    }).catch(function() {
+      hideSslOverlay();
+      window.location.href = baseUrl + "?ssl=install_error&msg=" + encodeURIComponent("Request failed") + "#ssl";
+    });
+  });
 })();

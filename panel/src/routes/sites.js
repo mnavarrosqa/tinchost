@@ -205,7 +205,7 @@ router.post('/', async (req, res) => {
         execFileSync('mkdir', ['-p', docrootPath], { stdio: 'pipe' });
         execFileSync('chown', ['www-data:www-data', docrootPath], { stdio: 'pipe' });
         execFileSync('chmod', ['755', docrootPath], { stdio: 'pipe' });
-        if (fs.existsSync(DEFAULT_INDEX_PATH)) {
+        if (appKind !== 'node' && fs.existsSync(DEFAULT_INDEX_PATH)) {
           const html = fs.readFileSync(DEFAULT_INDEX_PATH, 'utf8').replace(/\{\{domain\}\}/g, domain);
           const indexFile = path.join(docrootPath, 'index.html');
           fs.writeFileSync(indexFile, html, 'utf8');
@@ -265,6 +265,8 @@ router.get('/:id', async (req, res) => {
   const renew = req.query.renew || null;
   const sslRemoved = req.query.ssl === 'removed';
   const sslError = req.query.ssl === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : 'Remove failed') : null;
+  const sslInstalled = req.query.ssl === 'installed';
+  const sslInstallError = req.query.ssl === 'install_error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : 'Install failed') : null;
   const wordpress = req.query.wordpress || null;
   const wp_folder = req.query.wp_folder || null;
   const phpOptionsSaved = req.query.php_options === 'saved';
@@ -309,7 +311,7 @@ router.get('/:id', async (req, res) => {
   const repoError = req.query.repo === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
   const pullOk = req.query.pull === 'ok';
   const pullError = req.query.pull === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, repoUpdated, repoError, pullOk, pullError, nodePm2Status, nodePm2Name, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeDeleted, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError });
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, sslInstalled, sslInstallError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, repoUpdated, repoError, pullOk, pullError, nodePm2Status, nodePm2Name, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeDeleted, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {
@@ -339,6 +341,24 @@ router.post('/:id/ssl/delete', async (req, res) => {
     res.redirect('/sites/' + site.id + '?ssl=removed#ssl');
   } catch (e) {
     res.redirect('/sites/' + site.id + '?ssl=error&msg=' + encodeURIComponent((e && e.message) ? e.message : 'Remove failed') + '#ssl');
+  }
+});
+
+router.post('/:id/ssl/install', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  if (site.ssl) return res.redirect('/sites/' + site.id + '#ssl');
+  try {
+    await sslManager.obtainCert(site.domain);
+    db.prepare('UPDATE sites SET ssl = 1 WHERE id = ?').run(site.id);
+    const updated = db.prepare('SELECT * FROM sites WHERE id = ?').get(site.id);
+    const settings = getSettings(db);
+    await siteManager.writeVhost(updated, settings);
+    siteManager.reloadNginx();
+    res.redirect('/sites/' + site.id + '?ssl=installed#ssl');
+  } catch (e) {
+    res.redirect('/sites/' + site.id + '?ssl=install_error&msg=' + encodeURIComponent((e && e.message) ? e.message : 'Install failed') + '#ssl');
   }
 });
 

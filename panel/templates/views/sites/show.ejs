@@ -68,6 +68,12 @@
     .npm-overlay-title { padding: 1rem 1.25rem; border-bottom: 1px solid #e8f5e9; font-weight: 600; color: #2d6a4f; }
     .npm-overlay-log { flex: 1; overflow: auto; padding: 1rem 1.25rem; font-family: monospace; font-size: 0.8rem; line-height: 1.4; background: #1b4332; color: #d8f3dc; white-space: pre-wrap; word-break: break-all; min-height: 200px; max-height: 55vh; }
     .npm-overlay-actions { padding: 1rem 1.25rem; border-top: 1px solid #e8f5e9; display: flex; justify-content: flex-end; gap: 0.5rem; }
+    .ssl-progress-overlay { display: none; position: fixed; inset: 0; background: rgba(27, 67, 50, 0.75); z-index: 10001; align-items: center; justify-content: center; padding: 1.5rem; }
+    .ssl-progress-overlay.is-active { display: flex; }
+    .ssl-progress-overlay .ssl-progress-dialog { background: #fff; border: 1px solid #b7d4bc; border-radius: 8px; padding: 1.5rem 2rem; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 1rem; }
+    .ssl-progress-overlay .ssl-progress-spinner { width: 28px; height: 28px; border: 3px solid #e8f5e9; border-top-color: #2d6a4f; border-radius: 50%; animation: ssl-progress-spin 0.8s linear infinite; flex-shrink: 0; }
+    .ssl-progress-overlay .ssl-progress-msg { color: #1b4332; font-weight: 500; }
+    @keyframes ssl-progress-spin { to { transform: rotate(360deg); } }
     .page-disabled { pointer-events: none; opacity: 0.7; }
   </style>
 </head>
@@ -93,7 +99,13 @@
     <div class="error-msg">SSL renewal failed. Check that DNS points to this server and ports 80/443 are open, then try again.</div>
     <% } %>
     <% if (typeof sslRemoved !== "undefined" && sslRemoved) { %>
-    <div class="success-msg">SSL certificate removed. The site now serves over HTTP only. Re-enable SSL in Edit settings if needed.</div>
+    <div class="success-msg">SSL certificate removed. The site now serves over HTTP only. You can install a certificate again from the SSL tab below.</div>
+    <% } %>
+    <% if (typeof sslInstalled !== "undefined" && sslInstalled) { %>
+    <div class="success-msg">SSL certificate installed. The site is now served over HTTPS.</div>
+    <% } %>
+    <% if (typeof sslInstallError !== "undefined" && sslInstallError) { %>
+    <div class="error-msg">SSL install failed: <%= sslInstallError %></div>
     <% } %>
     <% if (typeof phpOptionsSaved !== "undefined" && phpOptionsSaved) { %>
     <div class="success-msg">PHP options saved. They apply only to this site.</div>
@@ -480,7 +492,7 @@
           <form method="post" action="/sites/<%= site.id %>/ssl/renew" class="inline">
             <button type="submit" class="btn">Renew certificate</button>
           </form>
-          <form method="post" action="/sites/<%= site.id %>/ssl/delete" class="inline" data-confirm="Remove SSL for <%= site.domain %>? The site will serve over HTTP only. You can re-enable SSL in Edit settings later.">
+          <form method="post" action="/sites/<%= site.id %>/ssl/delete" class="inline js-ssl-delete-form" data-confirm-msg="Remove SSL for <%= site.domain %>? The site will serve over HTTP only. You can install a certificate again from this tab.">
             <button type="submit" class="btn btn-danger">Remove SSL</button>
           </form>
         </div>
@@ -491,13 +503,25 @@
           <form method="post" action="/sites/<%= site.id %>/ssl/renew" class="inline">
             <button type="submit" class="btn">Renew certificate</button>
           </form>
-          <form method="post" action="/sites/<%= site.id %>/ssl/delete" class="inline" data-confirm="Remove SSL for <%= site.domain %>? The site will serve over HTTP only.">
+          <form method="post" action="/sites/<%= site.id %>/ssl/delete" class="inline js-ssl-delete-form" data-confirm-msg="Remove SSL for <%= site.domain %>? The site will serve over HTTP only.">
             <button type="submit" class="btn btn-danger">Remove SSL</button>
           </form>
         </div>
         <% } %>
       <% } else { %>
-        <p class="empty-msg">SSL is off for this site. Enable it in <a href="/sites/<%= site.id %>/edit">Edit settings</a> to get a Let's Encrypt certificate.</p>
+        <% if (typeof sslRemoved !== "undefined" && sslRemoved) { %>
+        <div class="success-msg">Certificate removed. Install a new certificate below when you're ready.</div>
+        <% } %>
+        <% if (typeof sslInstallError !== "undefined" && sslInstallError) { %>
+        <div class="error-msg">Install failed: <%= sslInstallError %></div>
+        <% } %>
+        <div class="site-actions">
+          <form method="post" action="/sites/<%= site.id %>/ssl/install" class="inline js-ssl-install-form">
+            <button type="submit" class="btn">Install certificate</button>
+          </form>
+          <a href="/sites/<%= site.id %>/edit" class="btn btn-secondary">Edit site settings</a>
+        </div>
+        <p class="empty-msg">Get a free Let's Encrypt certificate to serve this site over HTTPS. DNS for <strong><%= site.domain %></strong> must point to this server.</p>
       <% } %>
     </div>
     </div>
@@ -624,6 +648,12 @@
     </div>
   </div>
   <% } %>
+  <div class="ssl-progress-overlay" id="ssl-progress-overlay" role="dialog" aria-live="polite" aria-busy="true" aria-label="SSL operation in progress">
+    <div class="ssl-progress-dialog">
+      <div class="ssl-progress-spinner" aria-hidden="true"></div>
+      <span class="ssl-progress-msg" id="ssl-progress-msg">Please wait…</span>
+    </div>
+  </div>
   <script src="/js/confirm-modal.js"></script>
   <script src="/js/sites-show.js"></script>
   <% if (site.app_type === 'node') { %>
