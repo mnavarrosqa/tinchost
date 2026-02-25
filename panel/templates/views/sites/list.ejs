@@ -93,7 +93,7 @@
         <tbody>
           <% sites.forEach(function(s) {
             var isNode = s.app_type === 'node';
-            var appLabel = isNode ? ('Node' + (s.node_port != null ? ' :' + s.node_port : '')) : (s.php_version || 'PHP');
+            var appLabel = isNode ? ('Node' + (s.node_port != null ? ' ' + s.node_port : '')) : ('PHP' + (s.php_version ? ' ' + s.php_version : ''));
           %>
           <tr>
             <td class="domain-cell"><a href="/sites/<%= s.id %>"><%= s.domain %></a></td>

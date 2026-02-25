@@ -30,6 +30,7 @@ echo ""
 echo "[1/5] Pulling latest from repo..."
 if [[ -d "$REPO_ROOT/.git" ]]; then
   cd "$REPO_ROOT"
+  git fetch origin
   git pull
 else
   echo "  Not a git repo; skipping pull. Using current files."
