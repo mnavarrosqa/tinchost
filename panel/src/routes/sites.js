@@ -300,7 +300,9 @@ router.get('/:id', async (req, res) => {
   const nodeStopped = req.query.node === 'stopped';
   const nodeError = req.query.node === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
   const currentEnvSubfolder = (req.query.env_subfolder || '').trim().replace(/[^a-zA-Z0-9_.-]/g, '');
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, nodePm2Status, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeError, currentEnvSubfolder });
+  const scriptUninstallOk = req.query.script_uninstall === 'ok';
+  const scriptUninstallError = req.query.script_uninstall === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, nodePm2Status, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {
@@ -468,6 +470,33 @@ router.get('/:id/node-logs', async (req, res) => {
   const logs = getNodePm2Logs(site.id, lines);
   res.set('Content-Type', 'text/plain; charset=utf-8');
   res.send(logs != null ? logs : 'No logs (app may not be running under PM2).');
+});
+
+router.post('/:id/scripts/uninstall', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  const scriptId = (req.body.script_id || '').trim();
+  const rawSubfolder = (req.body.subfolder || '').trim().replace(/^\/+/, '').replace(/\\/g, '');
+  const subfolder = rawSubfolder.replace(/[^a-zA-Z0-9_.-]/g, '');
+  if (rawSubfolder !== subfolder) return res.redirect('/sites/' + site.id + '?script_uninstall=error&msg=' + encodeURIComponent('Invalid subfolder') + '#scripts');
+  const docrootResolved = path.resolve(site.docroot);
+  const targetPath = resolveDocrootPath(site.docroot, subfolder || '.');
+  if (!targetPath || !fs.existsSync(targetPath)) return res.redirect('/sites/' + site.id + '?script_uninstall=error&msg=' + encodeURIComponent('Invalid or missing path') + '#scripts');
+  if (scriptId === 'wordpress') {
+    const wpConfig = path.join(targetPath, 'wp-config.php');
+    const wpIncludes = path.join(targetPath, 'wp-includes');
+    if (!fs.existsSync(wpConfig) || !fs.existsSync(wpIncludes)) return res.redirect('/sites/' + site.id + '?script_uninstall=error&msg=' + encodeURIComponent('WordPress not found at this location') + '#scripts');
+    if (targetPath === docrootResolved) return res.redirect('/sites/' + site.id + '?script_uninstall=error&msg=' + encodeURIComponent('Uninstall from site root is not supported; use File Manager to remove files') + '#scripts');
+    try {
+      fs.rmSync(targetPath, { recursive: true });
+      res.redirect('/sites/' + site.id + '?script_uninstall=ok#scripts');
+    } catch (e) {
+      res.redirect('/sites/' + site.id + '?script_uninstall=error&msg=' + encodeURIComponent((e.message || 'Uninstall failed').slice(0, 150)) + '#scripts');
+    }
+    return;
+  }
+  res.redirect('/sites/' + site.id + '?script_uninstall=error&msg=' + encodeURIComponent('Unknown script') + '#scripts');
 });
 
 router.post('/:id/scripts/wordpress', async (req, res) => {

@@ -470,10 +470,12 @@
 
     <div id="panel-scripts" class="tabs-panel" role="tabpanel" aria-labelledby="tab-scripts">
     <% const _scheme = site.ssl ? "https" : "http"; const _baseUrl = _scheme + "://" + site.domain; %>
+    <% if (typeof scriptUninstallOk !== 'undefined' && scriptUninstallOk) { %><div class="success-msg">Script uninstalled. Files have been removed.</div><% } %>
+    <% if (typeof scriptUninstallError !== 'undefined' && scriptUninstallError) { %><div class="error-msg"><%= scriptUninstallError %></div><% } %>
     <% if (typeof installedScripts !== "undefined" && installedScripts && installedScripts.length > 0) { %>
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Installed scripts</h2>
-      <p style="font-size:0.9rem; color:#52796f; margin:0 0 1rem 0;">Scripts detected in this site’s docroot. Use the links below to open the site or admin.</p>
+      <p style="font-size:0.9rem; color:#52796f; margin:0 0 1rem 0;">Scripts detected in this site’s docroot. Use the links below to open the site or admin. You can uninstall to remove the script files.</p>
       <ul class="script-list" style="list-style:none; margin:0; padding:0;">
         <% installedScripts.forEach(function(script) {
           const openUrl = _baseUrl + (script.urlPath || '/');
@@ -486,9 +488,20 @@
             <% if (script.version) { %><span style="font-size:0.85rem; color:#52796f;">Version <%= script.version %></span><% } %>
             <span style="font-size:0.85rem; color:#52796f;">Location: <%= locationLabel %></span>
           </div>
-          <div style="margin-top:0.5rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
+          <div style="margin-top:0.5rem; display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
             <a href="<%= openUrl %>" target="_blank" rel="noopener" class="btn" style="padding:0.35rem 0.7rem; font-size:0.85rem;">Open site</a>
             <% if (adminUrl) { %><a href="<%= adminUrl %>" target="_blank" rel="noopener" class="btn" style="padding:0.35rem 0.7rem; font-size:0.85rem;">WordPress admin</a><% } %>
+            <% if (script.id === 'wordpress') { %>
+              <% if (script.subfolder) { %>
+            <form method="post" action="/sites/<%= site.id %>/scripts/uninstall" class="inline" data-confirm="Uninstall <%= script.name %> from /<%= script.subfolder %>? All files in this folder will be permanently deleted. The database is not removed.">
+              <input type="hidden" name="script_id" value="wordpress">
+              <input type="hidden" name="subfolder" value="<%= script.subfolder %>">
+              <button type="submit" class="btn btn-danger" style="padding:0.35rem 0.7rem; font-size:0.85rem;">Uninstall</button>
+            </form>
+              <% } else { %>
+            <span style="font-size:0.85rem; color:#52796f;">Uninstall from site root: use <a href="/sites/<%= site.id %>/files">File Manager</a> to remove files.</span>
+              <% } %>
+            <% } %>
           </div>
         </li>
         <% }); %>
