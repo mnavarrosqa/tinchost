@@ -390,28 +390,3 @@
   </main>
 </body>
 </html>
-talled successfully.</p>
-      <% } else { %>
-        <p class="result-error">Installation reported errors. Check the log below. You can fix issues and run the wizard again or install packages manually.</p>
-      <% } %>
-      <% if (typeof log !== 'undefined' && log) { %>
-        <pre class="result-log"><%= log %></pre>
-      <% } %>
-      <div class="step-actions">
-        <a href="/" class="btn btn-success">Go to dashboard</a>
-        <a href="/wizard" class="btn btn-secondary">Back to wizard</a>
-      </div>
-    </div>
-    <% } %>
-
-    <% if (step === 'finish') { %>
-    <div class="wizard-step">
-      <p>Wizard complete. You can change paths and options in Settings.</p>
-      <div class="step-actions">
-        <a href="/" class="btn btn-success">Go to dashboard</a>
-      </div>
-    </div>
-    <% } %>
-  </main>
-</body>
-</html>
