@@ -125,18 +125,19 @@
       <p style="margin:0; font-size:0.9rem; color:#52796f;">Installed: <%= phpList.join(', ') %> · Config: <%= phpFpmConfig %></p>
       <p style="margin:0.5rem 0 0 0; font-size:0.85rem;">To add or change versions, use the form below and submit.</p>
       <% } %>
+      <% var _c74 = phpList.includes('7.4') ? 'checked' : ''; var _c81 = phpList.includes('8.1') ? 'checked' : ''; var _c82 = phpList.includes('8.2') ? 'checked' : ''; var _c83 = phpList.includes('8.3') ? 'checked' : ''; var _phpDef = phpFpmConfig === 'default' ? 'checked' : ''; var _phpOpt = phpFpmConfig === 'optimized' ? 'checked' : ''; var _phpBtn = hasPhp ? 'Update PHP-FPM' : 'Install PHP-FPM'; %>
       <form method="post" action="/settings/install/php" style="margin-top:0.75rem;">
         <div style="display:flex; flex-wrap:wrap; gap:0.5rem 1rem;">
-          <label class="checkbox-option" style="display:inline-flex; align-items:center; margin:0;"><input type="checkbox" name="versions" value="7.4" <%= phpList.includes('7.4') ? 'checked' : ''>> 7.4</label>
-          <label class="checkbox-option" style="display:inline-flex; align-items:center; margin:0;"><input type="checkbox" name="versions" value="8.1" <%= phpList.includes('8.1') ? 'checked' : ''>> 8.1</label>
-          <label class="checkbox-option" style="display:inline-flex; align-items:center; margin:0;"><input type="checkbox" name="versions" value="8.2" <%= phpList.includes('8.2') ? 'checked' : ''>> 8.2</label>
-          <label class="checkbox-option" style="display:inline-flex; align-items:center; margin:0;"><input type="checkbox" name="versions" value="8.3" <%= phpList.includes('8.3') ? 'checked' : ''>> 8.3</label>
+          <label class="checkbox-option" style="display:inline-flex; align-items:center; margin:0;"><input type="checkbox" name="versions" value="7.4" <%= _c74 %>> 7.4</label>
+          <label class="checkbox-option" style="display:inline-flex; align-items:center; margin:0;"><input type="checkbox" name="versions" value="8.1" <%= _c81 %>> 8.1</label>
+          <label class="checkbox-option" style="display:inline-flex; align-items:center; margin:0;"><input type="checkbox" name="versions" value="8.2" <%= _c82 %>> 8.2</label>
+          <label class="checkbox-option" style="display:inline-flex; align-items:center; margin:0;"><input type="checkbox" name="versions" value="8.3" <%= _c83 %>> 8.3</label>
         </div>
         <div style="margin-top:0.5rem;">
-          <label style="margin-right:0.75rem;"><input type="radio" name="php_fpm_config" value="default" <%= phpFpmConfig === 'default' ? 'checked' : ''>> Default</label>
-          <label><input type="radio" name="php_fpm_config" value="optimized" <%= phpFpmConfig === 'optimized' ? 'checked' : ''>> Optimized</label>
+          <label style="margin-right:0.75rem;"><input type="radio" name="php_fpm_config" value="default" <%= _phpDef %>> Default</label>
+          <label><input type="radio" name="php_fpm_config" value="optimized" <%= _phpOpt %>> Optimized</label>
         </div>
-        <button type="submit" style="margin-top:0.5rem;"><%= hasPhp ? 'Update PHP-FPM' : 'Install PHP-FPM' %></button>
+        <button type="submit" style="margin-top:0.5rem;"><%= _phpBtn %></button>
       </form>
     </div>
 
@@ -208,7 +209,7 @@
       <% } %>
     </div>
 
-    <p style="margin-top:1.5rem; font-size:0.9rem; color:#52796f;"><% const _w = state && state.completed ? 'Yes' : 'No'; const _c = state && state.certbot_installed ? 'Yes' : 'No'; %>Wizard completed: <%= _w %> · Certbot installed: <%= state && state.certbot_installed ? 'Yes' : 'No' %></p>
+    <p style="margin-top:1.5rem; font-size:0.9rem; color:#52796f;"><% const _w = state && state.completed ? 'Yes' : 'No'; const _c = state && state.certbot_installed ? 'Yes' : 'No'; %>Wizard completed: <%= _w %> · Certbot installed: <%= _c %></p>
   </main>
 </body>
 </html>
