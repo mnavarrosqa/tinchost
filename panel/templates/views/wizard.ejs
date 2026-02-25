@@ -47,6 +47,9 @@
     .btn-back { color: #52796f; text-decoration: none; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0; border-radius: 6px; transition: color 0.15s; }
     .btn-back:hover { color: #1b4332; }
     .wizard-actions-disabled { opacity: 0.7; pointer-events: none; cursor: not-allowed; }
+    body.wizard-installing .nav { pointer-events: none; opacity: 0.7; cursor: wait; }
+    body.wizard-installing .nav a { cursor: wait; }
+    body.wizard-installing main { cursor: wait; }
     .result-log { white-space: pre-wrap; max-height: 320px; overflow-y: auto; border-radius: 8px; }
     .result-success { color: #2d6a4f; font-weight: 600; }
     .wizard-error-msg { background: #fef2f2; border: 1px solid #fecaca; color: #9b2226; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.95rem; }
@@ -280,6 +283,7 @@
   if (!btn || !container) return;
 
   function setInstalling(disabled) {
+    document.body.classList.toggle('wizard-installing', disabled);
     reviewActions.classList.toggle('wizard-actions-disabled', disabled);
     btn.disabled = disabled;
     btn.textContent = disabled ? 'Installing…' : 'Install all';
