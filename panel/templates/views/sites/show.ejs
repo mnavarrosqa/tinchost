@@ -22,8 +22,17 @@
     .card { border: 1px solid #b7d4bc; border-radius: 6px; padding: 1.25rem; margin-bottom: 1.25rem; background: #fff; }
     .card h2 { margin: 0 0 0.75rem 0; color: #2d6a4f; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
     .card h2 .ic { width: 20px; height: 20px; }
-    .site-meta { display: flex; flex-wrap: wrap; gap: 1rem 2rem; margin: 0.5rem 0; color: #52796f; font-size: 0.95rem; }
-    .site-actions { margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .site-meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem 1.5rem; margin: 0.75rem 0 0 0; color: #1b4332; font-size: 0.9rem; }
+    .site-meta-item { display: flex; flex-direction: column; gap: 0.15rem; }
+    .site-meta-item .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: #52796f; font-weight: 600; }
+    .site-meta-item .value { color: #1b4332; font-size: 0.95rem; word-break: break-all; }
+    .overview-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.75rem; margin: 1.25rem 0 0 0; padding-top: 1rem; border-top: 1px solid #e8f5e9; }
+    .summary-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; padding: 0.75rem 1rem; background: #f8fcf9; border: 1px solid #b7d4bc; border-radius: 8px; color: inherit; text-decoration: none; transition: background 0.15s ease, border-color 0.15s ease; }
+    .summary-tile:hover { background: #e8f5e9; border-color: #2d6a4f; color: #1b4332; }
+    .summary-tile .summary-tile-label { font-size: 0.8rem; color: #52796f; font-weight: 500; }
+    .summary-tile .summary-tile-value { font-size: 1.25rem; font-weight: 600; color: #2d6a4f; }
+    .summary-tile .summary-tile-hint { font-size: 0.75rem; color: #52796f; margin-top: 0.15rem; }
+    .site-actions { margin-top: 1.25rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .btn { padding: 0.4rem 0.9rem; background: #2d6a4f; color: #fff; text-decoration: none; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; }
     .btn:hover { background: #1b4332; color: #fff; }
     .btn-secondary { background: #52796f; }
@@ -112,16 +121,53 @@
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Site settings</h2>
       <div class="site-meta">
-        <span><strong>Docroot</strong> <%= site.docroot %></span>
-        <span><strong>App</strong> <%= (site.app_type === 'node') ? ('Node :' + (site.node_port || '')) : ('PHP ' + (site.php_version || '-')) %></span>
-        <span><strong>SSL</strong> <%= site.ssl ? "Yes" : "No" %></span>
-        <span><strong>FTP</strong> <%= site.ftp_enabled ? "Enabled" : "Off" %></span>
-        <span><strong>Space utilized</strong> <%= (typeof docrootSizeFormatted !== "undefined" && docrootSizeFormatted) ? docrootSizeFormatted : "—" %></span>
+        <div class="site-meta-item">
+          <span class="label">Docroot</span>
+          <span class="value"><%= site.docroot %></span>
+        </div>
+        <div class="site-meta-item">
+          <span class="label">App</span>
+          <span class="value"><%= (site.app_type === 'node') ? ('Node :' + (site.node_port || '')) : ('PHP ' + (site.php_version || '-')) %></span>
+        </div>
+        <div class="site-meta-item">
+          <span class="label">SSL</span>
+          <span class="value"><%= site.ssl ? "Yes" : "No" %></span>
+        </div>
+        <div class="site-meta-item">
+          <span class="label">FTP</span>
+          <span class="value"><%= site.ftp_enabled ? "Enabled" : "Off" %></span>
+        </div>
       </div>
       <% const _dbCount = (typeof siteDatabases !== "undefined" && siteDatabases) ? siteDatabases.length : 0; const _ftpCount = (typeof ftpUsers !== "undefined" && ftpUsers) ? ftpUsers.length : 0; const _scriptsCount = (typeof installedScripts !== "undefined" && installedScripts) ? installedScripts.length : 0; %>
-      <p class="overview-summary" style="font-size:0.9rem; color:#52796f; margin:0.75rem 0 0 0;">
-        <a href="#databases">Databases</a>: <%= _dbCount %> · <a href="#ftp">FTP users</a>: <%= _ftpCount %> · <a href="#scripts">Scripts</a>: <%= _scriptsCount %><% if (site.app_type === 'node') { %> · <a href="#node-apps">My Node apps</a><% } %>
-      </p>
+      <div class="overview-summary">
+        <a href="/sites/<%= site.id %>/files" class="summary-tile">
+          <span class="summary-tile-label">Space utilized</span>
+          <span class="summary-tile-value"><%= (typeof docrootSizeFormatted !== "undefined" && docrootSizeFormatted) ? docrootSizeFormatted : "—" %></span>
+          <span class="summary-tile-hint">File Manager</span>
+        </a>
+        <a href="#databases" class="summary-tile">
+          <span class="summary-tile-label">Databases</span>
+          <span class="summary-tile-value"><%= _dbCount %></span>
+          <span class="summary-tile-hint">View &amp; manage</span>
+        </a>
+        <a href="#ftp" class="summary-tile">
+          <span class="summary-tile-label">FTP users</span>
+          <span class="summary-tile-value"><%= _ftpCount %></span>
+          <span class="summary-tile-hint">View &amp; manage</span>
+        </a>
+        <a href="#scripts" class="summary-tile">
+          <span class="summary-tile-label">Scripts</span>
+          <span class="summary-tile-value"><%= _scriptsCount %></span>
+          <span class="summary-tile-hint">Installed apps</span>
+        </a>
+        <% if (site.app_type === 'node') { %>
+        <a href="#node-apps" class="summary-tile">
+          <span class="summary-tile-label">My Node apps</span>
+          <span class="summary-tile-value">—</span>
+          <span class="summary-tile-hint">Clone, run, manage</span>
+        </a>
+        <% } %>
+      </div>
       <div class="site-actions">
         <a href="/sites/<%= site.id %>/edit" class="btn">Edit settings</a>
         <form method="post" action="/sites/<%= site.id %>/delete" class="inline" data-confirm="Delete this site? Nginx vhost and site-specific databases/FTP users will be removed. This cannot be undone.">
