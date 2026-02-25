@@ -73,6 +73,17 @@ function detectInstalledScripts(site) {
   return list;
 }
 
+/** Detect if Node.js is installed and return version string (e.g. "v20.10.0") or null. */
+function getNodeVersion() {
+  try {
+    const out = execSync('node --version', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+    const v = (out && out.trim()) || null;
+    return v || null;
+  } catch (_) {
+    return null;
+  }
+}
+
 /** Get docroot disk usage. Returns formatted string (e.g. "125 MB") or null. */
 function getDocrootSizeFormatted(site) {
   if (!site || !site.docroot) return null;
@@ -121,7 +132,8 @@ router.get('/new', async (req, res) => {
   const db = await getDb();
   const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
   const phpVersions = (state?.php_versions || '8.2').split(',').filter(Boolean);
-  res.render('sites/form', { site: null, phpVersions });
+  const nodeVersion = getNodeVersion();
+  res.render('sites/form', { site: null, phpVersions, nodeVersion });
 });
 
 router.post('/', async (req, res) => {
@@ -133,14 +145,14 @@ router.post('/', async (req, res) => {
     const db = await getDb();
     const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
     const phpVersions = (state?.php_versions || '8.2').split(',').filter(Boolean);
-    return res.render('sites/form', { site: null, phpVersions, error: 'Node app requires a valid port (1–65535).' });
+    return res.render('sites/form', { site: null, phpVersions, nodeVersion: getNodeVersion(), error: 'Node app requires a valid port (1–65535).' });
   }
   const docrootPath = docroot || `/var/www/${domain}`;
   const db = await getDb();
   try {
     if (ssl) {
       try { await sslManager.obtainCert(domain); } catch (e) {
-        return res.render('sites/form', { site: null, phpVersions: (db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get()?.php_versions || '8.2').split(',').filter(Boolean), error: 'SSL: ' + e.message });
+        return res.render('sites/form', { site: null, phpVersions: (db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get()?.php_versions || '8.2').split(',').filter(Boolean), nodeVersion: getNodeVersion(), error: 'SSL: ' + e.message });
       }
     }
     db.prepare('INSERT INTO sites (domain, docroot, php_version, ssl, ftp_enabled, app_type, node_port) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
@@ -168,7 +180,7 @@ router.post('/', async (req, res) => {
     siteManager.reloadNginx();
   } catch (e) {
     const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
-    return res.render('sites/form', { site: null, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), error: e.message });
+    return res.render('sites/form', { site: null, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), nodeVersion: getNodeVersion(), error: e.message });
   }
   if (req.session.createDocrootWarning) {
     req.session.sitesListWarning = req.session.createDocrootWarning;
@@ -185,7 +197,7 @@ router.get('/:id/edit', async (req, res) => {
   const phpVersions = (state?.php_versions || '8.2').split(',').filter(Boolean);
   const error = req.session.siteEditError || null;
   if (req.session.siteEditError) delete req.session.siteEditError;
-  res.render('sites/form', { site, phpVersions, error });
+  res.render('sites/form', { site, phpVersions, error, nodeVersion: getNodeVersion() });
 });
 
 router.get('/:id', async (req, res) => {
@@ -469,13 +481,13 @@ router.post('/:id', async (req, res) => {
   const portNum = node_port != null && node_port !== '' ? parseInt(node_port, 10) : null;
   if (appKind === 'node' && (portNum == null || isNaN(portNum) || portNum < 1 || portNum > 65535)) {
     const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
-    return res.render('sites/form', { site: { ...site, domain: domain || site.domain, docroot: docroot || site.docroot, php_version: site.php_version, app_type: 'node' }, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), error: 'Node app requires a valid port (1–65535).' });
+    return res.render('sites/form', { site: { ...site, domain: domain || site.domain, docroot: docroot || site.docroot, php_version: site.php_version, app_type: 'node' }, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), nodeVersion: getNodeVersion(), error: 'Node app requires a valid port (1–65535).' });
   }
   const dom = domain || site.domain;
   if (ssl && !site.ssl) {
     try { await sslManager.obtainCert(dom); } catch (e) {
       const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
-      return res.render('sites/form', { site: { ...site, domain: dom, docroot: docroot || site.docroot, php_version: php_version || site.php_version, app_type: appKind, node_port: appKind === 'node' ? portNum : site.node_port }, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), error: 'SSL: ' + e.message });
+      return res.render('sites/form', { site: { ...site, domain: dom, docroot: docroot || site.docroot, php_version: php_version || site.php_version, app_type: appKind, node_port: appKind === 'node' ? portNum : site.node_port }, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), nodeVersion: getNodeVersion(), error: 'SSL: ' + e.message });
     }
   }
   db.prepare('UPDATE sites SET domain = ?, docroot = ?, php_version = ?, ssl = ?, ftp_enabled = ?, app_type = ?, node_port = ? WHERE id = ?').run(

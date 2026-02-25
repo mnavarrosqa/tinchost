@@ -108,11 +108,21 @@
           </div>
         </div>
         <div id="node-options" style="display:none;">
+          <% if (typeof nodeVersion !== 'undefined' && nodeVersion) { %>
+          <div class="form-row node-status-ok" style="background:#d8f3dc; border:1px solid #95d5b2; border-radius:6px; padding:0.6rem 0.75rem; margin-bottom:0.75rem; font-size:0.9rem;">
+            <strong>Node.js is installed:</strong> <%= nodeVersion %> — Your app can run on this server.
+          </div>
+          <% } else { %>
+          <div class="form-row node-status-missing" style="background:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:0.6rem 0.75rem; margin-bottom:0.75rem; font-size:0.9rem;">
+            <strong>Node.js is not installed.</strong> Install it in <a href="/settings#components">Settings → Install components</a> (Node.js section), or run the <a href="/wizard">setup wizard</a>, then return here to create the site.
+          </div>
+          <% } %>
           <div class="form-row">
             <label for="node_port">Node app port</label>
             <input type="number" name="node_port" id="node_port" min="1" max="65535" placeholder="e.g. 3001" value="<%= (site && site.app_type === 'node' && site.node_port) ? site.node_port : '' %>">
             <span class="hint">Your Node app must listen on this port (e.g. <code>app.listen(3001)</code> or via PM2). Nginx will proxy requests to <code>127.0.0.1:port</code>.</span>
           </div>
+          <p class="hint" style="margin-top:0.5rem;">Run your app with PM2 (e.g. <code>pm2 start app.js</code>) or directly, and ensure it listens on <code>127.0.0.1:port</code>. After creating the site, deploy your code to the docroot and start the process.</p>
         </div>
       </div>
 
