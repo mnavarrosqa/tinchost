@@ -38,6 +38,20 @@ async function setWizardCompleted(req, res, next) {
 }
 app.use(setWizardCompleted);
 
+function setNavLocals(req, res, next) {
+  res.locals.user = req.session && req.session.user ? req.session.user : null;
+  const p = (req.path || '').replace(/\/$/, '') || '/';
+  if (p === '/') res.locals.activeNav = 'dashboard';
+  else if (p.startsWith('/wizard')) res.locals.activeNav = 'wizard';
+  else if (p.startsWith('/sites')) res.locals.activeNav = 'sites';
+  else if (p.startsWith('/databases')) res.locals.activeNav = 'databases';
+  else if (p.startsWith('/mail')) res.locals.activeNav = 'mail';
+  else if (p.startsWith('/settings')) res.locals.activeNav = 'settings';
+  else res.locals.activeNav = '';
+  next();
+}
+app.use(setNavLocals);
+
 function requireAuth(req, res, next) {
   if (req.session && req.session.userId) return next();
   res.redirect('/login');

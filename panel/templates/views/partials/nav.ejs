@@ -1,0 +1,15 @@
+<nav class="nav" role="navigation" aria-label="Main">
+  <a href="/" class="nav-brand" aria-label="Tinchost home">Tinchost</a>
+  <div class="nav-links">
+    <a href="/" class="nav-link <%= activeNav === 'dashboard' ? 'nav-active' : '' %>"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard</a>
+    <% if (typeof wizardCompleted === 'undefined' || !wizardCompleted) { %><a href="/wizard" class="nav-link <%= activeNav === 'wizard' ? 'nav-active' : '' %>"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4V2m0 2v2m4-2v2m-2 4h2m2 4v2m0-4v-2m0 4h-2m-4 0h-2v2m0-4v-2m0 4H9m8-8h-2V4m0 2v2m0 8v2m0-4v-2m0 4h2M9 4H7v2h2V4zM5 20v-2H3v2h2zm0-4v-2H3v2h2z"/></svg>Wizard</a><% } %>
+    <a href="/sites" class="nav-link <%= activeNav === 'sites' ? 'nav-active' : '' %>"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Sites</a>
+    <a href="/databases" class="nav-link <%= activeNav === 'databases' ? 'nav-active' : '' %>"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</a>
+    <a href="/mail" class="nav-link <%= activeNav === 'mail' ? 'nav-active' : '' %>"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Mail</a>
+    <a href="/settings" class="nav-link <%= activeNav === 'settings' ? 'nav-active' : '' %>"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a>
+  </div>
+  <div class="nav-right">
+    <% if (typeof user !== 'undefined' && user && user.username) { %><span class="nav-user" aria-label="Logged in as <%= user.username %>"><%= user.username %></span><span class="nav-sep" aria-hidden="true">·</span><% } %>
+    <a href="/auth/logout" class="nav-link nav-link-logout"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</a>
+  </div>
+</nav>

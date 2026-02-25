@@ -7,12 +7,8 @@
   <style>
     * { box-sizing: border-box; }
     body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
-    .nav { background: #2d6a4f; color: #fff; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-    .nav a { color: #d8f3dc; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; }
-    .nav a:hover { color: #fff; }
-    .nav .nav-right { margin-left: auto; }
+    <%- include('partials/nav-styles') %>
     .ic { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .nav .ic { width: 18px; height: 18px; flex-shrink: 0; }
     main { max-width: 720px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
     .stack { background: #d8f3dc; border: 1px solid #95d5b2; border-radius: 6px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
     .stack h2 .ic { width: 16px; height: 16px; flex-shrink: 0; }
@@ -64,19 +60,10 @@
     .radio-option input { margin-right: 0.5rem; }
     .radio-label { font-weight: 600; display: block; margin-bottom: 0.25rem; color: #1b4332; }
     .radio-desc { font-size: 0.9rem; color: #52796f; display: block; }
-    .nav .nav-active { color: #fff; font-weight: 600; }
   </style>
 </head>
 <body>
-  <nav class="nav">
-    <a href="/"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard</a>
-    <a href="/wizard" class="nav-active"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4V2m0 2v2m4-2v2m-2 4h2m2 4v2m0-4v-2m0 4h-2m-4 0h-2v2m0-4v-2m0 4H9m8-8h-2V4m0 2v2m0 8v2m0-4v-2m0 4h2M9 4H7v2h2V4zM5 20v-2H3v2h2zm0-4v-2H3v2h2z"/></svg>Wizard</a>
-    <a href="/sites"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Sites</a>
-    <a href="/databases"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</a>
-    <a href="/mail"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Mail</a>
-    <a href="/settings"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a>
-    <span class="nav-right"><a href="/auth/logout"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</a></span>
-  </nav>
+  <%- include('partials/nav') %>
   <main>
     <h1>Setup wizard</h1>
     <p>Choose what to install below. Your selection is summarized in <strong>Your stack</strong>. When you click <strong>Install all</strong>, the panel will install everything on this server and show a live log—you don’t need to run any commands yourself.</p>
