@@ -10,7 +10,7 @@ const sslManager = require('../services/sslManager');
 const databaseManager = require('../services/databaseManager');
 const { PRIVILEGE_SETS, getDatabaseSizes } = require('../services/databaseManager');
 const ftpManager = require('../services/ftpManager');
-const { execSync, execFileSync } = require('child_process');
+const { execSync, execFileSync, spawn } = require('child_process');
 const crypto = require('crypto');
 const multer = require('multer');
 
@@ -453,6 +453,32 @@ router.post('/:id/npm-install', async (req, res) => {
     const msg = (e.message || 'npm install failed').toString().slice(0, 200);
     res.redirect('/sites/' + site.id + '?npm=error&msg=' + encodeURIComponent(msg) + '#node-apps');
   }
+});
+
+router.get('/:id/npm-install-stream', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site || site.app_type !== 'node') return res.status(400).send('Invalid site');
+  const subfolder = (req.query.subfolder || '').trim().replace(/^\/+/, '').replace(/\\/g, '');
+  const workDir = getNodeWorkDir(site, subfolder);
+  if (!workDir || !fs.existsSync(workDir)) return res.status(400).send('Invalid or missing app directory');
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  const proc = spawn('npm', ['install', '--production'], { cwd: workDir, timeout: 300000 });
+  proc.stdout.on('data', (chunk) => res.write(chunk));
+  proc.stderr.on('data', (chunk) => res.write(chunk));
+  proc.on('error', (err) => {
+    res.write('\nError: ' + (err.message || 'spawn failed') + '\n');
+    res.write('DONE:1\n');
+    res.end();
+  });
+  proc.on('close', (code) => {
+    if (code === 0) {
+      try { execFileSync('chown', ['-R', 'www-data:www-data', workDir], { stdio: 'pipe' }); } catch (_) {}
+    }
+    res.write('\n\nDONE:' + (code || 1) + '\n');
+    res.end();
+  });
 });
 
 router.post('/:id/env', async (req, res) => {

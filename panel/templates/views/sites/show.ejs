@@ -67,6 +67,13 @@
     .tabs-trigger .ic { width: 18px; height: 18px; }
     .tabs-panel { display: none; padding-top: 1.25rem; }
     .tabs-panel.is-active { display: block; }
+    .npm-overlay { display: none; position: fixed; inset: 0; background: rgba(43, 52, 49, 0.85); z-index: 10000; align-items: center; justify-content: center; padding: 1.5rem; }
+    .npm-overlay.is-active { display: flex; }
+    .npm-overlay-dialog { background: #fff; border: 1px solid #b7d4bc; border-radius: 8px; max-width: 720px; width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+    .npm-overlay-title { padding: 1rem 1.25rem; border-bottom: 1px solid #e8f5e9; font-weight: 600; color: #2d6a4f; }
+    .npm-overlay-log { flex: 1; overflow: auto; padding: 1rem 1.25rem; font-family: monospace; font-size: 0.8rem; line-height: 1.4; background: #1b4332; color: #d8f3dc; white-space: pre-wrap; word-break: break-all; min-height: 200px; max-height: 55vh; }
+    .npm-overlay-actions { padding: 1rem 1.25rem; border-top: 1px solid #e8f5e9; display: flex; justify-content: flex-end; gap: 0.5rem; }
+    .page-disabled { pointer-events: none; opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -238,10 +245,9 @@
       </div>
       <% if (typeof npmOk !== 'undefined' && npmOk) { %><div class="success-msg">Dependencies installed successfully.</div><% } %>
       <% if (typeof npmError !== 'undefined' && npmError) { %><div class="error-msg"><%= npmError %></div><% } %>
-      <form method="post" action="/sites/<%= site.id %>/npm-install" class="form-inline">
-        <input type="hidden" name="subfolder" id="npm_subfolder">
-        <button type="submit" class="btn">Run npm install</button>
-      </form>
+      <div class="form-inline">
+        <button type="button" class="btn" id="btn-run-npm-install">Run npm install</button>
+      </div>
       <p style="font-size:0.9rem; color:#52796f; margin:1rem 0 0.5rem 0;"><strong>Environment (.env)</strong> — Set <code>PORT=<%= site.node_port || '' %></code> and other variables. Save to docroot or the subfolder above.</p>
       <% if (typeof envOk !== 'undefined' && envOk) { %><div class="success-msg">.env saved.</div><% } %>
       <% if (typeof envError !== 'undefined' && envError) { %><div class="error-msg"><%= envError %></div><% } %>
@@ -276,7 +282,7 @@
         <% } else if (nodePm2Status !== 'running') { %>
         <form method="post" action="/sites/<%= site.id %>/node-start" class="inline">
           <input type="hidden" name="subfolder" id="start_subfolder">
-          <button type="submit" class="btn">Start app</button>
+          <button type="submit" class="btn" id="btn-start-app" disabled title="Run npm install first">Start app</button>
         </form>
         <% } %>
         <% if (typeof nodePm2Status !== 'undefined' && (nodePm2Status === 'running' || nodePm2Status === 'stopped')) { %>
@@ -613,6 +619,17 @@
     </div>
     </div>
   </main>
+  <% if (site.app_type === 'node') { %>
+  <div class="npm-overlay" id="npm-install-overlay" role="dialog" aria-labelledby="npm-overlay-title" aria-modal="true">
+    <div class="npm-overlay-dialog">
+      <div class="npm-overlay-title" id="npm-overlay-title">Running npm install…</div>
+      <pre class="npm-overlay-log" id="npm-overlay-log"></pre>
+      <div class="npm-overlay-actions" id="npm-overlay-actions" style="display:none;">
+        <button type="button" class="btn btn-secondary" id="npm-overlay-close">Close</button>
+      </div>
+    </div>
+  </div>
+  <% } %>
   <script src="/js/confirm-modal.js"></script>
   <script src="/js/sites-show.js"></script>
   <% if (site.app_type === 'node') { %>
@@ -623,6 +640,62 @@
     document.querySelectorAll('#panel-node-apps form input[name="subfolder"], #panel-node-apps form input[name="env_subfolder"]').forEach(function(inp) {
       inp.closest('form').addEventListener('submit', function() { inp.value = main.value; });
     });
+
+    var overlay = document.getElementById('npm-install-overlay');
+    var overlayLog = document.getElementById('npm-overlay-log');
+    var overlayActions = document.getElementById('npm-overlay-actions');
+    var overlayClose = document.getElementById('npm-overlay-close');
+    var btnRunNpm = document.getElementById('btn-run-npm-install');
+    var btnStartApp = document.getElementById('btn-start-app');
+    var siteId = '<%= site.id %>';
+
+    if (btnStartApp && window.location.search.indexOf('npm=ok') !== -1) btnStartApp.disabled = false;
+
+    function setPageDisabled(disabled) {
+      document.body.classList.toggle('page-disabled', !!disabled);
+    }
+
+    function closeOverlay() {
+      if (overlay) overlay.classList.remove('is-active');
+      setPageDisabled(false);
+    }
+
+    if (overlayClose) overlayClose.addEventListener('click', closeOverlay);
+
+    if (btnRunNpm && overlay && overlayLog) {
+      btnRunNpm.addEventListener('click', function() {
+        var subfolder = main ? main.value : '';
+        overlayLog.textContent = 'Starting npm install…\n\n';
+        if (overlayActions) overlayActions.style.display = 'none';
+        overlay.classList.add('is-active');
+        setPageDisabled(true);
+        var url = '/sites/' + siteId + '/npm-install-stream?subfolder=' + encodeURIComponent(subfolder);
+        fetch(url).then(function(response) {
+          if (!response.ok) return response.text().then(function(t) { throw new Error(t || 'Request failed'); });
+          var reader = response.body.getReader();
+          var decoder = new TextDecoder();
+          function read() {
+            return reader.read().then(function(result) {
+              if (result.done) return;
+              var text = decoder.decode(result.value, { stream: true });
+              overlayLog.textContent += text;
+              overlayLog.scrollTop = overlayLog.scrollHeight;
+              return read();
+            });
+          }
+          return read();
+        }).then(function() {
+          var logText = overlayLog.textContent || '';
+          var doneMatch = logText.match(/DONE:(\d+)/);
+          var code = doneMatch ? parseInt(doneMatch[1], 10) : 1;
+          if (code === 0 && btnStartApp) btnStartApp.disabled = false;
+          if (overlayActions) overlayActions.style.display = 'flex';
+        }).catch(function(err) {
+          overlayLog.textContent += '\n\nError: ' + (err.message || 'Request failed');
+          if (overlayActions) overlayActions.style.display = 'flex';
+        });
+      });
+    }
   })();
   </script>
   <% } %>
