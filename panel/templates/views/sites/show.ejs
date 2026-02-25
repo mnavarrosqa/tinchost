@@ -67,8 +67,8 @@
     .tabs-trigger .ic { width: 18px; height: 18px; }
     .tabs-panel { display: none; padding-top: 1.25rem; }
     .tabs-panel.is-active { display: block; }
-    .npm-overlay { display: none; position: fixed; inset: 0; background: rgba(43, 52, 49, 0.85); z-index: 10000; align-items: center; justify-content: center; padding: 1.5rem; }
-    .npm-overlay.is-active { display: flex; }
+    .npm-overlay { display: none; position: fixed; inset: 0; background: rgba(43, 52, 49, 0.85); z-index: 10000; align-items: center; justify-content: center; padding: 1.5rem; pointer-events: none; }
+    .npm-overlay.is-active { display: flex; pointer-events: auto; }
     .npm-overlay-dialog { background: #fff; border: 1px solid #b7d4bc; border-radius: 8px; max-width: 720px; width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
     .npm-overlay-title { padding: 1rem 1.25rem; border-bottom: 1px solid #e8f5e9; font-weight: 600; color: #2d6a4f; }
     .npm-overlay-log { flex: 1; overflow: auto; padding: 1rem 1.25rem; font-family: monospace; font-size: 0.8rem; line-height: 1.4; background: #1b4332; color: #d8f3dc; white-space: pre-wrap; word-break: break-all; min-height: 200px; max-height: 55vh; }
