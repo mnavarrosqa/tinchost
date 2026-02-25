@@ -133,7 +133,7 @@
       <h2><svg class="ic" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>Clone repository</h2>
       <p style="font-size:0.9rem; color:#52796f; margin:0 0 1rem 0;">Clone a Git repository into the site docroot. Use the docroot path to put the app at the root, or a subfolder (e.g. <code>app</code>) to clone into a subdirectory.</p>
       <% if (typeof cloneOk !== 'undefined' && cloneOk) { %>
-      <div class="success-msg">Repository cloned successfully. Run <code>npm install</code> and start your app (e.g. with PM2) on port <%= site.node_port || '' %>.</div>
+      <div class="success-msg">Repository cloned successfully. Use the <strong>Node app</strong> section below to install dependencies and start the app.</div>
       <% } %>
       <% if (typeof cloneError !== 'undefined' && cloneError) { %>
       <div class="error-msg"><%= cloneError %></div>
@@ -154,6 +154,56 @@
         </div>
         <button type="submit" class="btn">Clone repository</button>
       </form>
+    </div>
+    <div class="card">
+      <h2><svg class="ic" viewBox="0 0 24 24"><path d="M12 2L22 8v8l-10 6L2 16V8l10-6z"/></svg>Node app</h2>
+      <p style="font-size:0.9rem; color:#52796f; margin:0 0 1rem 0;">Install dependencies, set environment variables, and start or restart your app. No shell access needed — everything runs from this panel. The app must listen on port <strong><%= site.node_port || '' %></strong>. Your <code>package.json</code> should have a <code>start</code> script (e.g. <code>\"start\": \"node server.js\"</code>).</p>
+      <div class="form-row">
+        <label for="node_app_subfolder">App subfolder (optional)</label>
+        <input type="text" id="node_app_subfolder" placeholder="e.g. app (if you cloned into a subfolder)" value="<%= (typeof currentEnvSubfolder !== 'undefined' && currentEnvSubfolder) ? currentEnvSubfolder : '' %>">
+        <span class="hint">Leave empty if your app is in the docroot. Use the same value for install, .env, and start.</span>
+      </div>
+      <% if (typeof npmOk !== 'undefined' && npmOk) { %><div class="success-msg">Dependencies installed successfully.</div><% } %>
+      <% if (typeof npmError !== 'undefined' && npmError) { %><div class="error-msg"><%= npmError %></div><% } %>
+      <form method="post" action="/sites/<%= site.id %>/npm-install" class="form-inline">
+        <input type="hidden" name="subfolder" id="npm_subfolder">
+        <button type="submit" class="btn">Run npm install</button>
+      </form>
+      <p style="font-size:0.9rem; color:#52796f; margin:1rem 0 0.5rem 0;"><strong>Environment (.env)</strong> — Set <code>PORT=<%= site.node_port || '' %></code> and other variables. Save to docroot or the subfolder above.</p>
+      <% if (typeof envOk !== 'undefined' && envOk) { %><div class="success-msg">.env saved.</div><% } %>
+      <% if (typeof envError !== 'undefined' && envError) { %><div class="error-msg"><%= envError %></div><% } %>
+      <form method="post" action="/sites/<%= site.id %>/env" style="margin-top:0.5rem;">
+        <input type="hidden" name="subfolder" id="env_subfolder">
+        <div class="form-row">
+          <label for="env_content">.env contents</label>
+          <textarea name="env_content" id="env_content" rows="6" style="width:100%; max-width:480px; font-family:monospace; font-size:0.85rem; padding:0.5rem; border:1px solid #b7d4bc; border-radius:4px;"><%= (typeof envContent !== 'undefined' && envContent) ? String(envContent).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '' %></textarea>
+        </div>
+        <button type="submit" class="btn">Save .env</button>
+        <% if (typeof currentEnvSubfolder !== 'undefined' && currentEnvSubfolder) { %><a href="/sites/<%= site.id %>" class="btn btn-secondary" style="margin-left:0.35rem;">Show docroot .env</a><% } %>
+      </form>
+      <form method="get" action="/sites/<%= site.id %>" class="inline" style="margin-left:0; margin-top:0.5rem;"><input type="hidden" name="env_subfolder" id="load_env_subfolder"><button type="submit" class="btn btn-secondary">Load .env from subfolder</button></form>
+      <p style="font-size:0.9rem; color:#52796f; margin:1.25rem 0 0.5rem 0;"><strong>Process (PM2)</strong></p>
+      <% if (typeof nodeStarted !== 'undefined' && nodeStarted) { %><div class="success-msg">App started. It should be available at your site URL.</div><% } %>
+      <% if (typeof nodeRestarted !== 'undefined' && nodeRestarted) { %><div class="success-msg">App restarted.</div><% } %>
+      <% if (typeof nodeStopped !== 'undefined' && nodeStopped) { %><div class="success-msg">App stopped.</div><% } %>
+      <% if (typeof nodeError !== 'undefined' && nodeError) { %><div class="error-msg"><%= nodeError %></div><% } %>
+      <p style="font-size:0.85rem; color:#52796f; margin:0.25rem 0 0.5rem 0;">Status: <% if (typeof nodePm2Status !== 'undefined' && nodePm2Status === 'running') { %><span style="color:#2d6a4f; font-weight:600;">Running</span><% } else if (nodePm2Status === 'stopped') { %><span style="color:#9b2226;">Stopped</span><% } else { %><span>Not running</span><% } %></p>
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.5rem;">
+        <% if (typeof nodePm2Status !== 'undefined' && nodePm2Status === 'running') { %>
+        <form method="post" action="/sites/<%= site.id %>/node-restart" class="inline">
+          <button type="submit" class="btn">Restart app</button>
+        </form>
+        <form method="post" action="/sites/<%= site.id %>/node-stop" class="inline">
+          <button type="submit" class="btn btn-secondary">Stop app</button>
+        </form>
+        <% } else { %>
+        <form method="post" action="/sites/<%= site.id %>/node-start" class="inline">
+          <input type="hidden" name="subfolder" id="start_subfolder">
+          <button type="submit" class="btn">Start app</button>
+        </form>
+        <% } %>
+        <a href="/sites/<%= site.id %>/node-logs" target="_blank" rel="noopener" class="btn btn-secondary">View logs</a>
+      </div>
     </div>
     <% } %>
     </div>
@@ -469,5 +519,16 @@
     </div>
   </main>
   <script src="/js/sites-show.js"></script>
+  <% if (site.app_type === 'node') { %>
+  <script>
+  (function() {
+    var main = document.getElementById('node_app_subfolder');
+    if (!main) return;
+    document.querySelectorAll('#panel-overview form input[name="subfolder"], #panel-overview form input[name="env_subfolder"]').forEach(function(inp) {
+      inp.closest('form').addEventListener('submit', function() { inp.value = main.value; });
+    });
+  })();
+  </script>
+  <% } %>
 </body>
 </html>

@@ -84,6 +84,45 @@ function getNodeVersion() {
   }
 }
 
+/** PM2 app name for a Node site (used for start/restart/stop/logs). */
+function getNodePm2Name(siteId) {
+  return 'tinchohost-site-' + siteId;
+}
+
+/** Get PM2 status for a Node site app: 'running' | 'stopped' | 'not_found'. */
+function getNodePm2Status(siteId) {
+  try {
+    const out = execSync('pm2 jlist', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+    const parsed = JSON.parse(out);
+    const list = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.processes) ? parsed.processes : []);
+    const name = getNodePm2Name(siteId);
+    const proc = list.find(p => p && p.name === name);
+    if (!proc) return 'not_found';
+    return (proc.pm2_env && proc.pm2_env.status === 'online') ? 'running' : 'stopped';
+  } catch (_) {
+    return 'not_found';
+  }
+}
+
+/** Get last N lines of PM2 logs for a Node site app. Returns string or null. */
+function getNodePm2Logs(siteId, lines) {
+  try {
+    const name = getNodePm2Name(siteId);
+    const out = execSync('pm2 logs ' + name.replace(/[^a-zA-Z0-9_-]/g, '') + ' --nostream --lines ' + (lines || 50), { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 5000 });
+    return out || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Resolve app work directory (docroot or docroot/subfolder). Returns null if invalid. */
+function getNodeWorkDir(site, subfolder) {
+  const raw = (subfolder || '').trim().replace(/^\/+/, '').replace(/\\/g, '');
+  const safe = raw.replace(/[^a-zA-Z0-9_.-]/g, '');
+  if (raw !== safe) return null;
+  return resolveDocrootPath(site.docroot, safe || '.');
+}
+
 /** Get docroot disk usage. Returns formatted string (e.g. "125 MB") or null. */
 function getDocrootSizeFormatted(site) {
   if (!site || !site.docroot) return null;
@@ -239,7 +278,29 @@ router.get('/:id', async (req, res) => {
   const docrootSizeFormatted = getDocrootSizeFormatted(site);
   const cloneOk = req.query.clone === 'ok';
   const cloneError = req.query.clone === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : 'Clone failed') : null;
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError });
+  let nodePm2Status = null;
+  let envContent = '';
+  if (site.app_type === 'node') {
+    nodePm2Status = getNodePm2Status(site.id);
+    const envSubfolder = (req.query.env_subfolder || '').trim().replace(/[^a-zA-Z0-9_.-]/g, '');
+    const envWorkDir = getNodeWorkDir(site, envSubfolder);
+    if (envWorkDir) {
+      try {
+        const envPath = path.join(envWorkDir, '.env');
+        if (fs.existsSync(envPath)) envContent = fs.readFileSync(envPath, 'utf8');
+      } catch (_) {}
+    }
+  }
+  const npmOk = req.query.npm === 'ok';
+  const npmError = req.query.npm === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
+  const envOk = req.query.env === 'ok';
+  const envError = req.query.env === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
+  const nodeStarted = req.query.node === 'started';
+  const nodeRestarted = req.query.node === 'restarted';
+  const nodeStopped = req.query.node === 'stopped';
+  const nodeError = req.query.node === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
+  const currentEnvSubfolder = (req.query.env_subfolder || '').trim().replace(/[^a-zA-Z0-9_.-]/g, '');
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, nodePm2Status, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeError, currentEnvSubfolder });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {
@@ -308,6 +369,105 @@ router.post('/:id/clone', async (req, res) => {
     const msg = (e.message || 'Clone failed').toString().slice(0, 200);
     res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent(msg));
   }
+});
+
+router.post('/:id/npm-install', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
+  const workDir = getNodeWorkDir(site, req.body.subfolder);
+  if (!workDir || !fs.existsSync(workDir)) return res.redirect('/sites/' + site.id + '?npm=error&msg=' + encodeURIComponent('Invalid or missing app directory'));
+  try {
+    execSync('npm install --production', { cwd: workDir, encoding: 'utf8', stdio: 'pipe', timeout: 300000 });
+    execFileSync('chown', ['-R', 'www-data:www-data', workDir], { stdio: 'pipe' });
+    res.redirect('/sites/' + site.id + '?npm=ok');
+  } catch (e) {
+    const msg = (e.message || 'npm install failed').toString().slice(0, 200);
+    res.redirect('/sites/' + site.id + '?npm=error&msg=' + encodeURIComponent(msg));
+  }
+});
+
+router.post('/:id/env', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
+  const workDir = getNodeWorkDir(site, req.body.subfolder);
+  if (!workDir) return res.redirect('/sites/' + site.id + '?env=error&msg=' + encodeURIComponent('Invalid path'));
+  const content = (req.body.env_content != null ? req.body.env_content : '').toString();
+  const envPath = path.join(workDir, '.env');
+  try {
+    if (!fs.existsSync(workDir)) {
+      fs.mkdirSync(workDir, { recursive: true });
+      execFileSync('chown', ['www-data:www-data', workDir], { stdio: 'pipe' });
+    }
+    fs.writeFileSync(envPath, content, 'utf8');
+    execFileSync('chown', ['www-data:www-data', envPath], { stdio: 'pipe' });
+    res.redirect('/sites/' + site.id + '?env=ok');
+  } catch (e) {
+    res.redirect('/sites/' + site.id + '?env=error&msg=' + encodeURIComponent((e.message || 'Save failed').slice(0, 150)));
+  }
+});
+
+router.post('/:id/node-start', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
+  const workDir = getNodeWorkDir(site, req.body.subfolder);
+  if (!workDir || !fs.existsSync(workDir)) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid or missing app directory'));
+  const name = getNodePm2Name(site.id).replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!name) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid app name'));
+  const port = site.node_port != null ? String(site.node_port) : '3000';
+  try {
+    try { execFileSync('pm2', ['delete', name], { stdio: ['pipe', 'pipe', 'pipe'] }); } catch (_) {}
+    const env = { ...process.env, PORT: port };
+    execFileSync('pm2', ['start', 'npm', '--name', name, '--', 'run', 'start'], { cwd: workDir, env, stdio: 'pipe', timeout: 15000 });
+    execSync('pm2 save', { stdio: 'pipe' });
+    res.redirect('/sites/' + site.id + '?node=started');
+  } catch (e) {
+    const msg = (e.message || 'Start failed').toString().slice(0, 200);
+    res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent(msg));
+  }
+});
+
+router.post('/:id/node-restart', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
+  const name = getNodePm2Name(site.id).replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!name) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid app name'));
+  try {
+    execFileSync('pm2', ['restart', name], { stdio: 'pipe', timeout: 10000 });
+    execSync('pm2 save', { stdio: 'pipe' });
+    res.redirect('/sites/' + site.id + '?node=restarted');
+  } catch (e) {
+    res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent((e.message || 'Restart failed').slice(0, 200)));
+  }
+});
+
+router.post('/:id/node-stop', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
+  const name = getNodePm2Name(site.id).replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!name) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid app name'));
+  try {
+    execFileSync('pm2', ['stop', name], { stdio: 'pipe' });
+    execSync('pm2 save', { stdio: 'pipe' });
+    res.redirect('/sites/' + site.id + '?node=stopped');
+  } catch (e) {
+    res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent((e.message || 'Stop failed').slice(0, 200)));
+  }
+});
+
+router.get('/:id/node-logs', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  if (site.app_type !== 'node') return res.redirect('/sites/' + site.id);
+  const lines = Math.min(200, parseInt(req.query.lines, 10) || 80);
+  const logs = getNodePm2Logs(site.id, lines);
+  res.set('Content-Type', 'text/plain; charset=utf-8');
+  res.send(logs != null ? logs : 'No logs (app may not be running under PM2).');
 });
 
 router.post('/:id/scripts/wordpress', async (req, res) => {
