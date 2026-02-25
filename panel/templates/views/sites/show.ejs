@@ -103,6 +103,7 @@
         <li><a href="#ssl" class="tabs-trigger" data-tab="ssl" id="tab-ssl"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SSL</a></li>
         <% if (site.app_type !== 'node') { %><li><a href="#php" class="tabs-trigger" data-tab="php" id="tab-php"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>PHP</a></li><% } %>
         <li><a href="#scripts" class="tabs-trigger" data-tab="scripts" id="tab-scripts"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Scripts</a></li>
+        <% if (site.app_type === 'node') { %><li><a href="#node-apps" class="tabs-trigger" data-tab="node-apps" id="tab-node-apps"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L22 8v8l-10 6L2 16V8l10-6z"/></svg>My Node apps</a></li><% } %>
         <li><a href="/sites/<%= site.id %>/files" class="tabs-trigger"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>File Manager</a></li>
       </ul>
     </nav>
@@ -119,7 +120,7 @@
       </div>
       <% const _dbCount = (typeof siteDatabases !== "undefined" && siteDatabases) ? siteDatabases.length : 0; const _ftpCount = (typeof ftpUsers !== "undefined" && ftpUsers) ? ftpUsers.length : 0; const _scriptsCount = (typeof installedScripts !== "undefined" && installedScripts) ? installedScripts.length : 0; %>
       <p class="overview-summary" style="font-size:0.9rem; color:#52796f; margin:0.75rem 0 0 0;">
-        <a href="#databases">Databases</a>: <%= _dbCount %> · <a href="#ftp">FTP users</a>: <%= _ftpCount %> · <a href="#scripts">Scripts</a>: <%= _scriptsCount %>
+        <a href="#databases">Databases</a>: <%= _dbCount %> · <a href="#ftp">FTP users</a>: <%= _ftpCount %> · <a href="#scripts">Scripts</a>: <%= _scriptsCount %><% if (site.app_type === 'node') { %> · <a href="#node-apps">My Node apps</a><% } %>
       </p>
       <div class="site-actions">
         <a href="/sites/<%= site.id %>/edit" class="btn">Edit settings</a>
@@ -128,12 +129,15 @@
         </form>
       </div>
     </div>
+    </div>
+
     <% if (site.app_type === 'node') { %>
+    <div id="panel-node-apps" class="tabs-panel" role="tabpanel" aria-labelledby="tab-node-apps">
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>Clone repository</h2>
       <p style="font-size:0.9rem; color:#52796f; margin:0 0 1rem 0;">Clone a Git repository into the site docroot. Use the docroot path to put the app at the root, or a subfolder (e.g. <code>app</code>) to clone into a subdirectory.</p>
       <% if (typeof cloneOk !== 'undefined' && cloneOk) { %>
-      <div class="success-msg">Repository cloned successfully. Use the <strong>Node app</strong> section below to install dependencies and start the app.</div>
+      <div class="success-msg">Repository cloned successfully. Install dependencies and start the app below.</div>
       <% } %>
       <% if (typeof cloneError !== 'undefined' && cloneError) { %>
       <div class="error-msg"><%= cloneError %></div>
@@ -179,15 +183,19 @@
           <textarea name="env_content" id="env_content" rows="6" style="width:100%; max-width:480px; font-family:monospace; font-size:0.85rem; padding:0.5rem; border:1px solid #b7d4bc; border-radius:4px;"><%= (typeof envContent !== 'undefined' && envContent) ? String(envContent).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '' %></textarea>
         </div>
         <button type="submit" class="btn">Save .env</button>
-        <% if (typeof currentEnvSubfolder !== 'undefined' && currentEnvSubfolder) { %><a href="/sites/<%= site.id %>" class="btn btn-secondary" style="margin-left:0.35rem;">Show docroot .env</a><% } %>
+        <% if (typeof currentEnvSubfolder !== 'undefined' && currentEnvSubfolder) { %><a href="/sites/<%= site.id %>#node-apps" class="btn btn-secondary" style="margin-left:0.35rem;">Show docroot .env</a><% } %>
       </form>
-      <form method="get" action="/sites/<%= site.id %>" class="inline" style="margin-left:0; margin-top:0.5rem;"><input type="hidden" name="env_subfolder" id="load_env_subfolder"><button type="submit" class="btn btn-secondary">Load .env from subfolder</button></form>
-      <p style="font-size:0.9rem; color:#52796f; margin:1.25rem 0 0.5rem 0;"><strong>Process (PM2)</strong></p>
+      <form method="get" action="/sites/<%= site.id %>#node-apps" class="inline" style="margin-left:0; margin-top:0.5rem;"><input type="hidden" name="env_subfolder" id="load_env_subfolder"><button type="submit" class="btn btn-secondary">Load .env from subfolder</button></form>
+      <p style="font-size:0.9rem; color:#52796f; margin:1.25rem 0 0.5rem 0;"><strong>Apps running (PM2)</strong></p>
       <% if (typeof nodeStarted !== 'undefined' && nodeStarted) { %><div class="success-msg">App started. It should be available at your site URL.</div><% } %>
       <% if (typeof nodeRestarted !== 'undefined' && nodeRestarted) { %><div class="success-msg">App restarted.</div><% } %>
       <% if (typeof nodeStopped !== 'undefined' && nodeStopped) { %><div class="success-msg">App stopped.</div><% } %>
+      <% if (typeof nodeDeleted !== 'undefined' && nodeDeleted) { %><div class="success-msg">App removed from PM2. You can start it again from this panel when needed.</div><% } %>
       <% if (typeof nodeError !== 'undefined' && nodeError) { %><div class="error-msg"><%= nodeError %></div><% } %>
-      <p style="font-size:0.85rem; color:#52796f; margin:0.25rem 0 0.5rem 0;">Status: <% if (typeof nodePm2Status !== 'undefined' && nodePm2Status === 'running') { %><span style="color:#2d6a4f; font-weight:600;">Running</span><% } else if (nodePm2Status === 'stopped') { %><span style="color:#9b2226;">Stopped</span><% } else { %><span>Not running</span><% } %></p>
+      <p style="font-size:0.85rem; color:#52796f; margin:0.25rem 0 0.5rem 0;">
+        <% if (typeof nodePm2Name !== 'undefined' && nodePm2Name) { %><span style="font-weight:600;"><%= nodePm2Name %></span> — <% } %>
+        <% if (typeof nodePm2Status !== 'undefined' && nodePm2Status === 'running') { %><span style="color:#2d6a4f; font-weight:600;">Running</span><% } else if (nodePm2Status === 'stopped') { %><span style="color:#9b2226;">Stopped</span><% } else { %><span>Not in PM2</span><% } %>
+      </p>
       <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.5rem;">
         <% if (typeof nodePm2Status !== 'undefined' && nodePm2Status === 'running') { %>
         <form method="post" action="/sites/<%= site.id %>/node-restart" class="inline">
@@ -196,17 +204,22 @@
         <form method="post" action="/sites/<%= site.id %>/node-stop" class="inline">
           <button type="submit" class="btn btn-secondary">Stop app</button>
         </form>
-        <% } else { %>
+        <% } else if (nodePm2Status !== 'running') { %>
         <form method="post" action="/sites/<%= site.id %>/node-start" class="inline">
           <input type="hidden" name="subfolder" id="start_subfolder">
           <button type="submit" class="btn">Start app</button>
         </form>
         <% } %>
+        <% if (typeof nodePm2Status !== 'undefined' && (nodePm2Status === 'running' || nodePm2Status === 'stopped')) { %>
+        <form method="post" action="/sites/<%= site.id %>/node-delete" class="inline" data-confirm="Remove this app from PM2 completely? The process will be deleted. You can start it again later from this panel.">
+          <button type="submit" class="btn btn-secondary">Delete app</button>
+        </form>
+        <% } %>
         <a href="/sites/<%= site.id %>/node-logs" target="_blank" rel="noopener" class="btn btn-secondary">View logs</a>
       </div>
     </div>
-    <% } %>
     </div>
+    <% } %>
 
     <div id="panel-databases" class="tabs-panel" role="tabpanel" aria-labelledby="tab-databases">
     <div class="card">
@@ -538,7 +551,7 @@
   (function() {
     var main = document.getElementById('node_app_subfolder');
     if (!main) return;
-    document.querySelectorAll('#panel-overview form input[name="subfolder"], #panel-overview form input[name="env_subfolder"]').forEach(function(inp) {
+    document.querySelectorAll('#panel-node-apps form input[name="subfolder"], #panel-node-apps form input[name="env_subfolder"]').forEach(function(inp) {
       inp.closest('form').addEventListener('submit', function() { inp.value = main.value; });
     });
   })();

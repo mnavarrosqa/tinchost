@@ -1,8 +1,9 @@
 (function() {
-  var TAB_IDS = ["overview", "databases", "ftp", "ssl", "php", "scripts"];
+  var TAB_IDS = ["overview", "databases", "ftp", "ssl", "php", "scripts", "node-apps"];
   function getTabFromHash() {
     var hash = (window.location.hash || "").replace(/^#/, "");
-    return TAB_IDS.indexOf(hash) >= 0 ? hash : "overview";
+    var panel = hash ? document.getElementById("panel-" + hash) : null;
+    return (TAB_IDS.indexOf(hash) >= 0 && panel) ? hash : "overview";
   }
   function switchTab(id) {
     TAB_IDS.forEach(function(tabId) {

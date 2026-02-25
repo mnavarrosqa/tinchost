@@ -279,9 +279,11 @@ router.get('/:id', async (req, res) => {
   const cloneOk = req.query.clone === 'ok';
   const cloneError = req.query.clone === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : 'Clone failed') : null;
   let nodePm2Status = null;
+  let nodePm2Name = null;
   let envContent = '';
   if (site.app_type === 'node') {
     nodePm2Status = getNodePm2Status(site.id);
+    nodePm2Name = getNodePm2Name(site.id);
     const envSubfolder = (req.query.env_subfolder || '').trim().replace(/[^a-zA-Z0-9_.-]/g, '');
     const envWorkDir = getNodeWorkDir(site, envSubfolder);
     if (envWorkDir) {
@@ -298,11 +300,12 @@ router.get('/:id', async (req, res) => {
   const nodeStarted = req.query.node === 'started';
   const nodeRestarted = req.query.node === 'restarted';
   const nodeStopped = req.query.node === 'stopped';
+  const nodeDeleted = req.query.node === 'deleted';
   const nodeError = req.query.node === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
   const currentEnvSubfolder = (req.query.env_subfolder || '').trim().replace(/[^a-zA-Z0-9_.-]/g, '');
   const scriptUninstallOk = req.query.script_uninstall === 'ok';
   const scriptUninstallError = req.query.script_uninstall === 'error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : null) : null;
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, nodePm2Status, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError });
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, nodePm2Status, nodePm2Name, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeDeleted, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {
@@ -339,25 +342,25 @@ router.post('/:id/clone', async (req, res) => {
   const db = await getDb();
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
   if (!site) return res.redirect('/sites');
-  if (site.app_type !== 'node') return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Clone is only available for Node sites'));
+  if (site.app_type !== 'node') return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Clone is only available for Node sites') + '#node-apps');
   const repoUrl = (req.body.repo_url || '').trim();
-  if (!repoUrl) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Repository URL is required'));
+  if (!repoUrl) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Repository URL is required') + '#node-apps');
   const branch = (req.body.branch || '').trim().replace(/[^a-zA-Z0-9/_.-]/g, '');
   const rawSubfolder = (req.body.target || '').trim().replace(/^\/+/, '').replace(/\\/g, '');
   const subfolder = rawSubfolder.replace(/[^a-zA-Z0-9_.-]/g, '');
-  if (rawSubfolder !== subfolder) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Invalid subfolder name'));
+  if (rawSubfolder !== subfolder) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Invalid subfolder name') + '#node-apps');
   const docroot = path.resolve(site.docroot);
   let targetPath;
   if (!subfolder) {
     try {
       if (!fs.existsSync(docroot)) fs.mkdirSync(docroot, { recursive: true });
-      if (fs.readdirSync(docroot).length > 0) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Docroot is not empty; clear it or use a subfolder'));
-    } catch (e) { return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent(e.message || 'Docroot not accessible')); }
+      if (fs.readdirSync(docroot).length > 0) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Docroot is not empty; clear it or use a subfolder') + '#node-apps');
+    } catch (e) { return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent(e.message || 'Docroot not accessible') + '#node-apps'); }
     targetPath = docroot;
   } else {
     targetPath = resolveDocrootPath(site.docroot, subfolder);
-    if (!targetPath) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Invalid path'));
-    if (fs.existsSync(targetPath)) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Subfolder already exists'));
+    if (!targetPath) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Invalid path') + '#node-apps');
+    if (fs.existsSync(targetPath)) return res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent('Subfolder already exists') + '#node-apps');
   }
   const safeUrl = repoUrl.replace(/[\0-\x1f\x7f]/g, '');
   try {
@@ -366,10 +369,10 @@ router.post('/:id/clone', async (req, res) => {
     args.push('--', safeUrl, targetPath);
     execFileSync('git', args, { stdio: 'pipe', timeout: 120000 });
     execFileSync('chown', ['-R', 'www-data:www-data', targetPath], { stdio: 'pipe' });
-    res.redirect('/sites/' + site.id + '?clone=ok');
+    res.redirect('/sites/' + site.id + '?clone=ok#node-apps');
   } catch (e) {
     const msg = (e.message || 'Clone failed').toString().slice(0, 200);
-    res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent(msg));
+    res.redirect('/sites/' + site.id + '?clone=error&msg=' + encodeURIComponent(msg) + '#node-apps');
   }
 });
 
@@ -378,14 +381,14 @@ router.post('/:id/npm-install', async (req, res) => {
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
   if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
   const workDir = getNodeWorkDir(site, req.body.subfolder);
-  if (!workDir || !fs.existsSync(workDir)) return res.redirect('/sites/' + site.id + '?npm=error&msg=' + encodeURIComponent('Invalid or missing app directory'));
+  if (!workDir || !fs.existsSync(workDir)) return res.redirect('/sites/' + site.id + '?npm=error&msg=' + encodeURIComponent('Invalid or missing app directory') + '#node-apps');
   try {
     execSync('npm install --production', { cwd: workDir, encoding: 'utf8', stdio: 'pipe', timeout: 300000 });
     execFileSync('chown', ['-R', 'www-data:www-data', workDir], { stdio: 'pipe' });
-    res.redirect('/sites/' + site.id + '?npm=ok');
+    res.redirect('/sites/' + site.id + '?npm=ok#node-apps');
   } catch (e) {
     const msg = (e.message || 'npm install failed').toString().slice(0, 200);
-    res.redirect('/sites/' + site.id + '?npm=error&msg=' + encodeURIComponent(msg));
+    res.redirect('/sites/' + site.id + '?npm=error&msg=' + encodeURIComponent(msg) + '#node-apps');
   }
 });
 
@@ -394,7 +397,7 @@ router.post('/:id/env', async (req, res) => {
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
   if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
   const workDir = getNodeWorkDir(site, req.body.subfolder);
-  if (!workDir) return res.redirect('/sites/' + site.id + '?env=error&msg=' + encodeURIComponent('Invalid path'));
+  if (!workDir) return res.redirect('/sites/' + site.id + '?env=error&msg=' + encodeURIComponent('Invalid path') + '#node-apps');
   const content = (req.body.env_content != null ? req.body.env_content : '').toString();
   const envPath = path.join(workDir, '.env');
   try {
@@ -404,9 +407,9 @@ router.post('/:id/env', async (req, res) => {
     }
     fs.writeFileSync(envPath, content, 'utf8');
     execFileSync('chown', ['www-data:www-data', envPath], { stdio: 'pipe' });
-    res.redirect('/sites/' + site.id + '?env=ok');
+    res.redirect('/sites/' + site.id + '?env=ok#node-apps');
   } catch (e) {
-    res.redirect('/sites/' + site.id + '?env=error&msg=' + encodeURIComponent((e.message || 'Save failed').slice(0, 150)));
+    res.redirect('/sites/' + site.id + '?env=error&msg=' + encodeURIComponent((e.message || 'Save failed').slice(0, 150)) + '#node-apps');
   }
 });
 
@@ -415,19 +418,19 @@ router.post('/:id/node-start', async (req, res) => {
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
   if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
   const workDir = getNodeWorkDir(site, req.body.subfolder);
-  if (!workDir || !fs.existsSync(workDir)) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid or missing app directory'));
+  if (!workDir || !fs.existsSync(workDir)) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid or missing app directory') + '#node-apps');
   const name = getNodePm2Name(site.id).replace(/[^a-zA-Z0-9_-]/g, '');
-  if (!name) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid app name'));
+  if (!name) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid app name') + '#node-apps');
   const port = site.node_port != null ? String(site.node_port) : '3000';
   try {
     try { execFileSync('pm2', ['delete', name], { stdio: ['pipe', 'pipe', 'pipe'] }); } catch (_) {}
     const env = { ...process.env, PORT: port };
     execFileSync('pm2', ['start', 'npm', '--name', name, '--', 'run', 'start'], { cwd: workDir, env, stdio: 'pipe', timeout: 15000 });
     execSync('pm2 save', { stdio: 'pipe' });
-    res.redirect('/sites/' + site.id + '?node=started');
+    res.redirect('/sites/' + site.id + '?node=started#node-apps');
   } catch (e) {
     const msg = (e.message || 'Start failed').toString().slice(0, 200);
-    res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent(msg));
+    res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent(msg) + '#node-apps');
   }
 });
 
@@ -436,13 +439,13 @@ router.post('/:id/node-restart', async (req, res) => {
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
   if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
   const name = getNodePm2Name(site.id).replace(/[^a-zA-Z0-9_-]/g, '');
-  if (!name) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid app name'));
+  if (!name) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid app name') + '#node-apps');
   try {
     execFileSync('pm2', ['restart', name], { stdio: 'pipe', timeout: 10000 });
     execSync('pm2 save', { stdio: 'pipe' });
-    res.redirect('/sites/' + site.id + '?node=restarted');
+    res.redirect('/sites/' + site.id + '?node=restarted#node-apps');
   } catch (e) {
-    res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent((e.message || 'Restart failed').slice(0, 200)));
+    res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent((e.message || 'Restart failed').slice(0, 200)) + '#node-apps');
   }
 });
 
@@ -451,13 +454,28 @@ router.post('/:id/node-stop', async (req, res) => {
   const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
   if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
   const name = getNodePm2Name(site.id).replace(/[^a-zA-Z0-9_-]/g, '');
-  if (!name) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid app name'));
+  if (!name) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid app name') + '#node-apps');
   try {
     execFileSync('pm2', ['stop', name], { stdio: 'pipe' });
     execSync('pm2 save', { stdio: 'pipe' });
-    res.redirect('/sites/' + site.id + '?node=stopped');
+    res.redirect('/sites/' + site.id + '?node=stopped#node-apps');
   } catch (e) {
-    res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent((e.message || 'Stop failed').slice(0, 200)));
+    res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent((e.message || 'Stop failed').slice(0, 200)) + '#node-apps');
+  }
+});
+
+router.post('/:id/node-delete', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site || site.app_type !== 'node') return res.redirect('/sites/' + (site ? site.id : ''));
+  const name = getNodePm2Name(site.id).replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!name) return res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent('Invalid app name') + '#node-apps');
+  try {
+    try { execFileSync('pm2', ['delete', name], { stdio: ['pipe', 'pipe', 'pipe'] }); } catch (_) {}
+    execSync('pm2 save', { stdio: 'pipe' });
+    res.redirect('/sites/' + site.id + '?node=deleted#node-apps');
+  } catch (e) {
+    res.redirect('/sites/' + site.id + '?node=error&msg=' + encodeURIComponent((e.message || 'Delete failed').slice(0, 200)) + '#node-apps');
   }
 });
 
