@@ -34,7 +34,8 @@
     <div class="back"><a href="/settings">← Settings</a></div>
     <h1>Logs: <%= label %></h1>
     <p class="meta">Unit: <code><%= unit %></code> · Last 200 lines from journalctl</p>
-    <div class="log-box <%= typeof error !== 'undefined' && error ? 'error' : '' %>"><%= typeof output !== 'undefined' ? output.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '(no output)' %></div>
+    <% const safeOutput = typeof output !== 'undefined' ? String(output).replace(/</g, '&lt;').replace(/>/g, '&gt;') : '(no output)'; %>
+    <div class="log-box <%= typeof error !== 'undefined' && error ? 'error' : '' %>"><%= safeOutput %></div>
   </main>
 </body>
 </html>
