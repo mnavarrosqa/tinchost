@@ -8,59 +8,106 @@
     * { box-sizing: border-box; }
     body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
     .nav { background: #2d6a4f; color: #fff; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-    .nav a { color: #d8f3dc; text-decoration: none; }
+    .nav a { color: #d8f3dc; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; }
     .nav a:hover { color: #fff; }
     .nav .nav-right { margin-left: auto; }
+    .ic { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .nav .ic { width: 18px; height: 18px; flex-shrink: 0; }
     .nav .nav-active { color: #fff; font-weight: 600; }
     main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
-    h1 { color: #1b4332; margin-top: 0; }
+    h1 { color: #1b4332; margin-top: 0; font-size: 1.5rem; }
+    .breadcrumb { margin-bottom: 0.5rem; font-size: 0.9rem; }
+    .breadcrumb a { color: #2d6a4f; text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .page-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+    .page-header .intro { color: #52796f; font-size: 0.95rem; margin: 0.25rem 0 0 0; flex-basis: 100%; }
+    .card { border: 1px solid #b7d4bc; border-radius: 6px; padding: 0; margin-bottom: 1.25rem; background: #fff; overflow: hidden; }
+    .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid #e8f5e9; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+    .card-header h2 { margin: 0; color: #2d6a4f; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; }
+    .card-header h2 .ic { width: 18px; height: 18px; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #e8f5e9; }
-    th { color: #2d6a4f; font-weight: 600; font-size: 0.875rem; }
-    .btn { padding: 0.4rem 0.9rem; background: #2d6a4f; color: #fff; text-decoration: none; border: none; border-radius: 6px; font-size: 0.9rem; display: inline-flex; align-items: center; }
+    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e8f5e9; vertical-align: middle; }
+    th { color: #2d6a4f; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.02em; }
+    tbody tr { transition: background-color 0.15s ease; }
+    tbody tr:hover { background: #f8fcf8; }
+    tbody tr:last-child td { border-bottom: none; }
+    .domain-cell { font-weight: 500; color: #1b4332; }
+    .domain-cell a { color: #1b4332; text-decoration: none; }
+    .domain-cell a:hover { color: #2d6a4f; text-decoration: underline; }
+    .docroot-cell { font-size: 0.9rem; color: #52796f; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .docroot-cell[title] { cursor: help; }
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; }
+    .badge-ok { background: #d8f3dc; color: #1b4332; }
+    .badge-off { background: #e8f5e9; color: #52796f; }
+    .badge-app { background: #b7d4bc; color: #1b4332; }
+    .actions-cell { white-space: nowrap; }
+    .actions-cell .btn { margin-right: 0.35rem; }
+    .actions-cell .btn:last-child { margin-right: 0; }
+    .btn { padding: 0.45rem 0.85rem; background: #2d6a4f; color: #fff; text-decoration: none; border: none; border-radius: 6px; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; font-family: inherit; font-weight: 500; }
     .btn:hover { background: #1b4332; color: #fff; }
-    .btn-secondary { background: #52796f; }
-    .btn-secondary:hover { background: #354f52; }
+    .btn .ic { width: 16px; height: 16px; }
+    .btn-secondary { background: #52796f; color: #fff; }
+    .btn-secondary:hover { background: #354f52; color: #fff; }
     form.inline { display: inline; }
+    .empty-state { padding: 2.5rem 1.5rem; text-align: center; color: #52796f; }
+    .empty-state p { margin: 0 0 1rem 0; font-size: 1rem; }
+    .empty-state .btn { margin-top: 0.5rem; }
   </style>
 </head>
 <body>
   <nav class="nav">
-    <a href="/">Dashboard</a>
-    <a href="/sites" class="nav-active">Sites</a>
-    <a href="/databases">Databases</a>
-    <a href="/mail">Mail</a>
-    <a href="/settings">Settings</a>
-    <span class="nav-right"><a href="/auth/logout">Logout</a></span>
+    <a href="/"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard</a>
+    <a href="/sites" class="nav-active"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Sites</a>
+    <a href="/databases"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</a>
+    <a href="/mail"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Mail</a>
+    <a href="/settings"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</a>
+    <span class="nav-right"><% if (typeof user !== 'undefined' && user) { %><%= user.username %> · <% } %><a href="/auth/logout"><svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</a></span>
   </nav>
   <main>
-    <h1>Sites</h1>
-    <p><a href="/sites/new" class="btn">Add site</a></p>
-    <table>
-      <thead>
-        <tr><th>Domain</th><th>Docroot</th><th>App</th><th>SSL</th><th>FTP</th><th></th></tr>
-      </thead>
-      <tbody>
-        <% sites.forEach(function(s) {
-          var appLabel = (s.app_type === 'node') ? ('Node :' + (s.node_port != null ? s.node_port : '')) : (s.php_version || 'PHP');
-        %>
-        <tr>
-          <td><%= s.domain %></td>
-          <td><%= s.docroot %></td>
-          <td><%= appLabel %></td>
-          <td><%= s.ssl ? 'Yes' : 'No' %></td>
-          <td><%= s.ftp_enabled ? 'Yes' : 'No' %></td>
-          <td>
-            <a href="/sites/<%= s.id %>" class="btn">Manage</a>
-            <a href="/sites/<%= s.id %>/edit" class="btn btn-secondary">Edit</a>
-          </td>
-        </tr>
-        <% }); %>
-        <% if (!sites.length) { %>
-        <tr><td colspan="6">No sites yet. <a href="/sites/new">Add one</a>.</td></tr>
-        <% } %>
-      </tbody>
-    </table>
+    <div class="breadcrumb"><a href="/">Dashboard</a> → <strong>Sites</strong></div>
+    <div class="page-header">
+      <div>
+        <h1>Sites</h1>
+        <p class="intro">Manage web sites, docroots, SSL, and FTP. Add a site to get a new Nginx vhost.</p>
+      </div>
+      <a href="/sites/new" class="btn"><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add site</a>
+    </div>
+
+    <div class="card">
+      <% if (sites.length) { %>
+      <div class="card-header">
+        <h2><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>All sites</h2>
+        <span style="font-size:0.9rem; color:#52796f;"><%= sites.length %> <%= sites.length === 1 ? 'site' : 'sites' %></span>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Domain</th><th>Docroot</th><th>App</th><th>SSL</th><th>FTP</th><th></th></tr>
+        </thead>
+        <tbody>
+          <% sites.forEach(function(s) {
+            var appLabel = (s.app_type === 'node') ? ('Node :' + (s.node_port != null ? s.node_port : '')) : (s.php_version || 'PHP');
+          %>
+          <tr>
+            <td class="domain-cell"><a href="/sites/<%= s.id %>"><%= s.domain %></a></td>
+            <td class="docroot-cell" title="<%= s.docroot %>"><%= s.docroot %></td>
+            <td><span class="badge badge-app"><%= appLabel %></span></td>
+            <td><span class="badge <%= s.ssl ? 'badge-ok' : 'badge-off' %>"><%= s.ssl ? 'Yes' : 'No' %></span></td>
+            <td><span class="badge <%= s.ftp_enabled ? 'badge-ok' : 'badge-off' %>"><%= s.ftp_enabled ? 'Yes' : 'No' %></span></td>
+            <td class="actions-cell">
+              <a href="/sites/<%= s.id %>" class="btn">Manage</a>
+              <a href="/sites/<%= s.id %>/edit" class="btn btn-secondary">Edit</a>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+      <% } else { %>
+      <div class="empty-state">
+        <p>No sites yet. Add your first site to create an Nginx vhost and configure docroot, PHP or Node, SSL, and FTP.</p>
+        <a href="/sites/new" class="btn"><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add site</a>
+      </div>
+      <% } %>
+    </div>
   </main>
 </body>
 </html>

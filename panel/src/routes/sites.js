@@ -45,7 +45,7 @@ router.get('/', async (req, res) => {
   const sites = db.prepare('SELECT * FROM sites ORDER BY domain').all();
   const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
   const phpVersions = (state?.php_versions || '8.2').split(',').filter(Boolean);
-  res.render('sites/list', { sites, phpVersions });
+  res.render('sites/list', { sites, phpVersions, user: req.session?.user });
 });
 
 router.get('/new', async (req, res) => {
