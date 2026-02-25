@@ -25,6 +25,54 @@ function resolveDocrootPath(docroot, relativePath) {
   return null;
 }
 
+/** Detect installed scripts (e.g. WordPress) under site docroot. Returns array of { id, name, subfolder, urlPath, version, adminPath }. */
+function detectInstalledScripts(site) {
+  const list = [];
+  const root = path.resolve(site.docroot);
+  if (!site.docroot) return list;
+  try {
+    if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) return list;
+  } catch (_) { return list; }
+
+  function checkWordPress(dir, subfolder) {
+    const wpConfig = path.join(dir, 'wp-config.php');
+    const wpIncludes = path.join(dir, 'wp-includes');
+    try {
+      if (fs.existsSync(wpConfig) && fs.existsSync(wpIncludes)) {
+        let version = null;
+        const versionPhp = path.join(dir, 'wp-includes', 'version.php');
+        if (fs.existsSync(versionPhp)) {
+          const content = fs.readFileSync(versionPhp, 'utf8');
+          const m = content.match(/\$wp_version\s*=\s*['"]([^'"]+)['"]/);
+          if (m) version = m[1];
+        }
+        const urlPath = subfolder ? '/' + subfolder.replace(/\/+$/, '') + '/' : '/';
+        list.push({
+          id: 'wordpress',
+          name: 'WordPress',
+          subfolder: subfolder || null,
+          urlPath,
+          version,
+          adminPath: urlPath.replace(/\/$/, '') + '/wp-admin'
+        });
+      }
+    } catch (_) {}
+  }
+
+  checkWordPress(root, '');
+  try {
+    const entries = fs.readdirSync(root, { withFileTypes: true });
+    for (const e of entries) {
+      if (e.isDirectory() && !e.name.startsWith('.')) {
+        const subDir = path.join(root, e.name);
+        checkWordPress(subDir, e.name);
+      }
+    }
+  } catch (_) {}
+
+  return list;
+}
+
 const SITE_ERROR_MESSAGES = {
   mysql_password: 'MySQL root password not set in Settings. Set it in Settings and click Save.'
 };
@@ -156,7 +204,8 @@ router.get('/:id', async (req, res) => {
       databaseSizes = await getDatabaseSizes(settings, siteDatabases.map(d => d.name));
     } catch (_) {}
   }
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes });
+  const installedScripts = detectInstalledScripts(site);
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {

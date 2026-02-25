@@ -28,6 +28,15 @@
     .status-inactive { color: #9b2226; }
     .card { border: 1px solid #b7d4bc; border-radius: 6px; padding: 1.25rem; margin-bottom: 1.25rem; background: #fff; }
     form.inline { display: inline; }
+    .tabs { margin: 0 0 0 0; border-bottom: 1px solid #b7d4bc; }
+    .tabs-list { display: flex; flex-wrap: wrap; gap: 0; list-style: none; margin: 0; padding: 0; }
+    .tabs-list li { margin: 0; }
+    .tabs-trigger { padding: 0.75rem 1rem; color: #52796f; text-decoration: none; border-bottom: 3px solid transparent; margin-bottom: -1px; display: flex; align-items: center; gap: 0.4rem; font-size: 0.95rem; }
+    .tabs-trigger:hover { color: #2d6a4f; }
+    .tabs-trigger.is-active { color: #2d6a4f; font-weight: 600; border-bottom-color: #2d6a4f; }
+    .tabs-trigger .ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .tabs-panel { display: none; padding-top: 1.25rem; }
+    .tabs-panel.is-active { display: block; }
   </style>
 </head>
 <body>
@@ -59,6 +68,15 @@
     <% } %>
     <div class="risk"><strong>This panel runs as root.</strong> Protect access and use a strong password.</div>
 
+    <nav class="tabs" aria-label="Settings sections">
+      <ul class="tabs-list">
+        <li><a href="#paths" class="tabs-trigger is-active" data-tab="paths" id="tab-paths"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Paths &amp; credentials</a></li>
+        <li><a href="#services" class="tabs-trigger" data-tab="services" id="tab-services"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/><line x1="18" y1="6" x2="18.01" y2="6"/><line x1="18" y1="18" x2="18.01" y2="18"/></svg>Services</a></li>
+        <li><a href="#components" class="tabs-trigger" data-tab="components" id="tab-components"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Install components</a></li>
+      </ul>
+    </nav>
+
+    <div id="panel-paths" class="tabs-panel is-active" role="tabpanel" aria-labelledby="tab-paths">
     <h2>Paths &amp; credentials</h2>
     <% if (typeof dbPath !== 'undefined' && dbPath) { %>
     <p style="font-size:0.85rem; color:#52796f; margin:0 0 0.75rem 0;">Panel database: <code style="word-break:break-all;"><%= dbPath %></code></p>
@@ -79,7 +97,9 @@
       <input type="password" name="mysql_root_password" value="<%= mysqlPwdValue %>" placeholder="Enter password to set or change; leave blank to keep current" autocomplete="new-password">
       <button type="submit">Save</button>
     </form>
+    </div>
 
+    <div id="panel-services" class="tabs-panel" role="tabpanel" aria-labelledby="tab-services">
     <h2>Installed services</h2>
     <p style="color:#52796f; font-size:0.9rem; margin:0 0 0.5rem 0;">Services installed by the wizard. Restart a service to apply config changes.</p>
     <% if (typeof installedServices !== 'undefined' && installedServices.length) { %>
@@ -106,7 +126,9 @@
     <% } else { %>
     <p style="color:#52796f; font-size:0.9rem;">Complete the <a href="/wizard">setup wizard</a> or install components below. Services will appear here once installed.</p>
     <% } %>
+    </div>
 
+    <div id="panel-components" class="tabs-panel" role="tabpanel" aria-labelledby="tab-components">
     <h2>Install components</h2>
     <p style="color:#52796f; font-size:0.9rem; margin:0 0 0.75rem 0;">Install or add components that were not selected during the wizard. Installation may take a few minutes; do not close the page until it finishes.</p>
     <% const phpList = (state && state.php_versions) ? (state.php_versions + '').split(',').map(s => s.trim()).filter(Boolean) : []; %>
@@ -210,6 +232,34 @@
     </div>
 
     <p style="margin-top:1.5rem; font-size:0.9rem; color:#52796f;"><% const _w = state && state.completed ? 'Yes' : 'No'; const _c = state && state.certbot_installed ? 'Yes' : 'No'; %>Wizard completed: <%= _w %> · Certbot installed: <%= _c %></p>
+    </div>
   </main>
+  <script>
+  (function() {
+    var TAB_IDS = ["paths", "services", "components"];
+    function getTabFromHash() {
+      var hash = (window.location.hash || "").replace(/^#/, "");
+      return TAB_IDS.indexOf(hash) >= 0 ? hash : "paths";
+    }
+    function switchTab(id) {
+      TAB_IDS.forEach(function(tabId) {
+        var panel = document.getElementById("panel-" + tabId);
+        var trigger = document.getElementById("tab-" + tabId);
+        if (panel) panel.classList.toggle("is-active", tabId === id);
+        if (trigger) trigger.classList.toggle("is-active", tabId === id);
+      });
+      window.location.hash = id;
+    }
+    document.addEventListener("click", function(e) {
+      var trigger = e.target.closest(".tabs-trigger");
+      if (trigger && trigger.dataset.tab) {
+        e.preventDefault();
+        switchTab(trigger.dataset.tab);
+      }
+    });
+    window.addEventListener("hashchange", function() { switchTab(getTabFromHash()); });
+    switchTab(getTabFromHash());
+  })();
+  </script>
 </body>
 </html>

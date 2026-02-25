@@ -385,14 +385,37 @@
     </div>
 
     <div id="panel-scripts" class="tabs-panel" role="tabpanel" aria-labelledby="tab-scripts">
+    <% const _scheme = site.ssl ? "https" : "http"; const _baseUrl = _scheme + "://" + site.domain; %>
+    <% if (typeof installedScripts !== "undefined" && installedScripts && installedScripts.length > 0) { %>
+    <div class="card">
+      <h2><svg class="ic" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Installed scripts</h2>
+      <p style="font-size:0.9rem; color:#52796f; margin:0 0 1rem 0;">Scripts detected in this site’s docroot. Use the links below to open the site or admin.</p>
+      <ul class="script-list" style="list-style:none; margin:0; padding:0;">
+        <% installedScripts.forEach(function(script) {
+          const openUrl = _baseUrl + (script.urlPath || '/');
+          const adminUrl = script.adminPath ? (_baseUrl + script.adminPath) : null;
+          const locationLabel = script.subfolder ? '/' + script.subfolder : 'site root';
+        %>
+        <li class="script-item" style="border:1px solid #b7d4bc; border-radius:6px; padding:1rem; margin-bottom:0.75rem; background:#f8fcf9;">
+          <div style="display:flex; align-items:center; flex-wrap:wrap; gap:0.5rem 1rem;">
+            <strong><%= script.name %></strong>
+            <% if (script.version) { %><span style="font-size:0.85rem; color:#52796f;">Version <%= script.version %></span><% } %>
+            <span style="font-size:0.85rem; color:#52796f;">Location: <%= locationLabel %></span>
+          </div>
+          <div style="margin-top:0.5rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
+            <a href="<%= openUrl %>" target="_blank" rel="noopener" class="btn" style="padding:0.35rem 0.7rem; font-size:0.85rem;">Open site</a>
+            <% if (adminUrl) { %><a href="<%= adminUrl %>" target="_blank" rel="noopener" class="btn" style="padding:0.35rem 0.7rem; font-size:0.85rem;">WordPress admin</a><% } %>
+          </div>
+        </li>
+        <% }); %>
+      </ul>
+    </div>
+    <% } %>
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>WordPress</h2>
       <p class="empty-msg">WordPress needs a <strong>database</strong> and a <strong>database user</strong>. Create them in the <a href="#databases">Databases</a> tab if you have not already.</p>
       <% if (typeof wordpress !== "undefined" && wordpress === "installed") {
-        const scheme = site.ssl ? "https" : "http";
-        const base = scheme + "://" + site.domain;
-        const wpPath = (typeof wp_folder !== "undefined" && wp_folder) ? "/" + wp_folder + "/" : "/";
-        const setupUrl = base + wpPath;
+        const setupUrl = _baseUrl + ((typeof wp_folder !== "undefined" && wp_folder) ? "/" + wp_folder + "/" : "/");
       %>
       <div class="success-msg">
         <strong>WordPress installed.</strong> Open <a href="<%= setupUrl %>" target="_blank" rel="noopener"><%= setupUrl %></a> in your browser to finish the setup. You will need the database name, database username, and password (create them in the <a href="#databases">Databases</a> tab if needed).
