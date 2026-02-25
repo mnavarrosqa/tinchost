@@ -25,6 +25,19 @@ app.use(session({
   cookie: { secure: false, httpOnly: true }
 }));
 
+async function setWizardCompleted(req, res, next) {
+  res.locals.wizardCompleted = false;
+  if (req.session && req.session.userId) {
+    try {
+      const db = await getDb();
+      const row = db.prepare('SELECT completed FROM wizard_state LIMIT 1').get();
+      res.locals.wizardCompleted = !!(row && row.completed);
+    } catch (_) {}
+  }
+  next();
+}
+app.use(setWizardCompleted);
+
 function requireAuth(req, res, next) {
   if (req.session && req.session.userId) return next();
   res.redirect('/login');
