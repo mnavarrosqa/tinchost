@@ -57,6 +57,24 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+# Require Ubuntu 22.04 or newer
+if [[ -r /etc/os-release ]]; then
+  # shellcheck source=/dev/null
+  . /etc/os-release
+else
+  echo "Cannot read /etc/os-release. This script requires Ubuntu 22.04 or newer."
+  exit 1
+fi
+if [[ "${ID:-}" != "ubuntu" ]]; then
+  echo "This script requires Ubuntu. Detected OS: ${ID:-unknown}"
+  exit 1
+fi
+major="${VERSION_ID%%.*}"
+if [[ ! "${major:-}" =~ ^[0-9]+$ ]] || [[ $major -lt 22 ]]; then
+  echo "This script requires Ubuntu 22.04 or newer. Detected version: ${VERSION_ID:-unknown}"
+  exit 1
+fi
+
 if [[ -f "$MARKER_FILE" && "$FORCE" != "1" ]]; then
   echo "Panel already installed (marker: $MARKER_FILE). Use FORCE=1 to re-run."
   exit 0
