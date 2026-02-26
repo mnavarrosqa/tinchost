@@ -66,8 +66,12 @@ export DEBIAN_FRONTEND=noninteractive
 
 banner
 
-step "Prerequisites"
+step "System updates (apt update & upgrade)"
 apt-get update -qq
+apt-get upgrade -y -qq
+step_ok "package lists updated, upgrades applied"
+
+step "Prerequisites"
 apt-get install -y -qq curl ca-certificates
 step_ok "curl, ca-certificates"
 
