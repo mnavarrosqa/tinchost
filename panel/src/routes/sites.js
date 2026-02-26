@@ -380,7 +380,6 @@ router.get('/:id', async (req, res) => {
   const sslInstallError = req.query.ssl === 'install_error' ? (req.query.msg ? decodeURIComponent(req.query.msg) : 'Install failed') : null;
   const wordpress = req.query.wordpress || null;
   const wp_folder = req.query.wp_folder || null;
-  const phpOptionsSaved = req.query.php_options === 'saved';
   let databaseSizes = {};
   if (siteDatabases.length && getSetting(db, 'mysql_root_password')) {
     try {
