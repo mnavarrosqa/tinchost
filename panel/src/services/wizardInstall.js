@@ -96,6 +96,28 @@ sendmail_path = "/usr/sbin/sendmail -t -i"
 }
 
 /**
+ * Configure Postfix so mail sent by PHP (www-data) uses envelope sender noreply@hostname
+ * instead of www-data@hostname. Helps WordPress and other PHP mail when -f is not set.
+ */
+function applyPostfixForPhpMail() {
+  try {
+    const hostname = require('os').hostname() || 'localhost';
+    const genericPath = '/etc/postfix/generic';
+    const content = `# Tinchost: default envelope sender for PHP (www-data)
+www-data@${hostname} noreply@${hostname}
+www-data noreply@${hostname}
+`;
+    fs.writeFileSync(genericPath, content, 'utf8');
+    run('postmap ' + genericPath);
+    run('postconf -e "smtp_generic_maps = hash:' + genericPath + '"');
+    const restart = run('systemctl reload postfix');
+    return restart.ok ? { ok: true } : { ok: false, out: restart.out };
+  } catch (err) {
+    return { ok: false, out: (err.message || String(err)) };
+  }
+}
+
+/**
  * Return list of PHP versions installed under /etc/php (e.g. ['7.4', '8.1', '8.2']).
  */
 function getInstalledPhpVersions() {
@@ -503,5 +525,8 @@ module.exports = {
   installFtp,
   installCertbot,
   runWizardInstall,
-  runWizardInstallStreaming
+  runWizardInstallStreaming,
+  getInstalledPhpVersions,
+  applyPhpMailConfig,
+  applyPostfixForPhpMail
 };

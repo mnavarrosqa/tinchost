@@ -219,6 +219,63 @@ router.post('/nginx-upload-limit', async (req, res) => {
   res.redirect('/settings');
 });
 
+router.post('/apply-php-mail', async (req, res) => {
+  try {
+    const versions = wizardInstall.getInstalledPhpVersions();
+    if (versions.length === 0) {
+      req.session.settingsError = 'No PHP versions found under /etc/php. Install PHP first.';
+      return res.redirect('/settings');
+    }
+    for (const v of versions) {
+      const result = wizardInstall.applyPhpMailConfig(v);
+      if (!result.ok) {
+        req.session.settingsError = 'PHP ' + v + ': ' + (result.out || result.message || 'Failed');
+        return res.redirect('/settings');
+      }
+    }
+    let msg = 'PHP mail config applied to ' + versions.join(', ') + '.';
+    const postfixStatus = servicesManager.getServiceStatus('postfix');
+    if (postfixStatus === 'active') {
+      const pf = wizardInstall.applyPostfixForPhpMail();
+      if (pf.ok) msg += ' Postfix default envelope sender set for www-data.';
+      else msg += ' (Postfix tweak skipped: ' + (pf.out || '').slice(0, 80) + ')';
+    }
+    req.session.settingsSaved = msg;
+  } catch (e) {
+    req.session.settingsError = (e && e.message) ? e.message : 'Failed to apply PHP mail config';
+  }
+  res.redirect('/settings');
+});
+
+router.post('/test-email', async (req, res) => {
+  const to = (req.body && req.body.to) ? String(req.body.to).trim() : '';
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!to || !emailRe.test(to)) {
+    req.session.settingsError = 'Enter a valid email address to send the test to.';
+    return res.redirect('/settings#services');
+  }
+  try {
+    const hostname = require('os').hostname();
+    const from = 'noreply@' + (hostname || 'localhost');
+    const raw = 'To: ' + to + '\r\nSubject: Tinchost test\r\nFrom: ' + from + '\r\n\r\nTest from Tinchost Panel. If you received this, Postfix and sendmail are working.\r\n';
+    const { spawnSync } = require('child_process');
+    const r = spawnSync('/usr/sbin/sendmail', ['-t', '-i', '-f', from], {
+      input: raw,
+      encoding: 'utf8',
+      timeout: 15000
+    });
+    if (r.status !== 0) {
+      const err = (r.stderr || r.stdout || r.error?.message || 'sendmail failed').toString().trim();
+      req.session.settingsError = 'Test email failed: ' + (err.slice(0, 200) || 'sendmail exited with ' + r.status);
+      return res.redirect('/settings#services');
+    }
+    req.session.settingsSaved = 'Test email sent to ' + to + '. Check inbox (and spam).';
+  } catch (e) {
+    req.session.settingsError = 'Test email failed: ' + ((e && e.message) || 'sendmail not available or error');
+  }
+  res.redirect('/settings#services');
+});
+
 router.post('/', async (req, res) => {
   const { nginx_sites_available, php_pool_dir, mail_path, mysql_root_password } = req.body || {};
   try {
