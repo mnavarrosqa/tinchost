@@ -10,6 +10,7 @@ const sslManager = require('../services/sslManager');
 const databaseManager = require('../services/databaseManager');
 const { PRIVILEGE_SETS, getDatabaseSizes } = require('../services/databaseManager');
 const ftpManager = require('../services/ftpManager');
+const servicesManager = require('../services/servicesManager');
 const { execSync, execFileSync, spawn } = require('child_process');
 const crypto = require('crypto');
 const dns = require('dns');
@@ -63,6 +64,71 @@ function getServerIps(db) {
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 const DEFAULT_INDEX_PATH = path.join(__dirname, '..', '..', 'templates', 'default-site-index.html');
+
+/** Common PHP extensions: id = phpenmod/phpdismod name, pkg = apt package suffix (php{V}-pkg). */
+const COMMON_PHP_MODULES = [
+  { id: 'curl', label: 'cURL' },
+  { id: 'mbstring', label: 'MBString' },
+  { id: 'xml', label: 'XML' },
+  { id: 'zip', label: 'Zip' },
+  { id: 'gd', label: 'GD' },
+  { id: 'intl', label: 'Intl' },
+  { id: 'bcmath', label: 'BCMath' },
+  { id: 'soap', label: 'SOAP' },
+  { id: 'imap', label: 'IMAP' },
+  { id: 'exif', label: 'Exif' },
+  { id: 'gettext', label: 'Gettext' },
+  { id: 'redis', label: 'Redis' },
+  { id: 'mysqli', label: 'MySQLi', pkg: 'mysql' },
+  { id: 'pdo_mysql', label: 'PDO MySQL', pkg: 'mysql' }
+];
+
+function getPhpLoadedModules(version) {
+  const loaded = new Set();
+  try {
+    const out = execFileSync('php' + version, ['-m'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 5000 });
+    out.split(/\n/).forEach((line) => {
+      const m = line.trim().toLowerCase();
+      if (m && !m.startsWith('[')) loaded.add(m);
+    });
+  } catch (_) {}
+  return loaded;
+}
+
+function getPhpModulesForVersion(version) {
+  const loaded = getPhpLoadedModules(version);
+  return COMMON_PHP_MODULES.map((m) => ({
+    id: m.id,
+    label: m.label,
+    enabled: loaded.has(m.id)
+  }));
+}
+
+/** Enable or disable one PHP-FPM module for a PHP version (no restart). Returns { ok, message }. */
+function setPhpModuleFpm(version, modId, enable) {
+  const env = { ...process.env, DEBIAN_FRONTEND: 'noninteractive' };
+  const mod = COMMON_PHP_MODULES.find((m) => m.id === modId);
+  if (!mod) return { ok: false, message: 'Unknown module' };
+  const pkg = (mod.pkg || mod.id);
+  try {
+    if (enable) {
+      try {
+        execFileSync('phpenmod', ['-s', 'fpm', modId], { encoding: 'utf8', stdio: 'pipe', env });
+      } catch (e) {
+        if ((e.stderr || '').includes('Cannot find') || (e.stdout || '').includes('Cannot find')) {
+          execFileSync('apt-get', ['install', '-y', '-qq', 'php' + version + '-' + pkg], { encoding: 'utf8', stdio: 'pipe', env, timeout: 120000 });
+          execFileSync('phpenmod', ['-s', 'fpm', modId], { encoding: 'utf8', stdio: 'pipe', env });
+        } else throw e;
+      }
+    } else {
+      execFileSync('phpdismod', ['-s', 'fpm', modId], { encoding: 'utf8', stdio: 'pipe', env });
+    }
+    return { ok: true };
+  } catch (e) {
+    const msg = (e.stderr && e.stderr.toString()) || e.message || 'Failed';
+    return { ok: false, message: msg.trim().slice(0, 300) };
+  }
+}
 
 /** Resolve path under site docroot. Returns absolute path or null if outside docroot. */
 function resolveDocrootPath(docroot, relativePath) {
@@ -375,7 +441,17 @@ router.get('/:id', async (req, res) => {
     }
   } catch (_) {}
 
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, sslInstalled, sslInstallError, wordpress, wp_folder, phpOptionsSaved, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, repoUpdated, repoError, pullOk, pullError, nodePm2Status, nodePm2Name, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeDeleted, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError, serverIp, serverIpv6, dnsResolvedA, dnsResolvedAAAA, dnsPointsHere });
+  let phpModules = [];
+  if (site.app_type !== 'node' && site.php_version) {
+    phpModules = getPhpModulesForVersion(site.php_version);
+  }
+
+  const phpOptionsSaved = req.query.php_options === 'saved';
+  const phpModulesSaved = req.query.php_modules === 'saved';
+  const phpModulesError = req.query.php_modules === 'error' && req.query.msg ? decodeURIComponent(req.query.msg) : null;
+  const phpRestartError = req.query.php_restart_error ? decodeURIComponent(req.query.php_restart_error) : null;
+
+  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, sslInstalled, sslInstallError, wordpress, wp_folder, phpOptionsSaved, phpModulesSaved, phpModulesError, phpRestartError, phpModules, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, repoUpdated, repoError, pullOk, pullError, nodePm2Status, nodePm2Name, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeDeleted, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError, serverIp, serverIpv6, dnsResolvedA, dnsResolvedAAAA, dnsPointsHere });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {
@@ -1013,7 +1089,40 @@ router.post('/:id/php-options', async (req, res) => {
   const settings = getSettings(db);
   await siteManager.writeVhost(updated, settings);
   siteManager.reloadNginx();
+  if (site.app_type !== 'node' && site.php_version) {
+    const restart = servicesManager.restartService('php' + site.php_version + '-fpm');
+    if (!restart.ok) {
+      return res.redirect('/sites/' + site.id + '?php_options=saved&php_restart_error=' + encodeURIComponent(restart.message || 'PHP-FPM restart failed') + '#php');
+    }
+  }
   res.redirect('/sites/' + site.id + '?php_options=saved#php');
+});
+
+router.post('/:id/php-modules', async (req, res) => {
+  const db = await getDb();
+  const site = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
+  if (!site) return res.redirect('/sites');
+  if (site.app_type === 'node' || !site.php_version) return res.redirect('/sites/' + site.id + '#php');
+  const version = site.php_version;
+  const enabledIds = new Set(
+    COMMON_PHP_MODULES.filter((m) => req.body['module_' + m.id] === 'on').map((m) => m.id)
+  );
+  const loaded = getPhpLoadedModules(version);
+  const toEnable = enabledIds.size ? [...enabledIds].filter((id) => !loaded.has(id)) : [];
+  const toDisable = COMMON_PHP_MODULES.filter((m) => loaded.has(m.id) && !enabledIds.has(m.id)).map((m) => m.id);
+  for (const id of toEnable) {
+    const r = setPhpModuleFpm(version, id, true);
+    if (!r.ok) return res.redirect('/sites/' + site.id + '?php_modules=error&msg=' + encodeURIComponent(r.message) + '#php');
+  }
+  for (const id of toDisable) {
+    const r = setPhpModuleFpm(version, id, false);
+    if (!r.ok) return res.redirect('/sites/' + site.id + '?php_modules=error&msg=' + encodeURIComponent(r.message) + '#php');
+  }
+  if (toEnable.length || toDisable.length) {
+    const restart = servicesManager.restartService('php' + version + '-fpm');
+    if (!restart.ok) return res.redirect('/sites/' + site.id + '?php_modules=error&msg=' + encodeURIComponent(restart.message || 'PHP-FPM restart failed') + '#php');
+  }
+  res.redirect('/sites/' + site.id + '?php_modules=saved#php');
 });
 
 router.post('/:id', async (req, res) => {

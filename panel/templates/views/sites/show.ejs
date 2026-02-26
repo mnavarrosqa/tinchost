@@ -107,9 +107,6 @@
     <% if (typeof sslInstallError !== "undefined" && sslInstallError) { %>
     <div class="error-msg">SSL install failed: <%= sslInstallError %></div>
     <% } %>
-    <% if (typeof phpOptionsSaved !== "undefined" && phpOptionsSaved) { %>
-    <div class="success-msg">PHP options saved. They apply only to this site.</div>
-    <% } %>
 
     <nav class="tabs" aria-label="Site sections">
       <ul class="tabs-list">
@@ -560,6 +557,10 @@
     </div>
 
     <div id="panel-php" class="tabs-panel" role="tabpanel" aria-labelledby="tab-php">
+    <% if (typeof phpOptionsSaved !== 'undefined' && phpOptionsSaved) { %><div class="success-msg">PHP options saved. PHP-FPM has been restarted so changes apply.</div><% } %>
+    <% if (typeof phpModulesSaved !== 'undefined' && phpModulesSaved) { %><div class="success-msg">PHP modules saved. PHP-FPM has been restarted.</div><% } %>
+    <% if (typeof phpModulesError !== 'undefined' && phpModulesError) { %><div class="error-msg"><%= phpModulesError %></div><% } %>
+    <% if (typeof phpRestartError !== 'undefined' && phpRestartError) { %><div class="error-msg">PHP options saved but PHP-FPM restart failed: <%= phpRestartError %></div><% } %>
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>PHP options</h2>
       <% if (site.app_type === 'node') { %>
@@ -603,6 +604,22 @@
         </div>
         <button type="submit" class="btn">Save PHP options</button>
       </form>
+
+      <% if (typeof phpModules !== 'undefined' && phpModules.length > 0) { %>
+      <h3 style="margin-top:1.5rem; margin-bottom:0.5rem;">PHP modules (PHP <%= site.php_version %>)</h3>
+      <p class="empty-msg" style="margin-bottom:1rem;">Enable or disable extensions for this PHP version. Changes apply to all sites using this version. PHP-FPM is restarted after saving.</p>
+      <form method="post" action="/sites/<%= site.id %>/php-modules">
+        <div class="php-modules-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:0.5rem 1rem; margin-bottom:1rem;">
+          <% phpModules.forEach(function(m) { %>
+          <label class="checkbox-option" style="margin:0;">
+            <input type="checkbox" name="module_<%= m.id %>" value="on" <%= m.enabled ? 'checked' : '' %>>
+            <span class="label"><%= m.label %></span>
+          </label>
+          <% }); %>
+        </div>
+        <button type="submit" class="btn">Save PHP modules</button>
+      </form>
+      <% } %>
       <% } %>
     </div>
     </div>
