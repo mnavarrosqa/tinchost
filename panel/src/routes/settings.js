@@ -3,6 +3,7 @@ const router = express.Router();
 const { getDb, getDbPath, getSetting } = require('../config/database');
 const servicesManager = require('../services/servicesManager');
 const wizardInstall = require('../services/wizardInstall');
+const siteManager = require('../services/siteManager');
 
 function setSetting(db, key, value) {
   db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)').run(key, value);
@@ -183,6 +184,17 @@ router.post('/install/certbot', async (req, res) => {
   }
   updateWizardState(db, { certbot_installed: 1 });
   req.session.settingsInstalled = 'certbot';
+  res.redirect('/settings');
+});
+
+router.post('/nginx-upload-limit', async (req, res) => {
+  try {
+    const result = siteManager.applyNginxUploadLimit();
+    if (result.ok) req.session.settingsSaved = 'Nginx upload limit (64M) applied.';
+    else req.session.settingsError = result.message || 'Failed to apply.';
+  } catch (e) {
+    req.session.settingsError = (e && e.message) ? e.message : 'Failed to apply Nginx upload limit';
+  }
   res.redirect('/settings');
 });
 

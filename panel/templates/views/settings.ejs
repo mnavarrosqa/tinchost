@@ -46,7 +46,7 @@
     <div class="risk"><strong>Service:</strong> <%= serviceError %></div>
     <% } %>
     <% if (typeof saved !== 'undefined' && saved) { %>
-    <p class="success">Settings saved.</p>
+    <p class="success"><%= typeof saved === 'string' ? saved : 'Settings saved.' %></p>
     <% } %>
     <% if (typeof serviceRestarted === 'string' && serviceRestarted) { %>
     <p class="success">Service <strong><%= serviceRestarted %></strong> restarted.</p>
@@ -91,6 +91,12 @@
     <div id="panel-services" class="tabs-panel" role="tabpanel" aria-labelledby="tab-services">
     <h2>Installed services</h2>
     <p style="color:#52796f; font-size:0.9rem; margin:0 0 0.5rem 0;">Services installed by the wizard. Restart a service to apply config changes.</p>
+    <div class="card" style="margin-bottom:1rem;">
+      <p style="margin:0 0 0.5rem 0;"><strong>Nginx upload limit</strong> — Getting <em>413 Request Entity Too Large</em> when uploading files (e.g. WordPress media)? Apply a 64M limit globally.</p>
+      <form method="post" action="/settings/nginx-upload-limit" class="inline">
+        <button type="submit">Apply Nginx upload limit (64M)</button>
+      </form>
+    </div>
     <% if (typeof installedServices !== 'undefined' && installedServices.length) { %>
     <div class="card">
       <table>

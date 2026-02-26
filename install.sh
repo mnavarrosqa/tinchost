@@ -117,6 +117,9 @@ step_ok "sqlite3"
 
 step "Nginx"
 apt-get install -y -qq nginx
+# Global upload limit so WordPress/media uploads don't get 413
+mkdir -p /etc/nginx/conf.d
+echo -e '# Tinchost: allow larger uploads (e.g. WordPress media)\nclient_max_body_size 64M;' > /etc/nginx/conf.d/99-tinchost-uploads.conf
 step_ok "nginx"
 
 step "Control panel app"

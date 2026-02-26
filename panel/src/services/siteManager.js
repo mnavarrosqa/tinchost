@@ -135,4 +135,23 @@ function reloadNginx() {
   }
 }
 
-module.exports = { writeVhost, removeVhost, reloadNginx, getVhostPath };
+const NGINX_UPLOAD_CONF = '/etc/nginx/conf.d/99-tinchost-uploads.conf';
+const NGINX_UPLOAD_CONTENT = '# Tinchost: allow larger uploads (e.g. WordPress media)\nclient_max_body_size 64M;\n';
+
+/**
+ * Apply global Nginx upload limit (64M) so all server blocks accept large uploads.
+ * Writes to conf.d and reloads nginx. Fixes 413 when vhost was not regenerated.
+ */
+function applyNginxUploadLimit() {
+  try {
+    const dir = path.dirname(NGINX_UPLOAD_CONF);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(NGINX_UPLOAD_CONF, NGINX_UPLOAD_CONTENT, 'utf8');
+    reloadNginx();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: e.message || 'Failed to apply Nginx upload limit' };
+  }
+}
+
+module.exports = { writeVhost, removeVhost, reloadNginx, getVhostPath, applyNginxUploadLimit };
