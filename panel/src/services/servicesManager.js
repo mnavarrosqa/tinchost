@@ -28,7 +28,8 @@ function isAllowedUnit(unit, state) {
   if (ALLOWED_UNITS.has(unit)) return true;
   if (unit.startsWith('php') && unit.endsWith('-fpm')) {
     const v = unit.slice(3, -4);
-    const versions = (state && state.php_versions ? state.php_versions : '').toString().split(',').map(s => s.trim()).filter(Boolean);
+    const phpVersionsRaw = (state && state.php_versions != null && state.php_versions !== '' ? state.php_versions : '8.2').toString();
+    const versions = phpVersionsRaw.split(',').map((s) => s.trim()).filter(Boolean);
     return versions.includes(v);
   }
   return false;
