@@ -223,7 +223,7 @@ router.get('/new', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { domain, docroot, php_version, create_docroot, ssl, ftp_enabled, app_type, node_port, htaccess_compat } = req.body || {};
+  const { domain, docroot, php_version, ssl, ftp_enabled, app_type, node_port, htaccess_compat } = req.body || {};
   if (!domain) return res.redirect('/sites/new');
   const appKind = app_type === 'node' ? 'node' : 'php';
   const portNum = node_port != null && node_port !== '' ? parseInt(node_port, 10) : null;
@@ -247,21 +247,19 @@ router.post('/', async (req, res) => {
     const site = db.prepare('SELECT * FROM sites WHERE domain = ?').get(domain);
     const settings = getSettings(db);
     await siteManager.writeVhost(site, settings);
-    if (create_docroot === 'on' || create_docroot === true) {
-      try {
-        execFileSync('mkdir', ['-p', docrootPath], { stdio: 'pipe' });
-        execFileSync('chown', ['www-data:www-data', docrootPath], { stdio: 'pipe' });
-        execFileSync('chmod', ['755', docrootPath], { stdio: 'pipe' });
-        if (appKind !== 'node' && fs.existsSync(DEFAULT_INDEX_PATH)) {
-          const html = fs.readFileSync(DEFAULT_INDEX_PATH, 'utf8').replace(/\{\{domain\}\}/g, domain);
-          const indexFile = path.join(docrootPath, 'index.html');
-          fs.writeFileSync(indexFile, html, 'utf8');
-          execFileSync('chown', ['www-data:www-data', indexFile], { stdio: 'pipe' });
-          execFileSync('chmod', ['644', indexFile], { stdio: 'pipe' });
-        }
-      } catch (docrootErr) {
-        req.session.createDocrootWarning = 'Site created but the docroot directory could not be created or configured. Check path and permissions.';
+    try {
+      execFileSync('mkdir', ['-p', docrootPath], { stdio: 'pipe' });
+      execFileSync('chown', ['www-data:www-data', docrootPath], { stdio: 'pipe' });
+      execFileSync('chmod', ['755', docrootPath], { stdio: 'pipe' });
+      if (appKind !== 'node' && fs.existsSync(DEFAULT_INDEX_PATH)) {
+        const html = fs.readFileSync(DEFAULT_INDEX_PATH, 'utf8').replace(/\{\{domain\}\}/g, domain);
+        const indexFile = path.join(docrootPath, 'index.html');
+        fs.writeFileSync(indexFile, html, 'utf8');
+        execFileSync('chown', ['www-data:www-data', indexFile], { stdio: 'pipe' });
+        execFileSync('chmod', ['644', indexFile], { stdio: 'pipe' });
       }
+    } catch (docrootErr) {
+      req.session.createDocrootWarning = 'Site created but the docroot directory could not be created or configured. Check path and permissions.';
     }
     siteManager.reloadNginx();
   } catch (e) {

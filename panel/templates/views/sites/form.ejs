@@ -70,17 +70,8 @@
         <div class="form-row">
           <label for="docroot">Docroot</label>
           <input type="text" id="docroot" name="docroot" value="<%= site ? site.docroot : '' %>" placeholder="/var/www/example.com">
-          <span class="hint">Absolute path on the server where the site files live. Nginx will serve from here.</span>
+          <span class="hint">Absolute path on the server where the site files live. Nginx will serve from here. On create, the directory is created with <code>www-data</code> ownership; PHP sites get a default <code>index.html</code>, Node sites start empty.</span>
         </div>
-        <% if (!site) { %>
-        <label class="checkbox-option">
-          <input type="checkbox" name="create_docroot" value="on">
-          <span>
-            <span class="label">Create docroot directory</span>
-            <span class="desc">Create the docroot path and set ownership to <code>www-data</code>. For PHP sites a default <code>index.html</code> is added; for Node the folder is left empty so you can clone a repo.</span>
-          </span>
-        </label>
-        <% } %>
       </div>
 
       <div class="card">

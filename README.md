@@ -73,7 +73,7 @@ A web hosting control panel for Ubuntu/Debian. One install script deploys the pa
   - **Domain** (e.g. `example.com`)
   - **Document root** (default `/var/www/example.com`)
   - **PHP version** (or Node if you choose a Node app)
-  - Optional: **Create docroot**, **Enable SSL** (Let’s Encrypt), **Enable FTP**, **Node port** (for Node apps)
+  - Optional: **Enable SSL** (Let’s Encrypt), **Enable FTP**, **Node port** (for Node apps). Docroot is always created on site creation.
 
 - **Click a site** to manage it:
   - **Overview** – docroot, PHP version, FTP/SSL status, quick links
