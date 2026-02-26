@@ -83,14 +83,20 @@ const COMMON_PHP_MODULES = [
   { id: 'pdo_mysql', label: 'PDO MySQL', pkg: 'mysql' }
 ];
 
+/** Get modules enabled for PHP-FPM (we enable/disable with phpenmod -s fpm). */
 function getPhpLoadedModules(version) {
   const loaded = new Set();
+  const confDir = path.join('/etc/php', version, 'fpm', 'conf.d');
   try {
-    const out = execFileSync('php' + version, ['-m'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 5000 });
-    out.split(/\n/).forEach((line) => {
-      const m = line.trim().toLowerCase();
-      if (m && !m.startsWith('[')) loaded.add(m);
-    });
+    if (!fs.existsSync(confDir)) return loaded;
+    const files = fs.readdirSync(confDir);
+    for (const f of files) {
+      if (!f.endsWith('.ini')) continue;
+      const base = f.slice(0, -4);
+      const match = base.match(/^\d+-(.+)$/);
+      const name = (match ? match[1] : base).toLowerCase();
+      if (name) loaded.add(name);
+    }
   } catch (_) {}
   return loaded;
 }
