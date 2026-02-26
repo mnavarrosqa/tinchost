@@ -23,7 +23,7 @@
   <main>
     <div class="back"><a href="/settings">← Settings</a></div>
     <h1>Logs: <%= label %></h1>
-    <p class="meta">Unit: <code><%= unit %></code> · Last 200 lines from journalctl</p>
+    <p class="meta">Unit: <code><%= unit %></code> · Last 300 lines<%= typeof priority !== 'undefined' && priority === 'err' ? ' (errors only)' : '' %> from journalctl</p>
     <% const safeOutput = typeof output !== 'undefined' ? String(output).replace(/</g, '&lt;').replace(/>/g, '&gt;') : '(no output)'; %>
     <div class="log-box <%= typeof error !== 'undefined' && error ? 'error' : '' %>"><%= safeOutput %></div>
   </main>

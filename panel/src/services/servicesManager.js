@@ -65,13 +65,16 @@ function restartService(unit) {
   }
 }
 
-/** Get recent log lines for a systemd unit (journalctl). Returns { ok, output, error }. */
-function getServiceLogs(unit, lines) {
+/** Get recent log lines for a systemd unit (journalctl). Returns { ok, output, error }.
+ * priority: 'err' or 'error' for errors only (journalctl -p err). */
+function getServiceLogs(unit, lines, priority) {
   const n = Math.min(Number(lines) || 200, 500);
+  const args = ['-u', unit, '-n', String(n), '--no-pager', '-o', 'short-iso'];
+  if (priority === 'err' || priority === 'error') args.push('-p', 'err');
   try {
     const out = execFileSync(
       'journalctl',
-      ['-u', unit, '-n', String(n), '--no-pager', '-o', 'short-iso'],
+      args,
       { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 10000, maxBuffer: 512 * 1024 }
     );
     return { ok: true, output: out.trim() || '(no log entries)' };

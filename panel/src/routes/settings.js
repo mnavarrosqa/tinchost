@@ -50,12 +50,20 @@ router.get('/services/logs', async (req, res) => {
   const db = await getDb();
   const state = db.prepare('SELECT * FROM wizard_state WHERE id = 1').get();
   if (!unit || !servicesManager.isAllowedUnit(unit, state || {})) {
+    if (req.get('Accept') && req.get('Accept').includes('application/json')) {
+      return res.status(400).json({ ok: false, error: 'Invalid or not allowed service' });
+    }
     return res.redirect('/settings?error=invalid_service');
   }
-  const lines = req.query.lines || 200;
-  const result = servicesManager.getServiceLogs(unit, lines);
+  const lines = req.query.lines || 300;
+  const priority = (req.query.priority === 'err' || req.query.priority === 'error') ? 'err' : null;
+  const result = servicesManager.getServiceLogs(unit, lines, priority);
   const label = (servicesManager.getInstalledServices(state || {}).find((s) => s.unit === unit) || {}).label || unit;
-  res.render('settings-logs', { unit, label, output: result.ok ? result.output : result.error || 'Failed to load logs', error: !result.ok });
+  const output = result.ok ? result.output : result.error || 'Failed to load logs';
+  if (req.get('Accept') && req.get('Accept').includes('application/json')) {
+    return res.json({ ok: result.ok, output, label, unit });
+  }
+  res.render('settings-logs', { unit, label, output, error: !result.ok, priority: priority || 'all' });
 });
 
 router.post('/services/restart', async (req, res) => {

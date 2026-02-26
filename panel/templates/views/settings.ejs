@@ -66,36 +66,14 @@
 
     <nav class="tabs" aria-label="Settings sections">
       <ul class="tabs-list">
-        <li><a href="#paths" class="tabs-trigger is-active" data-tab="paths" id="tab-paths"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Paths &amp; credentials</a></li>
-        <li><a href="#services" class="tabs-trigger" data-tab="services" id="tab-services"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/><line x1="18" y1="6" x2="18.01" y2="6"/><line x1="18" y1="18" x2="18.01" y2="18"/></svg>Services</a></li>
+        <li><a href="#services" class="tabs-trigger is-active" data-tab="services" id="tab-services"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/><line x1="18" y1="6" x2="18.01" y2="6"/><line x1="18" y1="18" x2="18.01" y2="18"/></svg>Services</a></li>
+        <li><a href="#paths" class="tabs-trigger" data-tab="paths" id="tab-paths"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Paths &amp; credentials</a></li>
+        <li><a href="#logs" class="tabs-trigger" data-tab="logs" id="tab-logs"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Logs</a></li>
         <li><a href="#components" class="tabs-trigger" data-tab="components" id="tab-components"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Install components</a></li>
       </ul>
     </nav>
 
-    <div id="panel-paths" class="tabs-panel is-active" role="tabpanel" aria-labelledby="tab-paths">
-    <h2>Paths &amp; credentials</h2>
-    <% if (typeof dbPath !== 'undefined' && dbPath) { %>
-    <p style="font-size:0.85rem; color:#52796f; margin:0 0 0.75rem 0;">Panel database: <code style="word-break:break-all;"><%= dbPath %></code></p>
-    <% } %>
-    <% if (typeof hasMysqlPassword !== 'undefined' && !hasMysqlPassword) { %>
-    <% const dbPathExample = typeof dbPath !== 'undefined' && dbPath ? dbPath : '/opt/tinchohost/panel/data/panel.sqlite'; %>
-    <p style="font-size:0.9rem; color:#9b2226; margin:0 0 0.75rem 0;">MySQL root password is not set. Enter it below and click Save. If you saved it before but still see &quot;not set&quot; on other pages, set the <code>DATABASE_PATH</code> environment variable to the full path of your panel database (e.g. <code><%= dbPathExample %></code>) and restart the panel.</p>
-    <% } %>
-    <% const mysqlPwdValue = (typeof mysqlRootPassword !== 'undefined' && mysqlRootPassword) ? mysqlRootPassword : ''; %>
-    <form method="post" action="/settings">
-      <label>Nginx sites-available path</label>
-      <input type="text" name="nginx_sites_available" value="<%= nginxSites %>">
-      <label>PHP pool dir</label>
-      <input type="text" name="php_pool_dir" value="<%= phpPoolDir %>">
-      <label>Mail path (Maildir base)</label>
-      <input type="text" name="mail_path" value="<%= mailPath %>">
-      <label>MySQL root password (for creating DBs/users)</label>
-      <input type="password" name="mysql_root_password" value="<%= mysqlPwdValue %>" placeholder="Enter password to set or change; leave blank to keep current" autocomplete="new-password">
-      <button type="submit">Save</button>
-    </form>
-    </div>
-
-    <div id="panel-services" class="tabs-panel" role="tabpanel" aria-labelledby="tab-services">
+    <div id="panel-services" class="tabs-panel is-active" role="tabpanel" aria-labelledby="tab-services">
     <h2 id="services">Installed services</h2>
     <p style="color:#52796f; font-size:0.9rem; margin:0 0 0.5rem 0;">Services installed by the wizard. Restart a service to apply config changes.</p>
     <div class="card" style="margin-bottom:1rem;">
@@ -132,6 +110,58 @@
     <% } else { %>
     <p style="color:#52796f; font-size:0.9rem;">Complete the <a href="/wizard">setup wizard</a> or install components below. Services will appear here once installed.</p>
     <% } %>
+    </div>
+
+    <div id="panel-paths" class="tabs-panel" role="tabpanel" aria-labelledby="tab-paths">
+    <h2>Paths &amp; credentials</h2>
+    <% if (typeof dbPath !== 'undefined' && dbPath) { %>
+    <p style="font-size:0.85rem; color:#52796f; margin:0 0 0.75rem 0;">Panel database: <code style="word-break:break-all;"><%= dbPath %></code></p>
+    <% } %>
+    <% if (typeof hasMysqlPassword !== 'undefined' && !hasMysqlPassword) { %>
+    <% const dbPathExample = typeof dbPath !== 'undefined' && dbPath ? dbPath : '/opt/tinchohost/panel/data/panel.sqlite'; %>
+    <p style="font-size:0.9rem; color:#9b2226; margin:0 0 0.75rem 0;">MySQL root password is not set. Enter it below and click Save. If you saved it before but still see &quot;not set&quot; on other pages, set the <code>DATABASE_PATH</code> environment variable to the full path of your panel database (e.g. <code><%= dbPathExample %></code>) and restart the panel.</p>
+    <% } %>
+    <% const mysqlPwdValue = (typeof mysqlRootPassword !== 'undefined' && mysqlRootPassword) ? mysqlRootPassword : ''; %>
+    <form method="post" action="/settings">
+      <label>Nginx sites-available path</label>
+      <input type="text" name="nginx_sites_available" value="<%= nginxSites %>">
+      <label>PHP pool dir</label>
+      <input type="text" name="php_pool_dir" value="<%= phpPoolDir %>">
+      <label>Mail path (Maildir base)</label>
+      <input type="text" name="mail_path" value="<%= mailPath %>">
+      <label>MySQL root password (for creating DBs/users)</label>
+      <input type="password" name="mysql_root_password" value="<%= mysqlPwdValue %>" placeholder="Enter password to set or change; leave blank to keep current" autocomplete="new-password">
+      <button type="submit">Save</button>
+    </form>
+    </div>
+
+    <div id="panel-logs" class="tabs-panel" role="tabpanel" aria-labelledby="tab-logs">
+    <h2 id="logs">Service logs</h2>
+    <p style="color:#52796f; font-size:0.9rem; margin:0 0 0.75rem 0;">View recent logs for any installed service. Choose &quot;Errors only&quot; to see error-level entries from journalctl.</p>
+    <div class="card" style="margin-bottom:1rem;">
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+        <label style="margin:0; display:flex; align-items:center; gap:0.35rem;">
+          <span style="font-size:0.9rem;">Service</span>
+          <select id="logs-service" style="padding:0.4rem 0.6rem; border:1px solid #b7d4bc; border-radius:4px; font-size:0.9rem; min-width:160px;">
+            <option value="">Select a service</option>
+            <% if (typeof installedServices !== 'undefined' && installedServices.length) { installedServices.forEach(function(s) { %><option value="<%= encodeURIComponent(s.unit) %>"><%= s.label %></option><% }); } %>
+          </select>
+        </label>
+        <label style="margin:0; display:flex; align-items:center; gap:0.35rem;">
+          <span style="font-size:0.9rem;">Show</span>
+          <select id="logs-priority" style="padding:0.4rem 0.6rem; border:1px solid #b7d4bc; border-radius:4px; font-size:0.9rem;">
+            <option value="all">All entries</option>
+            <option value="err">Errors only</option>
+          </select>
+        </label>
+        <button type="button" id="logs-show-btn" class="btn" style="margin:0;">Show logs</button>
+      </div>
+      <div id="logs-output-wrap" style="display:none;">
+        <p class="meta" id="logs-meta" style="font-size:0.85rem; color:#52796f; margin:0 0 0.5rem 0;"></p>
+        <pre id="logs-output" style="background:#1b4332; color:#d8f3dc; padding:1rem; border-radius:6px; overflow:auto; font-family:ui-monospace,monospace; font-size:0.8rem; line-height:1.4; white-space:pre-wrap; word-break:break-all; max-height:60vh; margin:0; border:1px solid #b7d4bc;"></pre>
+      </div>
+      <p id="logs-empty" style="color:#52796f; font-size:0.9rem; margin:0;">Select a service and click Show logs.</p>
+    </div>
     </div>
 
     <div id="panel-components" class="tabs-panel" role="tabpanel" aria-labelledby="tab-components">
@@ -242,10 +272,10 @@
   </main>
   <script>
   (function() {
-    var TAB_IDS = ["paths", "services", "components"];
+    var TAB_IDS = ["services", "paths", "logs", "components"];
     function getTabFromHash() {
       var hash = (window.location.hash || "").replace(/^#/, "");
-      return TAB_IDS.indexOf(hash) >= 0 ? hash : "paths";
+      return TAB_IDS.indexOf(hash) >= 0 ? hash : "services";
     }
     function switchTab(id) {
       TAB_IDS.forEach(function(tabId) {
@@ -325,6 +355,41 @@
               btn.textContent = origText;
             });
         });
+      });
+    })();
+
+    (function logsSection() {
+      var btn = document.getElementById("logs-show-btn");
+      var serviceSelect = document.getElementById("logs-service");
+      var prioritySelect = document.getElementById("logs-priority");
+      var outputWrap = document.getElementById("logs-output-wrap");
+      var outputPre = document.getElementById("logs-output");
+      var metaEl = document.getElementById("logs-meta");
+      var emptyEl = document.getElementById("logs-empty");
+      if (!btn || !serviceSelect || !outputPre) return;
+      btn.addEventListener("click", function() {
+        var unit = (serviceSelect && serviceSelect.value) || "";
+        if (!unit) {
+          if (emptyEl) emptyEl.textContent = "Select a service first.";
+          return;
+        }
+        var priority = (prioritySelect && prioritySelect.value) === "err" ? "err" : "";
+        var url = "/settings/services/logs?unit=" + encodeURIComponent(unit) + "&lines=300";
+        if (priority) url += "&priority=err";
+        if (emptyEl) emptyEl.style.display = "none";
+        outputWrap.style.display = "block";
+        outputPre.textContent = "Loading…";
+        if (metaEl) metaEl.textContent = "Loading " + (priority ? "errors for " : "logs for ") + unit + "…";
+        fetch(url, { headers: { "Accept": "application/json" } })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (metaEl) metaEl.textContent = (data.label || unit) + " · Last 300 lines" + (priority ? " (errors only)" : "") + (data.ok ? "" : " · load failed");
+            outputPre.textContent = data.output != null ? data.output : (data.error || "Failed to load logs");
+          })
+          .catch(function() {
+            if (metaEl) metaEl.textContent = "Failed to load logs.";
+            outputPre.textContent = "Request failed.";
+          });
       });
     })();
   })();
