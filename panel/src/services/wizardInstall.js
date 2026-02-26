@@ -46,7 +46,7 @@ function aptUpdate() {
  * No restart here; applyPhpMailConfig restarts FPM so both are loaded.
  */
 function applyPhpUploadDefaults(version) {
-  const uploadIni = `; Tinchost: allow larger uploads (e.g. WordPress media)
+  const uploadIni = `; UPGS Panel: allow larger uploads (e.g. WordPress media)
 upload_max_filesize = 64M
 post_max_size = 64M
 `;
@@ -71,7 +71,7 @@ post_max_size = 64M
  * so transactional mail works for any PHP version. Uses standard path /usr/sbin/sendmail -t -i.
  */
 function applyPhpMailConfig(version) {
-  const mailIni = `; Tinchost: default PHP mail() via system sendmail (Postfix)
+  const mailIni = `; UPGS Panel: default PHP mail() via system sendmail (Postfix)
 sendmail_path = "/usr/sbin/sendmail -t -i"
 `;
   const dirs = [
@@ -103,7 +103,7 @@ function applyPostfixForPhpMail() {
   try {
     const hostname = require('os').hostname() || 'localhost';
     const genericPath = '/etc/postfix/generic';
-    const content = `# Tinchost: default envelope sender for PHP (www-data)
+    const content = `# UPGS Panel: default envelope sender for PHP (www-data)
 www-data@${hostname} noreply@${hostname}
 www-data noreply@${hostname}
 `;
@@ -143,7 +143,7 @@ function applyPhpFpmPerformance(version) {
   const confDir = path.join(base, 'conf.d');
   try {
     if (!fs.existsSync(poolDir)) return { ok: true };
-    const poolConf = `; Tinchost performance tuning for PHP-FPM ${version}
+    const poolConf = `; UPGS Panel performance tuning for PHP-FPM ${version}
 [www]
 pm = dynamic
 pm.max_children = 50
@@ -154,7 +154,7 @@ pm.max_requests = 500
 `;
     fs.writeFileSync(path.join(poolDir, '99-performance.conf'), poolConf, 'utf8');
     if (!fs.existsSync(confDir)) fs.mkdirSync(confDir, { recursive: true });
-    const opcacheIni = `; Tinchost OPcache performance tuning for PHP-FPM ${version}
+    const opcacheIni = `; UPGS Panel OPcache performance tuning for PHP-FPM ${version}
 opcache.enable=1
 opcache.memory_consumption=128
 opcache.interned_strings_buffer=8
@@ -214,8 +214,8 @@ function applyDatabasePerformance(choice) {
   const dir = choice === 'mariadb'
     ? '/etc/mysql/mariadb.conf.d'
     : '/etc/mysql/mysql.conf.d';
-  const file = path.join(dir, '99-tinchost-performance.cnf');
-  const content = `; Tinchost database performance tuning
+  const file = path.join(dir, '99-upgs-performance.cnf');
+  const content = `; UPGS Panel database performance tuning
 [mysqld]
 innodb_buffer_pool_size = 256M
 innodb_log_file_size = 64M

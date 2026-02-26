@@ -19,7 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'tinchost-panel-secret-change-me',
+  secret: process.env.SESSION_SECRET || 'upgs-panel-secret-change-me',
   resave: false,
   saveUninitialized: false,
   cookie: { secure: false, httpOnly: true }
@@ -123,5 +123,5 @@ app.get('/api/server-info', requireAuth, requireWizardComplete, (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Tinchost Panel listening on http://0.0.0.0:${PORT}`);
+  console.log(`UPGS Panel listening on http://0.0.0.0:${PORT}`);
 });

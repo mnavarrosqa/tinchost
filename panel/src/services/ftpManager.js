@@ -60,7 +60,7 @@ function writeProftpdConf() {
       `PassivePorts ${FTP_PASSIVE_PORTS}`,
       ...(FTP_MASQUERADE_ADDRESS ? [`MasqueradeAddress ${FTP_MASQUERADE_ADDRESS}`] : [])
     ].join('\n');
-    const conf = `# Tinchost panel – virtual FTP users (AuthUserFile only)
+    const conf = `# UPGS Panel – virtual FTP users (AuthUserFile only)
 # Panel must run on the same host as ProFTPD so this file and passwd file exist here.
 <IfModule mod_auth_pam.c>
   AuthPAM off
@@ -73,7 +73,7 @@ DefaultRoot ~
 # Passive mode: use same port range as firewall (install.sh PORTS_FTP_PASSIVE=40000:40100)
 ${passiveLines}
 `;
-    const confPath = path.join(PROFTPD_CONF_DIR, 'tinchost.conf');
+    const confPath = path.join(PROFTPD_CONF_DIR, 'upgs.conf');
     fs.writeFileSync(confPath, conf, 'utf8');
     execFileSync('systemctl', ['reload', 'proftpd'], { stdio: 'pipe' });
   } catch (_) {}

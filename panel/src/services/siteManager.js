@@ -12,7 +12,7 @@ function getPaths(settings) {
 function getVhostPath(domain, settings) {
   const { sitesAvailable } = getPaths(settings);
   const safe = domain.replace(/[^a-z0-9._-]/gi, '_');
-  return path.join(sitesAvailable, `tinchost-${safe}.conf`);
+  return path.join(sitesAvailable, `upgs-${safe}.conf`);
 }
 
 /** Parse site.php_options (JSON) into key=value lines for PHP_VALUE. Only allows safe ini keys and values. */
@@ -135,8 +135,8 @@ function reloadNginx() {
   }
 }
 
-const NGINX_UPLOAD_CONF = '/etc/nginx/conf.d/99-tinchost-uploads.conf';
-const NGINX_UPLOAD_CONTENT = '# Tinchost: allow larger uploads (e.g. WordPress media)\nclient_max_body_size 64M;\n';
+const NGINX_UPLOAD_CONF = '/etc/nginx/conf.d/99-upgs-uploads.conf';
+const NGINX_UPLOAD_CONTENT = '# UPGS Panel: allow larger uploads (e.g. WordPress media)\nclient_max_body_size 64M;\n';
 
 /**
  * Apply global Nginx upload limit (64M) so all server blocks accept large uploads.

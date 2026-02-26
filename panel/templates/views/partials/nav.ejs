@@ -1,5 +1,5 @@
 <nav class="nav" role="navigation" aria-label="Main">
-  <a href="/" class="nav-brand" aria-label="Tinchost home">Tinchost</a>
+  <a href="/" class="nav-brand" aria-label="UPGS home">UPGS</a>
   <div class="nav-links">
     <a href="/" class="nav-link <%= activeNav === 'dashboard' ? 'nav-active' : '' %>"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard</a>
     <% if (typeof wizardCompleted === 'undefined' || !wizardCompleted) { %><a href="/wizard" class="nav-link <%= activeNav === 'wizard' ? 'nav-active' : '' %>"><svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4V2m0 2v2m4-2v2m-2 4h2m2 4v2m0-4v-2m0 4h-2m-4 0h-2v2m0-4v-2m0 4H9m8-8h-2V4m0 2v2m0 8v2m0-4v-2m0 4h2M9 4H7v2h2V4zM5 20v-2H3v2h2zm0-4v-2H3v2h2z"/></svg>Wizard</a><% } %>

@@ -225,7 +225,7 @@ router.post('/test-email', async (req, res) => {
   try {
     const hostname = require('os').hostname();
     const from = 'noreply@' + (hostname || 'localhost');
-    const raw = 'To: ' + to + '\r\nSubject: Tinchost test\r\nFrom: ' + from + '\r\n\r\nTest from Tinchost Panel. If you received this, Postfix and sendmail are working.\r\n';
+    const raw = 'To: ' + to + '\r\nSubject: UPGS Panel test\r\nFrom: ' + from + '\r\n\r\nTest from UPGS Panel. If you received this, Postfix and sendmail are working.\r\n';
     const { spawnSync } = require('child_process');
     const r = spawnSync('/usr/sbin/sendmail', ['-t', '-i', '-f', from], {
       input: raw,

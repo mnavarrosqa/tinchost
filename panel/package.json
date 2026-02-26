@@ -1,7 +1,7 @@
 {
-  "name": "tinchost-panel",
+  "name": "upgs-panel",
   "version": "1.0.0",
-  "description": "Tinchost Panel – web hosting control panel",
+  "description": "UPGS Panel – web hosting control panel",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

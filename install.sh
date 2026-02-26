@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tinchost Panel – panel-only install script
+# UPGS Panel – panel-only install script
 # Installs: Node.js, Nginx (proxy to panel), SQLite, panel app (runs as root).
 # PHP, MySQL/MariaDB, mail, FTP, Certbot are installed later via the panel setup wizard.
 
@@ -35,7 +35,7 @@ info()   { echo -e "  ${C_DIM}$1${C_RESET}"; }
 banner() {
   echo ""
   echo -e "${C_HEAD}╭─────────────────────────────────────────╮${C_RESET}"
-  echo -e "${C_HEAD}│${C_RESET}  ${C_BOLD}Tinchost Panel${C_RESET} – installer"
+  echo -e "${C_HEAD}│${C_RESET}  ${C_BOLD}UPGS Panel${C_RESET} – installer"
   echo -e "${C_HEAD}╰─────────────────────────────────────────╯${C_RESET}"
 }
 
@@ -119,7 +119,7 @@ step "Nginx"
 apt-get install -y -qq nginx
 # Global upload limit so WordPress/media uploads don't get 413
 mkdir -p /etc/nginx/conf.d
-echo -e '# Tinchost: allow larger uploads (e.g. WordPress media)\nclient_max_body_size 64M;' > /etc/nginx/conf.d/99-tinchost-uploads.conf
+echo -e '# UPGS Panel: allow larger uploads (e.g. WordPress media)\nclient_max_body_size 64M;' > /etc/nginx/conf.d/99-upgs-uploads.conf
 step_ok "nginx"
 
 step "Control panel app"
@@ -165,10 +165,10 @@ nginx -t && systemctl reload nginx
 step_ok "default vhost → :3000"
 
 step "Starting panel with PM2"
-pm2 delete tinchost-panel 2>/dev/null || true
-cd "$PANEL_PATH" && pm2 start src/index.js --name tinchost-panel
+pm2 delete upgs-panel 2>/dev/null || true
+cd "$PANEL_PATH" && pm2 start src/index.js --name upgs-panel
 pm2 save
-step_ok "tinchost-panel running"
+step_ok "upgs-panel running"
 
 touch "$MARKER_FILE"
 done_banner

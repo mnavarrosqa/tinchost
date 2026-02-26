@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tinchost Panel – update script
+# UPGS Panel – update script
 # Pulls latest from the repo, syncs panel files, runs npm install & migrations, restarts PM2.
 
 set -e
@@ -22,7 +22,7 @@ if ! command -v rsync &>/dev/null; then
   apt-get update -qq && apt-get install -y -qq rsync
 fi
 
-echo "Updating Tinchost Panel..."
+echo "Updating UPGS Panel..."
 echo "  Repo: $REPO_ROOT"
 echo "  Panel: $PANEL_PATH"
 echo ""
@@ -54,12 +54,12 @@ node src/scripts/migrate.js
 
 echo "[5/5] Restarting panel..."
 if command -v pm2 &>/dev/null; then
-  pm2 restart tinchost-panel
+  pm2 restart upgs-panel
   pm2 save
   echo ""
-  echo "Tinchost Panel updated and restarted."
+  echo "UPGS Panel updated and restarted."
   echo "  Panel URL: http://$(hostname -I | awk '{print $1}')/"
 else
-  echo "  PM2 not found. Restart manually: systemctl restart tinchost-panel (if using systemd)."
+  echo "  PM2 not found. Restart manually: systemctl restart upgs-panel (if using systemd)."
   exit 1
 fi

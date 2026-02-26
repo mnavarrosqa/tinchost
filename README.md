@@ -1,4 +1,4 @@
-# Tinchost Panel
+# UPGS Panel
 
 A web hosting control panel for Ubuntu/Debian. One install script deploys the panel; a setup wizard guides you through installing PHP, MySQL/MariaDB, and optional mail/FTP/SSL. The panel runs as root and manages sites, databases, FTP users, and SSL certificates.
 
@@ -150,9 +150,9 @@ The install script starts the panel with **PM2** and configures it to start on b
 Useful commands:
 
 - **Status:** `pm2 status`
-- **Logs:** `pm2 logs tinchost-panel`
-- **Restart:** `pm2 restart tinchost-panel`
-- **Start (if stopped):** `pm2 start /opt/tinchohost/panel/src/index.js --name tinchost-panel`
+- **Logs:** `pm2 logs upgs-panel`
+- **Restart:** `pm2 restart upgs-panel`
+- **Start (if stopped):** `pm2 start /opt/tinchohost/panel/src/index.js --name upgs-panel`
 
 ---
 
