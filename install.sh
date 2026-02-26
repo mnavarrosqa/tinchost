@@ -104,9 +104,36 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
+# Wait for dpkg/apt lock (e.g. held by unattended-upgrades). Retry for up to 5 minutes.
+wait_for_apt_lock() {
+  local max_wait=300
+  local waited=0
+  while [[ $waited -lt $max_wait ]]; do
+    local err
+    err=$(apt-get update -qq 2>&1)
+    local r=$?
+    if [[ $r -eq 0 ]]; then
+      return 0
+    fi
+    if echo "$err" | grep -q "Could not get lock\|Unable to acquire the dpkg"; then
+      if [[ $waited -eq 0 ]]; then
+        echo -e "  ${C_DIM}Another process is using the package manager (e.g. unattended-upgrades). Waiting for lock…${C_RESET}"
+      fi
+      sleep 5
+      waited=$((waited + 5))
+    else
+      echo "$err"
+      exit 1
+    fi
+  done
+  echo "Timed out waiting for package manager lock. Try again later or run: sudo systemctl stop unattended-upgrades"
+  exit 1
+}
+
 banner
 
 step "System updates (apt update & upgrade)"
+wait_for_apt_lock
 run_with_spinner "Updating package lists…" apt-get update -qq
 run_with_spinner "Applying upgrades…" apt-get upgrade -y -qq
 step_ok "package lists updated, upgrades applied"
