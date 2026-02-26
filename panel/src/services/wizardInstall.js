@@ -42,6 +42,49 @@ function aptUpdate() {
 }
 
 /**
+ * Ensure PHP mail() works via system sendmail (Postfix). Writes 99-mail.ini for both FPM and CLI
+ * so transactional mail works for any PHP version. Uses standard path /usr/sbin/sendmail -t -i.
+ */
+function applyPhpMailConfig(version) {
+  const mailIni = `; Tinchost: default PHP mail() via system sendmail (Postfix)
+sendmail_path = "/usr/sbin/sendmail -t -i"
+`;
+  const dirs = [
+    path.join('/etc/php', version, 'fpm', 'conf.d'),
+    path.join('/etc/php', version, 'cli', 'conf.d')
+  ];
+  try {
+    for (const dir of dirs) {
+      if (!fs.existsSync(path.join(dir, '..'))) continue;
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, '99-mail.ini'), mailIni, 'utf8');
+    }
+    const fpmDir = path.join('/etc/php', version, 'fpm');
+    if (fs.existsSync(fpmDir)) {
+      const restart = run('systemctl restart php' + version + '-fpm');
+      if (!restart.ok) return { ok: false, out: restart.out };
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, out: (err.message || String(err)) };
+  }
+}
+
+/**
+ * Return list of PHP versions installed under /etc/php (e.g. ['7.4', '8.1', '8.2']).
+ */
+function getInstalledPhpVersions() {
+  const phpDir = '/etc/php';
+  if (!fs.existsSync(phpDir)) return [];
+  const versions = [];
+  for (const name of fs.readdirSync(phpDir)) {
+    const full = path.join(phpDir, name);
+    if (fs.statSync(full).isDirectory() && /^\d+\.\d+$/.test(name)) versions.push(name);
+  }
+  return versions.sort();
+}
+
+/**
  * Write performance-optimized PHP-FPM pool and opcache config for a given version.
  * Pool: dynamic pm with sensible children/spare; opcache: enabled with production tuning.
  */
@@ -106,6 +149,8 @@ function installPhp(versions, config) {
       const perf = applyPhpFpmPerformance(v);
       if (!perf.ok) return { ok: false, out: out + (perf.out || '') };
     }
+    const mailCfg = applyPhpMailConfig(v);
+    if (!mailCfg.ok) return { ok: false, out: out + (mailCfg.out || '') };
   }
   return { ok: true, out };
 }
@@ -197,10 +242,18 @@ function installDatabase(choice, config, rootPassword) {
 }
 
 /**
- * Install Postfix + Dovecot (mail).
+ * Install Postfix + Dovecot (mail). After install, ensures all installed PHP versions
+ * have sendmail_path set so PHP mail() works.
  */
 function installMail() {
-  return run('apt-get install -y -qq postfix dovecot-core dovecot-imapd dovecot-lmtpd');
+  const r = run('apt-get install -y -qq postfix dovecot-core dovecot-imapd dovecot-lmtpd');
+  if (!r.ok) return r;
+  const versions = getInstalledPhpVersions();
+  for (const v of versions) {
+    const mailCfg = applyPhpMailConfig(v);
+    if (!mailCfg.ok) return { ok: false, out: r.out + (mailCfg.out || '') };
+  }
+  return { ok: true, out: r.out };
 }
 
 /**
@@ -337,6 +390,9 @@ async function runWizardInstallStreaming(state, onOutput, opts) {
           const perf = applyPhpFpmPerformance(v);
           if (!perf.ok) return { success: false };
         }
+        out('\n[PHP ' + v + ' mail config]\n');
+        const mailCfg = applyPhpMailConfig(v);
+        if (!mailCfg.ok) return { success: false };
       }
     }
 
@@ -380,6 +436,12 @@ async function runWizardInstallStreaming(state, onOutput, opts) {
       out('\n[Mail: Postfix + Dovecot]\n');
       const r4 = await runStreaming('apt-get install -y -q postfix dovecot-core dovecot-imapd dovecot-lmtpd', out);
       if (!r4.ok) return { success: false };
+      const phpVers = getInstalledPhpVersions();
+      for (const v of phpVers) {
+        out('\n[PHP ' + v + ' mail config]\n');
+        const mailCfg = applyPhpMailConfig(v);
+        if (!mailCfg.ok) return { success: false };
+      }
     }
 
     if (installFtpFlag) {
