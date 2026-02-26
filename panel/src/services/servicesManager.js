@@ -1,4 +1,4 @@
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 
 /** Map wizard_state to list of service definitions: { id, label, unit } */
 function getInstalledServices(state) {
@@ -45,10 +45,22 @@ function getServiceStatus(unit) {
 
 function restartService(unit) {
   try {
-    execFileSync('systemctl', ['restart', unit], { encoding: 'utf8', stdio: 'pipe', timeout: 30000 });
-    return { ok: true };
+    const result = spawnSync('systemctl', ['restart', unit], {
+      encoding: 'utf8',
+      timeout: 45000,
+      maxBuffer: 256 * 1024
+    });
+    if (result.status !== 0) {
+      const stderr = (result.stderr || '').trim();
+      const stdout = (result.stdout || '').trim();
+      const detail = stderr || stdout || result.error?.message || 'Exit code ' + result.status;
+      return { ok: false, message: detail };
+    }
+    const status = getServiceStatus(unit);
+    return { ok: true, status };
   } catch (e) {
-    return { ok: false, message: (e.stderr && e.stderr.toString()) || e.message || 'Restart failed' };
+    const msg = (e.stderr && e.stderr.toString()) || (e.message || 'Restart failed').trim();
+    return { ok: false, message: msg };
   }
 }
 

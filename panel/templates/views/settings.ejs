@@ -33,6 +33,13 @@
     .tabs-trigger .ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .tabs-panel { display: none; padding-top: 1.25rem; }
     .tabs-panel.is-active { display: block; }
+    .service-action-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+    .service-action-cell form { margin: 0; }
+    .service-feedback { font-size: 0.85rem; margin: 0; }
+    .service-feedback.loading { color: #52796f; font-style: italic; }
+    .service-feedback.success { color: #2d6a4f; font-weight: 500; }
+    .service-feedback.error { color: #9b2226; }
+    .service-action-cell button[disabled] { opacity: 0.8; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -103,15 +110,18 @@
         <thead><tr><th>Service</th><th>Status</th><th>Logs</th><th>Action</th></tr></thead>
         <tbody>
           <% installedServices.forEach(function(s) { %>
-          <tr>
+          <tr data-service-unit="<%= s.unit %>" data-service-label="<%= s.label %>">
             <td><%= s.label %></td>
-            <td><span class="<%= s.status === 'active' ? 'status-active' : 'status-inactive' %>"><%= s.status === 'active' ? 'Running' : 'Stopped' %></span></td>
+            <td><span class="service-status <%= s.status === 'active' ? 'status-active' : 'status-inactive' %>" aria-live="polite"><%= s.status === 'active' ? 'Running' : 'Stopped' %></span></td>
             <td><a href="/settings/services/logs?unit=<%= encodeURIComponent(s.unit) %>" target="_blank" rel="noopener" class="btn" style="text-decoration:none; padding:0.35rem 0.65rem; font-size:0.85rem;">View logs</a></td>
             <td>
-              <form method="post" action="/settings/services/restart" class="inline">
-                <input type="hidden" name="service" value="<%= s.unit %>">
-                <button type="submit">Restart</button>
-              </form>
+              <div class="service-action-cell">
+                <form method="post" action="/settings/services/restart" class="js-service-restart-form inline">
+                  <input type="hidden" name="service" value="<%= s.unit %>">
+                  <button type="submit" class="js-restart-btn">Restart</button>
+                </form>
+                <span class="service-feedback js-service-feedback" role="status" aria-live="polite"></span>
+              </div>
             </td>
           </tr>
           <% }); %>
@@ -254,6 +264,66 @@
     });
     window.addEventListener("hashchange", function() { switchTab(getTabFromHash()); });
     switchTab(getTabFromHash());
+
+    (function serviceRestart() {
+      var forms = document.querySelectorAll(".js-service-restart-form");
+      forms.forEach(function(form) {
+        form.addEventListener("submit", function(e) {
+          e.preventDefault();
+          var row = form.closest("tr");
+          var unit = row && row.dataset.serviceUnit;
+          var btn = form.querySelector(".js-restart-btn");
+          var feedback = row && row.querySelector(".js-service-feedback");
+          var statusCell = row && row.querySelector(".service-status");
+          if (!row || !btn || !feedback) return;
+          var origText = btn.textContent;
+          btn.disabled = true;
+          btn.textContent = "Restarting…";
+          feedback.className = "service-feedback loading js-service-feedback";
+          feedback.textContent = "Restarting service…";
+          feedback.setAttribute("role", "status");
+
+          var body = new FormData(form);
+          fetch(form.action, {
+            method: "POST",
+            body: body,
+            headers: { "Accept": "application/json" }
+          })
+            .then(function(r) {
+              var contentType = r.headers.get("Content-Type") || "";
+              if (contentType.indexOf("application/json") !== -1) return r.json();
+              throw new Error("Server did not return JSON");
+            })
+            .then(function(data) {
+              if (data.ok) {
+                feedback.className = "service-feedback success js-service-feedback";
+                feedback.textContent = "Restarted";
+                if (statusCell) {
+                  statusCell.textContent = (data.status === "active") ? "Running" : (data.status || "Unknown");
+                  statusCell.className = "service-status " + (data.status === "active" ? "status-active" : "status-inactive");
+                }
+                setTimeout(function() {
+                  feedback.textContent = "";
+                  feedback.className = "service-feedback js-service-feedback";
+                  btn.disabled = false;
+                  btn.textContent = origText;
+                }, 2500);
+              } else {
+                feedback.className = "service-feedback error js-service-feedback";
+                feedback.textContent = data.message || "Restart failed";
+                btn.disabled = false;
+                btn.textContent = origText;
+              }
+            })
+            .catch(function(err) {
+              feedback.className = "service-feedback error js-service-feedback";
+              feedback.textContent = err.message || "Request failed";
+              btn.disabled = false;
+              btn.textContent = origText;
+            });
+        });
+      });
+    })();
   })();
   </script>
 </body>

@@ -64,10 +64,31 @@ router.post('/services/restart', async (req, res) => {
   const db = await getDb();
   const state = db.prepare('SELECT * FROM wizard_state WHERE id = 1').get();
   if (!unit || !servicesManager.isAllowedUnit(unit, state || {})) {
+    if (req.get('Accept') && req.get('Accept').includes('application/json')) {
+      return res.status(400).json({ ok: false, message: 'Invalid or not allowed service' });
+    }
     req.session.serviceError = 'Invalid or not allowed service';
     return res.redirect('/settings');
   }
   const result = servicesManager.restartService(unit);
+  const services = servicesManager.getInstalledServices(state || {});
+  const serviceMeta = services.find((s) => s.unit === unit) || { label: unit };
+  if (req.get('Accept') && req.get('Accept').includes('application/json')) {
+    if (result.ok) {
+      return res.json({
+        ok: true,
+        unit,
+        label: serviceMeta.label,
+        status: result.status || servicesManager.getServiceStatus(unit)
+      });
+    }
+    return res.status(500).json({
+      ok: false,
+      unit,
+      label: serviceMeta.label,
+      message: result.message || 'Restart failed'
+    });
+  }
   if (result.ok) req.session.serviceRestarted = unit;
   else req.session.serviceError = result.message || 'Restart failed';
   res.redirect('/settings');
