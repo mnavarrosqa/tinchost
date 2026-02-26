@@ -11,7 +11,8 @@ FORCE="${FORCE:-0}"
 
 # Ports used by the panel and optional services (mail, FTP, SSL)
 PORTS_HTTP="80 443"
-PORTS_MAIL="25 587"
+# Mail: SMTP (25, 465, 587), IMAP (143, 993), POP3 (110, 995)
+PORTS_MAIL="25 465 587 110 143 993 995"
 PORTS_FTP="21"
 PORTS_FTP_PASSIVE="40000:40100"
 PORTS_SSH="22"
@@ -31,6 +32,27 @@ fi
 step()   { echo ""; echo -e "${C_HEAD}▸${C_RESET} ${C_BOLD}$1${C_RESET}"; }
 step_ok() { echo -e "  ${C_OK}✓${C_RESET} $1"; }
 info()   { echo -e "  ${C_DIM}$1${C_RESET}"; }
+
+# Run a command in background and show a spinner until it finishes (only when stdout is a TTY).
+run_with_spinner() {
+  local msg="$1"
+  shift
+  if [[ -t 1 ]]; then
+    "$@" &
+    local pid=$!
+    local spin='\|/-'
+    while kill -0 "$pid" 2>/dev/null; do
+      local c="${spin:0:1}"
+      spin="${spin:1}${c}"
+      echo -ne "\r  ${C_DIM}${msg} ${c}${C_RESET}   "
+      sleep 0.14
+    done
+    wait "$pid"
+    echo -ne "\r\e[K"
+  else
+    "$@"
+  fi
+}
 
 banner() {
   echo ""
@@ -85,8 +107,8 @@ export DEBIAN_FRONTEND=noninteractive
 banner
 
 step "System updates (apt update & upgrade)"
-apt-get update -qq
-apt-get upgrade -y -qq
+run_with_spinner "Updating package lists…" apt-get update -qq
+run_with_spinner "Applying upgrades…" apt-get upgrade -y -qq
 step_ok "package lists updated, upgrades applied"
 
 step "Prerequisites"
@@ -101,14 +123,14 @@ open_firewall_ports() {
     done
     ufw allow "${PORTS_FTP_PASSIVE}/tcp" 2>/dev/null || true
     ufw reload 2>/dev/null || true
-    step_ok "UFW: SSH, 80/443, 25/587, 21, passive ${PORTS_FTP_PASSIVE}"
+    step_ok "UFW: SSH, 80/443, mail (25,465,587,110,143,993,995), 21, passive ${PORTS_FTP_PASSIVE}"
   elif command -v firewall-cmd &>/dev/null && systemctl is-active firewalld &>/dev/null; then
     for p in $PORTS_SSH $PORTS_HTTP $PORTS_MAIL $PORTS_FTP; do
       firewall-cmd --permanent --add-port="$p/tcp" 2>/dev/null || true
     done
     firewall-cmd --permanent --add-port="${PORTS_FTP_PASSIVE//:/-}/tcp" 2>/dev/null || true
     firewall-cmd --reload 2>/dev/null || true
-    step_ok "Firewalld: SSH, 80/443, 25/587, 21, passive ${PORTS_FTP_PASSIVE}"
+    step_ok "Firewalld: SSH, 80/443, mail (25,465,587,110,143,993,995), 21, passive ${PORTS_FTP_PASSIVE}"
   else
     info "No active firewall detected; skipping."
   fi
