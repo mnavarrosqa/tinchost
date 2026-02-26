@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync, spawn } = require('child_process');
+const { execSync, spawn, spawnSync } = require('child_process');
 
 const env = { ...process.env, DEBIAN_FRONTEND: 'noninteractive' };
 const execOpts = { encoding: 'utf8', env, timeout: 600000, maxBuffer: 4 * 1024 * 1024 };
@@ -108,8 +108,10 @@ www-data@${hostname} noreply@${hostname}
 www-data noreply@${hostname}
 `;
     fs.writeFileSync(genericPath, content, 'utf8');
-    run('postmap ' + genericPath);
-    run('postconf -e "smtp_generic_maps = hash:' + genericPath + '"');
+    const postmapResult = spawnSync('postmap', [genericPath], { encoding: 'utf8', env });
+    if (postmapResult.status !== 0) throw new Error(postmapResult.stderr || postmapResult.stdout || 'postmap failed');
+    const postconfResult = spawnSync('postconf', ['-e', 'smtp_generic_maps=hash:' + genericPath], { encoding: 'utf8', env });
+    if (postconfResult.status !== 0) throw new Error(postconfResult.stderr || postconfResult.stdout || 'postconf failed');
     const restart = run('systemctl reload postfix');
     return restart.ok ? { ok: true } : { ok: false, out: restart.out };
   } catch (err) {

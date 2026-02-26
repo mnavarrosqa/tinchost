@@ -12,6 +12,11 @@ function getSettings(db) {
   return o;
 }
 
+function parseId(val) {
+  const n = Number(val);
+  return typeof n === 'number' && !isNaN(n) && n >= 1 && Number.isInteger(n) ? n : null;
+}
+
 router.get('/', async (req, res) => {
   const db = await getDb();
   const databases = db.prepare('SELECT d.id, d.name, d.site_id, s.domain AS site_domain FROM databases d LEFT JOIN sites s ON s.id = d.site_id ORDER BY d.name').all();
@@ -109,8 +114,10 @@ router.post('/users', async (req, res) => {
 });
 
 router.get('/databases/:id/download', async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) return res.redirect('/databases');
   const db = await getDb();
-  const row = db.prepare('SELECT id, name FROM databases WHERE id = ?').get(Number(req.params.id));
+  const row = db.prepare('SELECT id, name FROM databases WHERE id = ?').get(id);
   if (!row) return res.redirect('/databases');
   const settings = getSettings(db);
   try {
@@ -127,8 +134,10 @@ router.get('/databases/:id/download', async (req, res) => {
 });
 
 router.post('/databases/:id/repair', async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) return res.redirect('/databases');
   const db = await getDb();
-  const row = db.prepare('SELECT id, name FROM databases WHERE id = ?').get(Number(req.params.id));
+  const row = db.prepare('SELECT id, name FROM databases WHERE id = ?').get(id);
   if (!row) return res.redirect('/databases');
   const settings = getSettings(db);
   const result = await repairDatabase(settings, row.name);
@@ -137,8 +146,10 @@ router.post('/databases/:id/repair', async (req, res) => {
 });
 
 router.post('/databases/:id/delete', async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) return res.redirect('/databases');
   const db = await getDb();
-  const row = db.prepare('SELECT id, name FROM databases WHERE id = ?').get(Number(req.params.id));
+  const row = db.prepare('SELECT id, name FROM databases WHERE id = ?').get(id);
   if (!row) return res.redirect('/databases');
   db.prepare('DELETE FROM db_grants WHERE database_id = ?').run(row.id);
   db.prepare('DELETE FROM databases WHERE id = ?').run(row.id);
@@ -148,8 +159,10 @@ router.post('/databases/:id/delete', async (req, res) => {
 });
 
 router.post('/users/:id/delete', async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) return res.redirect('/databases');
   const db = await getDb();
-  const row = db.prepare('SELECT id, username, host FROM db_users WHERE id = ?').get(Number(req.params.id));
+  const row = db.prepare('SELECT id, username, host FROM db_users WHERE id = ?').get(id);
   if (!row) return res.redirect('/databases');
   db.prepare('DELETE FROM db_grants WHERE db_user_id = ?').run(row.id);
   db.prepare('DELETE FROM db_users WHERE id = ?').run(row.id);
@@ -159,24 +172,36 @@ router.post('/users/:id/delete', async (req, res) => {
 });
 
 router.post('/users/:id/password', async (req, res) => {
-  const password = (req.body && req.body.password) || '';
+  const id = parseId(req.params.id);
+  if (!id) return res.redirect('/databases');
+  const password = (req.body && req.body.password) ? String(req.body.password).trim() : '';
+  if (!password) {
+    req.session.dbUserError = 'Password is required.';
+    return res.redirect('/databases');
+  }
   const db = await getDb();
-  const row = db.prepare('SELECT id, username, host FROM db_users WHERE id = ?').get(Number(req.params.id));
+  const row = db.prepare('SELECT id, username, host FROM db_users WHERE id = ?').get(id);
   if (!row) return res.redirect('/databases');
   const settings = getSettings(db);
   try {
-    if (password) await databaseManager.setUserPassword(settings, row.username, password, row.host);
-    const hash = password ? crypto.createHash('sha256').update(password).digest('hex') : '';
+    await databaseManager.setUserPassword(settings, row.username, password, row.host);
+    const hash = crypto.createHash('sha256').update(password).digest('hex');
     db.prepare('UPDATE db_users SET password_hash = ? WHERE id = ?').run(hash, row.id);
-  } catch (_) {}
+  } catch (_) {
+    req.session.dbUserError = 'Failed to set password.';
+    return res.redirect('/databases');
+  }
   res.redirect('/databases');
 });
 
 router.post('/grants', async (req, res) => {
   const { database_id, db_user_id, privileges } = req.body || {};
+  const dbId = parseId(database_id);
+  const userId = parseId(db_user_id);
+  if (!dbId || !userId) return res.redirect('/databases');
   const db = await getDb();
-  const dbRow = db.prepare('SELECT id, name FROM databases WHERE id = ?').get(Number(database_id));
-  const userRow = db.prepare('SELECT id, username, host FROM db_users WHERE id = ?').get(Number(db_user_id));
+  const dbRow = db.prepare('SELECT id, name FROM databases WHERE id = ?').get(dbId);
+  const userRow = db.prepare('SELECT id, username, host FROM db_users WHERE id = ?').get(userId);
   if (!dbRow || !userRow) return res.redirect('/databases');
   const priv = privileges === 'READ_ONLY' || privileges === 'READ_WRITE' ? privileges : 'ALL';
   const existing = db.prepare('SELECT id FROM db_grants WHERE database_id = ? AND db_user_id = ?').get(dbRow.id, userRow.id);
@@ -192,8 +217,11 @@ router.post('/grants', async (req, res) => {
 
 router.post('/grants/revoke', async (req, res) => {
   const { database_id, db_user_id } = req.body || {};
+  const dbId = parseId(database_id);
+  const userId = parseId(db_user_id);
+  if (!dbId || !userId) return res.redirect('/databases');
   const db = await getDb();
-  const grant = db.prepare('SELECT g.database_id, g.db_user_id, d.name AS database_name, u.username, u.host FROM db_grants g JOIN databases d ON d.id = g.database_id JOIN db_users u ON u.id = g.db_user_id WHERE g.database_id = ? AND g.db_user_id = ?').get(Number(database_id), Number(db_user_id));
+  const grant = db.prepare('SELECT g.database_id, g.db_user_id, d.name AS database_name, u.username, u.host FROM db_grants g JOIN databases d ON d.id = g.database_id JOIN db_users u ON u.id = g.db_user_id WHERE g.database_id = ? AND g.db_user_id = ?').get(dbId, userId);
   if (!grant) return res.redirect('/databases');
   db.prepare('DELETE FROM db_grants WHERE database_id = ? AND db_user_id = ?').run(grant.database_id, grant.db_user_id);
   const settings = getSettings(db);
