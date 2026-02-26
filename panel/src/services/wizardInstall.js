@@ -42,6 +42,31 @@ function aptUpdate() {
 }
 
 /**
+ * Sensible upload limits for PHP (WordPress/media etc). Writes 98-uploads.ini for FPM and CLI.
+ * No restart here; applyPhpMailConfig restarts FPM so both are loaded.
+ */
+function applyPhpUploadDefaults(version) {
+  const uploadIni = `; Tinchost: allow larger uploads (e.g. WordPress media)
+upload_max_filesize = 64M
+post_max_size = 64M
+`;
+  const dirs = [
+    path.join('/etc/php', version, 'fpm', 'conf.d'),
+    path.join('/etc/php', version, 'cli', 'conf.d')
+  ];
+  try {
+    for (const dir of dirs) {
+      if (!fs.existsSync(path.join(dir, '..'))) continue;
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, '98-uploads.ini'), uploadIni, 'utf8');
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, out: (err.message || String(err)) };
+  }
+}
+
+/**
  * Ensure PHP mail() works via system sendmail (Postfix). Writes 99-mail.ini for both FPM and CLI
  * so transactional mail works for any PHP version. Uses standard path /usr/sbin/sendmail -t -i.
  */
@@ -149,6 +174,8 @@ function installPhp(versions, config) {
       const perf = applyPhpFpmPerformance(v);
       if (!perf.ok) return { ok: false, out: out + (perf.out || '') };
     }
+    const uploadCfg = applyPhpUploadDefaults(v);
+    if (!uploadCfg.ok) return { ok: false, out: out + (uploadCfg.out || '') };
     const mailCfg = applyPhpMailConfig(v);
     if (!mailCfg.ok) return { ok: false, out: out + (mailCfg.out || '') };
   }
@@ -250,6 +277,7 @@ function installMail() {
   if (!r.ok) return r;
   const versions = getInstalledPhpVersions();
   for (const v of versions) {
+    applyPhpUploadDefaults(v);
     const mailCfg = applyPhpMailConfig(v);
     if (!mailCfg.ok) return { ok: false, out: r.out + (mailCfg.out || '') };
   }
@@ -390,7 +418,9 @@ async function runWizardInstallStreaming(state, onOutput, opts) {
           const perf = applyPhpFpmPerformance(v);
           if (!perf.ok) return { success: false };
         }
-        out('\n[PHP ' + v + ' mail config]\n');
+        out('\n[PHP ' + v + ' upload & mail config]\n');
+        const uploadCfg = applyPhpUploadDefaults(v);
+        if (!uploadCfg.ok) return { success: false };
         const mailCfg = applyPhpMailConfig(v);
         if (!mailCfg.ok) return { success: false };
       }
@@ -438,7 +468,8 @@ async function runWizardInstallStreaming(state, onOutput, opts) {
       if (!r4.ok) return { success: false };
       const phpVers = getInstalledPhpVersions();
       for (const v of phpVers) {
-        out('\n[PHP ' + v + ' mail config]\n');
+        out('\n[PHP ' + v + ' upload & mail config]\n');
+        applyPhpUploadDefaults(v);
         const mailCfg = applyPhpMailConfig(v);
         if (!mailCfg.ok) return { success: false };
       }

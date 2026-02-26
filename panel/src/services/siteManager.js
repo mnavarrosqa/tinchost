@@ -82,6 +82,7 @@ server {
     server_name ${site.domain};
     root ${root};
     index index.php index.html;
+    client_max_body_size 64M;
 ${locationBlock}
 }
 `;
@@ -99,6 +100,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/${site.domain}/privkey.pem;
     root ${root};
     index index.php index.html;
+    client_max_body_size 64M;
 ${locationBlock}
 }
 `;
