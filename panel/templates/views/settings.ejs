@@ -297,11 +297,13 @@
           feedback.textContent = "Restarting service…";
           feedback.setAttribute("role", "status");
 
-          var body = new FormData(form);
+          var serviceInput = form.querySelector('input[name="service"]');
+          var serviceValue = (serviceInput && serviceInput.value) || (row && row.dataset.serviceUnit) || "";
+          var body = "service=" + encodeURIComponent(serviceValue);
           fetch(form.action, {
             method: "POST",
             body: body,
-            headers: { "Accept": "application/json" }
+            headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" }
           })
             .then(function(r) {
               var contentType = r.headers.get("Content-Type") || "";
