@@ -3,7 +3,6 @@ const router = express.Router();
 const { getDb, getDbPath, getSetting } = require('../config/database');
 const servicesManager = require('../services/servicesManager');
 const wizardInstall = require('../services/wizardInstall');
-const siteManager = require('../services/siteManager');
 
 function setSetting(db, key, value) {
   db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)').run(key, value);
@@ -205,45 +204,6 @@ router.post('/install/certbot', async (req, res) => {
   }
   updateWizardState(db, { certbot_installed: 1 });
   req.session.settingsInstalled = 'certbot';
-  res.redirect('/settings');
-});
-
-router.post('/nginx-upload-limit', async (req, res) => {
-  try {
-    const result = siteManager.applyNginxUploadLimit();
-    if (result.ok) req.session.settingsSaved = 'Nginx upload limit (64M) applied.';
-    else req.session.settingsError = result.message || 'Failed to apply.';
-  } catch (e) {
-    req.session.settingsError = (e && e.message) ? e.message : 'Failed to apply Nginx upload limit';
-  }
-  res.redirect('/settings');
-});
-
-router.post('/apply-php-mail', async (req, res) => {
-  try {
-    const versions = wizardInstall.getInstalledPhpVersions();
-    if (versions.length === 0) {
-      req.session.settingsError = 'No PHP versions found under /etc/php. Install PHP first.';
-      return res.redirect('/settings');
-    }
-    for (const v of versions) {
-      const result = wizardInstall.applyPhpMailConfig(v);
-      if (!result.ok) {
-        req.session.settingsError = 'PHP ' + v + ': ' + (result.out || result.message || 'Failed');
-        return res.redirect('/settings');
-      }
-    }
-    let msg = 'PHP mail config applied to ' + versions.join(', ') + '.';
-    const postfixStatus = servicesManager.getServiceStatus('postfix');
-    if (postfixStatus === 'active') {
-      const pf = wizardInstall.applyPostfixForPhpMail();
-      if (pf.ok) msg += ' Postfix default envelope sender set for www-data.';
-      else msg += ' (Postfix tweak skipped: ' + (pf.out || '').slice(0, 80) + ')';
-    }
-    req.session.settingsSaved = msg;
-  } catch (e) {
-    req.session.settingsError = (e && e.message) ? e.message : 'Failed to apply PHP mail config';
-  }
   res.redirect('/settings');
 });
 

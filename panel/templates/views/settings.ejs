@@ -99,19 +99,6 @@
     <h2 id="services">Installed services</h2>
     <p style="color:#52796f; font-size:0.9rem; margin:0 0 0.5rem 0;">Services installed by the wizard. Restart a service to apply config changes.</p>
     <div class="card" style="margin-bottom:1rem;">
-      <p style="margin:0 0 0.5rem 0;"><strong>Nginx upload limit</strong> — Getting <em>413 Request Entity Too Large</em> when uploading files (e.g. WordPress media)? Apply a 64M limit globally.</p>
-      <form method="post" action="/settings/nginx-upload-limit" class="inline">
-        <button type="submit">Apply Nginx upload limit (64M)</button>
-      </form>
-    </div>
-    <div class="card" style="margin-bottom:1rem;">
-      <p style="margin:0 0 0.5rem 0;"><strong>PHP mail (default <code>mail()</code>)</strong> — Ensures all PHP versions use the system sendmail (Postfix) so WordPress and other apps can send email. Run this if PHP was installed before Mail, or if emails from PHP are not being sent. If Postfix is running, also sets a default envelope sender for PHP (www-data).</p>
-      <form method="post" action="/settings/apply-php-mail" class="inline">
-        <button type="submit">Apply PHP mail config</button>
-      </form>
-      <p style="font-size:0.85rem; color:#52796f; margin:0.5rem 0 0 0;">If WordPress mail still doesn’t arrive, recipients may be blocking it (SPF/spam). Use a plugin like <strong>WP Mail SMTP</strong> or <strong>FluentSMTP</strong> to send via SMTP with a proper From address.</p>
-    </div>
-    <div class="card" style="margin-bottom:1rem;">
       <p style="margin:0 0 0.5rem 0;"><strong>Test outgoing email</strong> — Send a test message via Postfix to verify that mail is working. Requires Mail (Postfix) to be installed and running.</p>
       <form method="post" action="/settings/test-email" class="inline" style="display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;">
         <input type="email" name="to" placeholder="your@email.com" required style="padding:0.4rem 0.5rem; border:1px solid #b7d4bc; border-radius:4px; min-width:200px;">

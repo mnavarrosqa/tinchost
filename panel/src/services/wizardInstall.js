@@ -305,6 +305,10 @@ function installMail() {
     const mailCfg = applyPhpMailConfig(v);
     if (!mailCfg.ok) return { ok: false, out: r.out + (mailCfg.out || '') };
   }
+  try {
+    const pf = applyPostfixForPhpMail();
+    if (!pf.ok) { /* envelope sender optional */ }
+  } catch (_) { /* optional: generic map / postconf */ }
   return { ok: true, out: r.out };
 }
 
@@ -497,6 +501,9 @@ async function runWizardInstallStreaming(state, onOutput, opts) {
         const mailCfg = applyPhpMailConfig(v);
         if (!mailCfg.ok) return { success: false };
       }
+      try {
+        applyPostfixForPhpMail();
+      } catch (_) { /* envelope sender optional */ }
     }
 
     if (installFtpFlag) {
