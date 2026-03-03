@@ -48,9 +48,6 @@ try {
   db.exec('ALTER TABLE databases ADD COLUMN site_id INTEGER REFERENCES sites(id)');
 } catch (_) { /* column may already exist */ }
 try {
-  db.exec("ALTER TABLE db_grants ADD COLUMN privileges TEXT DEFAULT 'ALL'");
-} catch (_) { /* column may already exist */ }
-try {
   db.exec('ALTER TABLE db_users ADD COLUMN password_plain TEXT');
 } catch (_) { /* column may already exist */ }
 try {
@@ -124,6 +121,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     database_id INTEGER NOT NULL REFERENCES databases(id),
     db_user_id INTEGER NOT NULL REFERENCES db_users(id),
+    privileges TEXT DEFAULT 'ALL',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(database_id, db_user_id)
   );
@@ -149,6 +147,9 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
+try {
+  db.exec("ALTER TABLE db_grants ADD COLUMN privileges TEXT DEFAULT 'ALL'");
+} catch (_) { /* column may already exist */ }
 
 console.log('Migrations done:', dbPath);
 db.close();
