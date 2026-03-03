@@ -276,6 +276,15 @@ function getSettings(db) {
   return o;
 }
 
+/** Regenerate nginx IP-preview config (sites at http://PUBLIC_IP/_preview/<id>/) and leave nginx reload to caller. */
+function refreshIpPreview(db) {
+  const settings = getSettings(db);
+  const { serverIp, serverIpv6 } = getServerIps(db);
+  const effective = { ...settings, server_public_ip: serverIp || settings.server_public_ip, server_public_ipv6: serverIpv6 || settings.server_public_ipv6 };
+  const sites = db.prepare('SELECT * FROM sites ORDER BY id').all();
+  siteManager.writeIpPreviewConf(effective, sites);
+}
+
 router.get('/', async (req, res) => {
   const db = await getDb();
   const sites = db.prepare('SELECT * FROM sites ORDER BY domain').all();
@@ -333,6 +342,7 @@ router.post('/', async (req, res) => {
     } catch (docrootErr) {
       req.session.createDocrootWarning = 'Site created but the docroot directory could not be created or configured. Check path and permissions.';
     }
+    refreshIpPreview(db);
     siteManager.reloadNginx();
   } catch (e) {
     const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
@@ -482,6 +492,7 @@ router.post('/:id/ssl/delete', async (req, res) => {
     const updated = db.prepare('SELECT * FROM sites WHERE id = ?').get(site.id);
     const settings = getSettings(db);
     await siteManager.writeVhost(updated, settings);
+    refreshIpPreview(db);
     siteManager.reloadNginx();
     res.redirect('/sites/' + site.id + '?ssl=removed#ssl');
   } catch (e) {
@@ -500,6 +511,7 @@ router.post('/:id/ssl/install', async (req, res) => {
     const updated = db.prepare('SELECT * FROM sites WHERE id = ?').get(site.id);
     const settings = getSettings(db);
     await siteManager.writeVhost(updated, settings);
+    refreshIpPreview(db);
     siteManager.reloadNginx();
     res.redirect('/sites/' + site.id + '?ssl=installed#ssl');
   } catch (e) {
@@ -1093,6 +1105,7 @@ router.post('/:id/php-options', async (req, res) => {
   const updated = db.prepare('SELECT * FROM sites WHERE id = ?').get(req.params.id);
   const settings = getSettings(db);
   await siteManager.writeVhost(updated, settings);
+  refreshIpPreview(db);
   siteManager.reloadNginx();
   if (site.app_type !== 'node' && site.php_version) {
     const restart = servicesManager.restartService('php' + site.php_version + '-fpm');
@@ -1155,6 +1168,7 @@ router.post('/:id', async (req, res) => {
   const settings = getSettings(db);
   try {
     await siteManager.writeVhost(updated, settings);
+    refreshIpPreview(db);
     siteManager.reloadNginx();
     res.redirect('/sites/' + req.params.id + (appKind === 'node' ? '#node-apps' : ''));
   } catch (e) {
@@ -1177,6 +1191,7 @@ router.post('/:id/delete', async (req, res) => {
     }
     db.prepare('DELETE FROM databases WHERE site_id = ?').run(req.params.id);
     db.prepare('DELETE FROM sites WHERE id = ?').run(req.params.id);
+    refreshIpPreview(db);
     siteManager.reloadNginx();
   }
   res.redirect('/sites');
