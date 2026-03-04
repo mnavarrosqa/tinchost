@@ -16,13 +16,28 @@
   var cancelBtn = document.getElementById('confirm-modal-cancel');
   var confirmBtn = document.getElementById('confirm-modal-confirm');
   var pendingForm = null;
+  var previousActiveElement = null;
+
+  var focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  function getFocusables() {
+    var dialog = overlay.querySelector('.confirm-modal-dialog');
+    if (!dialog) return [];
+    return Array.prototype.filter.call(dialog.querySelectorAll(focusableSelectors), function(el) {
+      return el.tabIndex !== -1 && !el.disabled;
+    });
+  }
 
   function closeModal() {
     overlay.classList.remove('is-active');
+    if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+      previousActiveElement.focus();
+    }
+    previousActiveElement = null;
     pendingForm = null;
   }
 
   function showModal(message) {
+    previousActiveElement = document.activeElement;
     msgEl.textContent = message || 'Are you sure?';
     overlay.classList.add('is-active');
     cancelBtn.focus();
@@ -43,7 +58,27 @@
 
   document.addEventListener('keydown', function(e) {
     if (!overlay.classList.contains('is-active')) return;
-    if (e.key === 'Escape') { e.preventDefault(); closeModal(); }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeModal();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    var focusables = getFocusables();
+    if (focusables.length === 0) return;
+    var first = focusables[0];
+    var last = focusables[focusables.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
   });
 
   document.addEventListener('submit', function(e) {

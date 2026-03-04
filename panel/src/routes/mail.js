@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
   `).all();
   const mailError = req.session.mailError || null;
   if (req.session.mailError) delete req.session.mailError;
-  res.render('mail/list', { domains, mailError });
+  res.render('mail/list', { layout: false, domains, mailError });
 });
 
 function isValidMailDomain(str) {

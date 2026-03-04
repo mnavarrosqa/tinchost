@@ -4,29 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mail – UPGS Panel</title>
+  <%- include('../partials/nav-styles') %>
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
-    <%- include('../partials/nav-styles') %>
-    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #ddd; }
-    .risk { background: #fff3cd; border-left: 4px solid #ffc107; padding: 0.75rem; margin: 1rem 0; }
-    .btn { padding: 0.35rem 0.75rem; background: #007bff; color: #fff; border: none; cursor: pointer; border-radius: 4px; }
+    .risk.risk-warn { background: #fff3cd; border-left-color: #ffc107; color: #856404; }
   </style>
 </head>
 <body>
   <%- include('../partials/nav') %>
-  <main>
+  <main id="main">
     <h1>Mail</h1>
     <% if (typeof mailError === 'string' && mailError) { %>
-    <div class="error-msg" style="background:#f8d7da;border:1px solid #9b2226;color:#9b2226;padding:0.5rem 0.75rem;border-radius:4px;margin-bottom:1rem;"><%= mailError %></div>
+    <div class="error-msg"><%= mailError %></div>
     <% } %>
-    <div class="risk"><strong>Risk:</strong> Mail may not be delivered or may be marked as spam. Ensure DNS (SPF/DKIM/DMARC) and firewall (ports 25, 587) are configured for this server.</div>
-    <form method="post" action="/mail/domains" style="margin-bottom:1rem;">
-      <input type="text" name="domain" placeholder="Mail domain (e.g. example.com)" required>
+    <div class="risk risk-warn"><strong>Risk:</strong> Mail may not be delivered or may be marked as spam. Ensure DNS (SPF/DKIM/DMARC) and firewall (ports 25, 587) are configured for this server.</div>
+    <form method="post" action="/mail/domains" class="form-inline" style="margin-bottom:1rem;">
+      <label for="mail-domain" class="sr-only">Mail domain</label>
+      <input type="text" id="mail-domain" name="domain" placeholder="Mail domain (e.g. example.com)" required>
       <button type="submit" class="btn">Add domain</button>
     </form>
+    <div class="table-scroll-wrap">
     <table>
       <thead><tr><th>Domain</th><th>Mailboxes</th></tr></thead>
       <tbody>
@@ -36,6 +32,7 @@
         <% if (!domains.length) { %><tr><td colspan="2">No mail domains yet.</td></tr><% } %>
       </tbody>
     </table>
+    </div>
   </main>
 </body>
 </html>

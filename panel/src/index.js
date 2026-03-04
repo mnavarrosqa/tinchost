@@ -1,6 +1,7 @@
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
+const expressLayouts = require('express-ejs-layouts');
 const session = require('express-session');
 const { getDb } = require('./config/database');
 const authRouter = require('./routes/auth');
@@ -14,6 +15,8 @@ const PORT = process.env.PORT || 3000;
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'templates', 'views'));
+app.use(expressLayouts);
+app.set('layout', 'layout');
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -82,7 +85,7 @@ app.get('/login', async (req, res) => {
   const db = await getDb();
   const count = db.prepare('SELECT COUNT(*) as c FROM users').get();
   if (count.c === 0) return res.redirect('/auth/setup');
-  res.render('login');
+  res.render('login', { layout: false });
 });
 
 app.get('/', requireAuth, requireWizardComplete, (req, res) => {
@@ -98,7 +101,7 @@ app.get('/', requireAuth, requireWizardComplete, (req, res) => {
     serverInfo.disk.totalFormatted = formatBytes(serverInfo.disk.total);
     serverInfo.disk.usedFormatted = formatBytes(serverInfo.disk.used);
   } catch (_) {}
-  res.render('dashboard', { user: req.session.user, serverInfo });
+  res.render('dashboard', { title: 'Dashboard – UPGS Panel', user: req.session.user, serverInfo });
 });
 
 function serverInfoJson() {

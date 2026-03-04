@@ -1,59 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sites – UPGS Panel</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
-    <%- include('../partials/nav-styles') %>
-    .ic { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
-    h1 { color: #1b4332; margin-top: 0; font-size: 1.5rem; }
-    .breadcrumb { margin-bottom: 0.5rem; font-size: 0.9rem; }
-    .breadcrumb a { color: #2d6a4f; text-decoration: none; }
-    .breadcrumb a:hover { text-decoration: underline; }
-    .page-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
-    .page-header .intro { color: #52796f; font-size: 0.95rem; margin: 0.25rem 0 0 0; flex-basis: 100%; }
-    .card { border: 1px solid #b7d4bc; border-radius: 6px; padding: 0; margin-bottom: 1.25rem; background: #fff; overflow: hidden; }
-    .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid #e8f5e9; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
-    .card-header h2 { margin: 0; color: #2d6a4f; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; }
-    .card-header h2 .ic { width: 18px; height: 18px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e8f5e9; vertical-align: middle; }
-    th { color: #2d6a4f; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.02em; }
-    tbody tr { transition: background-color 0.15s ease; }
-    tbody tr:hover { background: #f8fcf8; }
-    tbody tr:last-child td { border-bottom: none; }
-    .domain-cell { font-weight: 500; color: #1b4332; }
-    .domain-cell a { color: #1b4332; text-decoration: none; }
-    .domain-cell a:hover { color: #2d6a4f; text-decoration: underline; }
-    .docroot-cell { font-size: 0.9rem; color: #52796f; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .docroot-cell[title] { cursor: help; }
-    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; }
-    .badge-ok { background: #d8f3dc; color: #1b4332; }
-    .badge-off { background: #e8f5e9; color: #52796f; }
-    .badge-app { background: #b7d4bc; color: #1b4332; display: inline-flex; align-items: center; gap: 0.35rem; }
-    .app-cell .ic { width: 14px; height: 14px; flex-shrink: 0; }
-    .actions-cell { white-space: nowrap; }
-    .actions-cell .btn { margin-right: 0.35rem; }
-    .actions-cell .btn:last-child { margin-right: 0; }
-    .btn { padding: 0.45rem 0.85rem; background: #2d6a4f; color: #fff; text-decoration: none; border: none; border-radius: 6px; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; font-family: inherit; font-weight: 500; }
-    .btn:hover { background: #1b4332; color: #fff; }
-    .btn .ic { width: 16px; height: 16px; }
-    .btn-secondary { background: #52796f; color: #fff; }
-    .btn-secondary:hover { background: #354f52; color: #fff; }
-    form.inline { display: inline; }
-    .empty-state { padding: 2.5rem 1.5rem; text-align: center; color: #52796f; }
-    .empty-state p { margin: 0 0 1rem 0; font-size: 1rem; }
-    .empty-state .btn { margin-top: 0.5rem; }
-  </style>
-</head>
-<body>
-  <%- include('../partials/nav') %>
-  <main>
-    <div class="breadcrumb"><a href="/">Dashboard</a> → <strong>Sites</strong></div>
+<style>
+  .card.card--table { padding: 0; margin-bottom: 1.25rem; overflow: hidden; }
+  th, td { vertical-align: middle; padding: 0.75rem 1rem; }
+  th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.02em; }
+</style>
+<div class="breadcrumb"><a href="/">Dashboard</a> → <strong>Sites</strong></div>
     <div class="page-header">
       <div>
         <h1>Sites</h1>
@@ -61,19 +11,16 @@
       </div>
       <a href="/sites/new" class="btn"><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add site</a>
     </div>
-    <% if (typeof listWarning === 'string' && listWarning) { %>
-    <div class="warn"><%= listWarning %></div>
-    <% } %>
-
-    <% if (typeof listWarning === 'string' && listWarning) { %>
-    <div style="background:#fff8e1;border-left:4px solid #b7a53a;padding:0.6rem 0.75rem;margin-bottom:1rem;border-radius:0 6px 6px 0;font-size:0.9rem;color:#5c4d1f;"><%= listWarning %></div>
-    <% } %>
-    <div class="card">
+<% if (typeof listWarning === 'string' && listWarning) { %>
+<div class="risk risk-warn" style="margin-top:0;"><%= listWarning %></div>
+<% } %>
+    <div class="card card--table">
       <% if (sites.length) { %>
       <div class="card-header">
         <h2><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>All sites</h2>
         <span style="font-size:0.9rem; color:#52796f;"><%= sites.length %> <%= sites.length === 1 ? 'site' : 'sites' %></span>
       </div>
+      <div class="table-scroll-wrap">
       <table>
         <thead>
           <tr><th>Domain</th><th>Docroot</th><th>App</th><th>SSL</th><th>FTP</th><th></th></tr>
@@ -102,6 +49,7 @@
           <% }); %>
         </tbody>
       </table>
+      </div>
       <% } else { %>
       <div class="empty-state">
         <p>No sites yet. Add your first site to create an Nginx vhost and configure docroot, PHP or Node, SSL, and FTP.</p>
@@ -109,6 +57,3 @@
       </div>
       <% } %>
     </div>
-  </main>
-</body>
-</html>

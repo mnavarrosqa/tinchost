@@ -4,47 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Settings – UPGS Panel</title>
+  <%- include('partials/nav-styles') %>
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
-    <%- include('partials/nav-styles') %>
-    main { max-width: 720px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
-    h1 { margin-top: 0; color: #1b4332; font-size: 1.5rem; }
-    h2 { color: #2d6a4f; font-size: 1.1rem; margin: 1.5rem 0 0.75rem 0; }
-    label { display: block; margin-top: 0.75rem; font-size: 0.9rem; color: #1b4332; }
-    input[type=text], input[type=password] { width: 100%; max-width: 360px; padding: 0.5rem; border: 1px solid #b7d4bc; border-radius: 4px; }
-    button, .btn { padding: 0.45rem 0.9rem; background: #2d6a4f; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
-    button:hover, .btn:hover { background: #1b4332; color: #fff; }
-    .risk { background: #f8d7da; border: 1px solid #9b2226; color: #9b2226; padding: 0.75rem; margin: 1rem 0; border-radius: 4px; font-size: 0.9rem; }
-    .success { background: #d8f3dc; border: 1px solid #2d6a4f; color: #1b4332; padding: 0.5rem 0.75rem; margin-bottom: 1rem; border-radius: 4px; font-size: 0.9rem; }
-    table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
-    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #e8f5e9; }
-    th { color: #2d6a4f; font-weight: 600; font-size: 0.875rem; }
-    .status-active { color: #2d6a4f; font-weight: 500; }
-    .status-inactive { color: #9b2226; }
-    .card { border: 1px solid #b7d4bc; border-radius: 6px; padding: 1.25rem; margin-bottom: 1.25rem; background: #fff; }
-    form.inline { display: inline; }
-    .tabs { margin: 0 0 0 0; border-bottom: 1px solid #b7d4bc; }
-    .tabs-list { display: flex; flex-wrap: wrap; gap: 0; list-style: none; margin: 0; padding: 0; }
-    .tabs-list li { margin: 0; }
-    .tabs-trigger { padding: 0.75rem 1rem; color: #52796f; text-decoration: none; border-bottom: 3px solid transparent; margin-bottom: -1px; display: flex; align-items: center; gap: 0.4rem; font-size: 0.95rem; }
-    .tabs-trigger:hover { color: #2d6a4f; }
-    .tabs-trigger.is-active { color: #2d6a4f; font-weight: 600; border-bottom-color: #2d6a4f; }
-    .tabs-trigger .ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .tabs-panel { display: none; padding-top: 1.25rem; }
-    .tabs-panel.is-active { display: block; }
+    .status-active { color: var(--color-primary); font-weight: 500; }
+    .status-inactive { color: var(--color-danger); }
     .service-action-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
     .service-action-cell form { margin: 0; }
     .service-feedback { font-size: 0.85rem; margin: 0; }
-    .service-feedback.loading { color: #52796f; font-style: italic; }
-    .service-feedback.success { color: #2d6a4f; font-weight: 500; }
-    .service-feedback.error { color: #9b2226; }
+    .service-feedback.loading { color: var(--color-muted); font-style: italic; }
+    .service-feedback.success { color: var(--color-primary); font-weight: 500; }
+    .service-feedback.error { color: var(--color-danger); }
     .service-action-cell button[disabled] { opacity: 0.8; cursor: not-allowed; }
   </style>
 </head>
 <body>
   <%- include('partials/nav') %>
-  <main>
+  <main class="main-narrow" id="main">
     <h1>Settings</h1>
     <% if (typeof settingsError === 'string' && settingsError) { %>
     <div class="risk"><strong>Error:</strong> <%= settingsError %></div>
@@ -65,11 +40,11 @@
     <div class="risk"><strong>This panel runs as root.</strong> Protect access and use a strong password.</div>
 
     <nav class="tabs" aria-label="Settings sections">
-      <ul class="tabs-list">
-        <li><a href="#services" class="tabs-trigger is-active" data-tab="services" id="tab-services"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/><line x1="18" y1="6" x2="18.01" y2="6"/><line x1="18" y1="18" x2="18.01" y2="18"/></svg>Services</a></li>
-        <li><a href="#paths" class="tabs-trigger" data-tab="paths" id="tab-paths"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Paths &amp; credentials</a></li>
-        <li><a href="#logs" class="tabs-trigger" data-tab="logs" id="tab-logs"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Logs</a></li>
-        <li><a href="#components" class="tabs-trigger" data-tab="components" id="tab-components"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Install components</a></li>
+      <ul class="tabs-list" role="tablist">
+        <li><a href="#services" class="tabs-trigger is-active" data-tab="services" id="tab-services" role="tab" aria-selected="true" aria-controls="panel-services" tabindex="0"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/><line x1="18" y1="6" x2="18.01" y2="6"/><line x1="18" y1="18" x2="18.01" y2="18"/></svg>Services</a></li>
+        <li><a href="#paths" class="tabs-trigger" data-tab="paths" id="tab-paths" role="tab" aria-selected="false" aria-controls="panel-paths" tabindex="-1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Paths &amp; credentials</a></li>
+        <li><a href="#logs" class="tabs-trigger" data-tab="logs" id="tab-logs" role="tab" aria-selected="false" aria-controls="panel-logs" tabindex="-1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Logs</a></li>
+        <li><a href="#components" class="tabs-trigger" data-tab="components" id="tab-components" role="tab" aria-selected="false" aria-controls="panel-components" tabindex="-1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Install components</a></li>
       </ul>
     </nav>
 
@@ -281,16 +256,51 @@
       TAB_IDS.forEach(function(tabId) {
         var panel = document.getElementById("panel-" + tabId);
         var trigger = document.getElementById("tab-" + tabId);
-        if (panel) panel.classList.toggle("is-active", tabId === id);
-        if (trigger) trigger.classList.toggle("is-active", tabId === id);
+        if (panel) {
+          panel.classList.toggle("is-active", tabId === id);
+          panel.setAttribute("aria-hidden", tabId !== id);
+        }
+        if (trigger) {
+          trigger.classList.toggle("is-active", tabId === id);
+          trigger.setAttribute("aria-selected", tabId === id);
+          trigger.setAttribute("tabindex", tabId === id ? "0" : "-1");
+        }
       });
       window.location.hash = id;
     }
     document.addEventListener("click", function(e) {
-      var trigger = e.target.closest(".tabs-trigger");
+      var trigger = e.target.closest(".tabs-trigger[data-tab]");
       if (trigger && trigger.dataset.tab) {
         e.preventDefault();
         switchTab(trigger.dataset.tab);
+      }
+    });
+    document.addEventListener("keydown", function(e) {
+      var trigger = e.target.closest(".tabs-trigger[data-tab]");
+      if (!trigger || !trigger.dataset.tab) return;
+      var list = trigger.closest(".tabs-list");
+      if (!list) return;
+      var tabs = Array.prototype.filter.call(list.querySelectorAll(".tabs-trigger[data-tab]"), function(t) { return t.offsetParent !== null; });
+      var idx = tabs.indexOf(trigger);
+      if (idx < 0) return;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        var next = tabs[idx + 1] || tabs[0];
+        next.focus();
+        switchTab(next.dataset.tab);
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        var prev = tabs[idx - 1] || tabs[tabs.length - 1];
+        prev.focus();
+        switchTab(prev.dataset.tab);
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        tabs[0].focus();
+        switchTab(tabs[0].dataset.tab);
+      } else if (e.key === "End") {
+        e.preventDefault();
+        tabs[tabs.length - 1].focus();
+        switchTab(tabs[tabs.length - 1].dataset.tab);
       }
     });
     window.addEventListener("hashchange", function() { switchTab(getTabFromHash()); });

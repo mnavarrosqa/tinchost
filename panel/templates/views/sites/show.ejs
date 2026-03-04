@@ -4,82 +4,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= site.domain %> – UPGS Panel</title>
+  <%- include('../partials/nav-styles') %>
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
-    <%- include('../partials/nav-styles') %>
-    .ic { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
-    h1 { margin-top: 0; color: #1b4332; font-size: 1.5rem; }
-    .breadcrumb { margin-bottom: 1rem; }
-    .breadcrumb a { color: #2d6a4f; text-decoration: none; }
-    .breadcrumb a:hover { text-decoration: underline; }
-    .card { border: 1px solid #b7d4bc; border-radius: 6px; padding: 1.25rem; margin-bottom: 1.25rem; background: #fff; }
-    .card h2 { margin: 0 0 0.75rem 0; color: #2d6a4f; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
-    .card h2 .ic { width: 20px; height: 20px; }
-    .site-meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem 1.5rem; margin: 0.75rem 0 0 0; color: #1b4332; font-size: 0.9rem; }
+    .site-meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem 1.5rem; margin: 0.75rem 0 0 0; color: var(--color-text); font-size: 0.9rem; }
     .site-meta-item { display: flex; flex-direction: column; gap: 0.15rem; }
-    .site-meta-item .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: #52796f; font-weight: 600; }
-    .site-meta-item .value { color: #1b4332; font-size: 0.95rem; word-break: break-all; }
-    .overview-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.75rem; margin: 1.25rem 0 0 0; padding-top: 1rem; border-top: 1px solid #e8f5e9; }
-    .summary-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; padding: 0.75rem 1rem; background: #f8fcf9; border: 1px solid #b7d4bc; border-radius: 8px; color: inherit; text-decoration: none; transition: background 0.15s ease, border-color 0.15s ease; }
-    .summary-tile:hover { background: #e8f5e9; border-color: #2d6a4f; color: #1b4332; }
-    .summary-tile .summary-tile-label { font-size: 0.8rem; color: #52796f; font-weight: 500; }
-    .summary-tile .summary-tile-value { font-size: 1.25rem; font-weight: 600; color: #2d6a4f; }
-    .summary-tile .summary-tile-hint { font-size: 0.75rem; color: #52796f; margin-top: 0.15rem; }
+    .site-meta-item .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-muted); font-weight: 600; }
+    .site-meta-item .value { color: var(--color-text); font-size: 0.95rem; word-break: break-all; }
+    .overview-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.75rem; margin: 1.25rem 0 0 0; padding-top: 1rem; border-top: 1px solid var(--color-border-light); }
+    .summary-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; padding: 0.75rem 1rem; background: #f8fcf9; border: 1px solid var(--color-border); border-radius: var(--radius-lg); color: inherit; text-decoration: none; transition: background 0.15s ease, border-color 0.15s ease; }
+    .summary-tile:hover { background: var(--color-border-light); border-color: var(--color-primary); color: var(--color-text); }
+    .summary-tile .summary-tile-label { font-size: 0.8rem; color: var(--color-muted); font-weight: 500; }
+    .summary-tile .summary-tile-value { font-size: 1.25rem; font-weight: 600; color: var(--color-primary); }
+    .summary-tile .summary-tile-hint { font-size: 0.75rem; color: var(--color-muted); margin-top: 0.15rem; }
     .site-actions { margin-top: 1.25rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .btn { padding: 0.4rem 0.9rem; background: #2d6a4f; color: #fff; text-decoration: none; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; }
-    .btn:hover { background: #1b4332; color: #fff; }
-    .btn-secondary { background: #52796f; }
-    .btn-secondary:hover { background: #354f52; }
-    .btn-danger { background: #9b2226; }
-    .btn-danger:hover { background: #7a1c1e; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #e8f5e9; }
-    th { color: #2d6a4f; font-weight: 600; font-size: 0.875rem; }
-    .form-row { margin-bottom: 0.75rem; }
-    .form-row label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; color: #1b4332; }
-    .form-row input { padding: 0.4rem 0.5rem; border: 1px solid #b7d4bc; border-radius: 4px; width: 100%; max-width: 240px; }
-    .form-row .hint { font-size: 0.85rem; color: #52796f; margin-top: 0.25rem; display: block; }
-    .form-inline { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; margin-top: 0.75rem; }
-    .error-msg { background: #f8d7da; border: 1px solid #9b2226; color: #9b2226; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
-    .success-msg { background: #d8f3dc; border: 1px solid #2d6a4f; color: #1b4332; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
-    .empty-msg { color: #52796f; font-size: 0.9rem; }
-    form.inline { display: inline; }
-    .credential-box { background: #d8f3dc; border: 1px solid #2d6a4f; color: #1b4332; padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
-    .credential-box strong { display: block; margin-bottom: 0.35rem; }
-    .credential-box .password { font-family: monospace; user-select: all; }
-    .btn-small { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
-    .password-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
-    .password-cell .show-hint { font-size: 0.8rem; color: #52796f; }
-    .password-cell .pwd-value { font-family: monospace; user-select: all; }
-    .tabs { margin: 0 0 0 0; border-bottom: 1px solid #b7d4bc; }
-    .tabs-list { display: flex; flex-wrap: wrap; gap: 0; list-style: none; margin: 0; padding: 0; }
-    .tabs-list li { margin: 0; }
-    .tabs-trigger { padding: 0.75rem 1rem; color: #52796f; text-decoration: none; border-bottom: 3px solid transparent; margin-bottom: -1px; display: flex; align-items: center; gap: 0.4rem; font-size: 0.95rem; }
-    .tabs-trigger:hover { color: #2d6a4f; }
-    .tabs-trigger.is-active { color: #2d6a4f; font-weight: 600; border-bottom-color: #2d6a4f; }
-    .tabs-trigger .ic { width: 18px; height: 18px; }
-    .tabs-panel { display: none; padding-top: 1.25rem; }
-    .tabs-panel.is-active { display: block; }
+    .password-cell .show-hint { font-size: 0.8rem; color: var(--color-muted); }
+    .password-cell .pwd-value { font-family: ui-monospace, monospace; user-select: all; }
     .npm-overlay { display: none; position: fixed; inset: 0; background: rgba(43, 52, 49, 0.85); z-index: 10000; align-items: center; justify-content: center; padding: 1.5rem; pointer-events: none; }
     .npm-overlay.is-active { display: flex; pointer-events: auto; }
-    .npm-overlay-dialog { background: #fff; border: 1px solid #b7d4bc; border-radius: 8px; max-width: 720px; width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
-    .npm-overlay-title { padding: 1rem 1.25rem; border-bottom: 1px solid #e8f5e9; font-weight: 600; color: #2d6a4f; }
-    .npm-overlay-log { flex: 1; overflow: auto; padding: 1rem 1.25rem; font-family: monospace; font-size: 0.8rem; line-height: 1.4; background: #1b4332; color: #d8f3dc; white-space: pre-wrap; word-break: break-all; min-height: 200px; max-height: 55vh; }
-    .npm-overlay-actions { padding: 1rem 1.25rem; border-top: 1px solid #e8f5e9; display: flex; justify-content: flex-end; gap: 0.5rem; }
+    .npm-overlay-dialog { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); max-width: 720px; width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-modal); }
+    .npm-overlay-title { padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border-light); font-weight: 600; color: var(--color-primary); }
+    .npm-overlay-log { flex: 1; overflow: auto; padding: 1rem 1.25rem; font-family: ui-monospace, monospace; font-size: 0.8rem; line-height: 1.4; background: var(--color-primary-dark); color: #d8f3dc; white-space: pre-wrap; word-break: break-all; min-height: 200px; max-height: 55vh; }
+    .npm-overlay-actions { padding: 1rem 1.25rem; border-top: 1px solid var(--color-border-light); display: flex; justify-content: flex-end; gap: 0.5rem; }
     .ssl-progress-overlay { display: none; position: fixed; inset: 0; background: rgba(27, 67, 50, 0.75); z-index: 10001; align-items: center; justify-content: center; padding: 1.5rem; }
     .ssl-progress-overlay.is-active { display: flex; }
-    .ssl-progress-overlay .ssl-progress-dialog { background: #fff; border: 1px solid #b7d4bc; border-radius: 8px; padding: 1.5rem 2rem; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 1rem; }
-    .ssl-progress-overlay .ssl-progress-spinner { width: 28px; height: 28px; border: 3px solid #e8f5e9; border-top-color: #2d6a4f; border-radius: 50%; animation: ssl-progress-spin 0.8s linear infinite; flex-shrink: 0; }
-    .ssl-progress-overlay .ssl-progress-msg { color: #1b4332; font-weight: 500; }
+    .ssl-progress-overlay .ssl-progress-dialog { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem 2rem; box-shadow: var(--shadow-modal); display: flex; align-items: center; gap: 1rem; }
+    .ssl-progress-overlay .ssl-progress-spinner { width: 28px; height: 28px; border: 3px solid var(--color-border-light); border-top-color: var(--color-primary); border-radius: 50%; animation: ssl-progress-spin 0.8s linear infinite; flex-shrink: 0; }
+    .ssl-progress-overlay .ssl-progress-msg { color: var(--color-text); font-weight: 500; }
     @keyframes ssl-progress-spin { to { transform: rotate(360deg); } }
     .page-disabled { pointer-events: none; opacity: 0.7; }
   </style>
 </head>
 <body>
   <%- include('../partials/nav') %>
-  <main>
+  <main id="main">
     <div class="breadcrumb"><a href="/">Dashboard</a> → <a href="/sites">Sites</a> → <strong><%= site.domain %></strong></div>
     <h1><%= site.domain %></h1>
 
@@ -109,15 +66,15 @@
     <% } %>
 
     <nav class="tabs" aria-label="Site sections">
-      <ul class="tabs-list">
-        <li><a href="#overview" class="tabs-trigger is-active" data-tab="overview" id="tab-overview"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Overview</a></li>
-        <li><a href="#databases" class="tabs-trigger" data-tab="databases" id="tab-databases"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</a></li>
-        <li><a href="#ftp" class="tabs-trigger" data-tab="ftp" id="tab-ftp"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>FTP</a></li>
-        <li><a href="#ssl" class="tabs-trigger" data-tab="ssl" id="tab-ssl"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SSL</a></li>
-        <li><a href="#dns" class="tabs-trigger" data-tab="dns" id="tab-dns"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>DNS</a></li>
-        <% if (site.app_type !== 'node') { %><li><a href="#php" class="tabs-trigger" data-tab="php" id="tab-php"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>PHP</a></li><% } %>
-        <li><a href="#scripts" class="tabs-trigger" data-tab="scripts" id="tab-scripts"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Scripts</a></li>
-        <% if (site.app_type === 'node') { %><li><a href="#node-apps" class="tabs-trigger" data-tab="node-apps" id="tab-node-apps"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L22 8v8l-10 6L2 16V8l10-6z"/></svg>My Node apps</a></li><% } %>
+      <ul class="tabs-list" role="tablist">
+        <li><a href="#overview" class="tabs-trigger is-active" data-tab="overview" id="tab-overview" role="tab" aria-selected="true" aria-controls="panel-overview" tabindex="0"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Overview</a></li>
+        <li><a href="#databases" class="tabs-trigger" data-tab="databases" id="tab-databases" role="tab" aria-selected="false" aria-controls="panel-databases" tabindex="-1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Databases</a></li>
+        <li><a href="#ftp" class="tabs-trigger" data-tab="ftp" id="tab-ftp" role="tab" aria-selected="false" aria-controls="panel-ftp" tabindex="-1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>FTP</a></li>
+        <li><a href="#ssl" class="tabs-trigger" data-tab="ssl" id="tab-ssl" role="tab" aria-selected="false" aria-controls="panel-ssl" tabindex="-1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SSL</a></li>
+        <li><a href="#dns" class="tabs-trigger" data-tab="dns" id="tab-dns" role="tab" aria-selected="false" aria-controls="panel-dns" tabindex="-1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>DNS</a></li>
+        <% if (site.app_type !== 'node') { %><li><a href="#php" class="tabs-trigger" data-tab="php" id="tab-php" role="tab" aria-selected="false" aria-controls="panel-php" tabindex="-1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>PHP</a></li><% } %>
+        <li><a href="#scripts" class="tabs-trigger" data-tab="scripts" id="tab-scripts" role="tab" aria-selected="false" aria-controls="panel-scripts" tabindex="-1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Scripts</a></li>
+        <% if (site.app_type === 'node') { %><li><a href="#node-apps" class="tabs-trigger" data-tab="node-apps" id="tab-node-apps" role="tab" aria-selected="false" aria-controls="panel-node-apps" tabindex="-1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L22 8v8l-10 6L2 16V8l10-6z"/></svg>My Node apps</a></li><% } %>
         <li><a href="/sites/<%= site.id %>/files" class="tabs-trigger"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>File Manager</a></li>
       </ul>
     </nav>

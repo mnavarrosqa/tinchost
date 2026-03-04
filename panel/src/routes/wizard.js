@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
     const db = await getDb();
     db.prepare('UPDATE wizard_state SET step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run(step);
   }
-  res.render('wizard', { step, state });
+  res.render('wizard', { layout: false, step, state });
 });
 
 router.get('/step/:name', async (req, res) => {
@@ -52,11 +52,11 @@ router.post('/database', async (req, res) => {
 
   if (password.length < 8) {
     const state = await getState();
-    return res.render('wizard', { step: 'database', state, databaseError: 'Root password must be at least 8 characters.' });
+    return res.render('wizard', { layout: false, step: 'database', state, databaseError: 'Root password must be at least 8 characters.' });
   }
   if (password !== passwordAgain) {
     const state = await getState();
-    return res.render('wizard', { step: 'database', state, databaseError: 'Passwords do not match.' });
+    return res.render('wizard', { layout: false, step: 'database', state, databaseError: 'Passwords do not match.' });
   }
 
   const db = await getDb();
@@ -82,7 +82,7 @@ router.post('/install', async (req, res) => {
   if (result.success) {
     db.prepare('UPDATE wizard_state SET completed = 1, step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run('finish');
   }
-  res.render('wizard', { step: 'result', state, success: result.success, log: result.log });
+  res.render('wizard', { layout: false, step: 'result', state, success: result.success, log: result.log });
 });
 
 router.post('/install/stream', async (req, res) => {

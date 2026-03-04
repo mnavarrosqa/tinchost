@@ -36,7 +36,7 @@ router.get('/', async (req, res) => {
   const userError = req.session.dbUserError || null;
   if (req.session.dbError) delete req.session.dbError;
   if (req.session.dbUserError) delete req.session.dbUserError;
-  res.render('databases/list', { databases, sites, users, grants, hasMysqlPassword: !!(settings && settings.mysql_root_password), user: req.session.user, databaseSizes, repair, repairMsg, dbError, userError });
+  res.render('databases/list', { layout: false, databases, sites, users, grants, hasMysqlPassword: !!(settings && settings.mysql_root_password), user: req.session.user, databaseSizes, repair, repairMsg, dbError, userError });
 });
 
 router.post('/databases', async (req, res) => {

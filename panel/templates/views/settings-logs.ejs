@@ -4,23 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Logs: <%= label %> – UPGS Panel</title>
+  <%- include('partials/nav-styles') %>
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
-    <%- include('partials/nav-styles') %>
-    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
-    h1 { margin-top: 0; color: #1b4332; font-size: 1.25rem; }
+    h1 { font-size: 1.25rem; }
     .back { margin-bottom: 1rem; }
-    .back a { color: #2d6a4f; text-decoration: none; }
+    .back a { color: var(--color-primary); text-decoration: none; }
     .back a:hover { text-decoration: underline; }
-    .log-box { background: #1b4332; color: #d8f3dc; padding: 1rem; border-radius: 6px; overflow-x: auto; font-family: ui-monospace, monospace; font-size: 0.8rem; line-height: 1.4; white-space: pre-wrap; word-break: break-all; max-height: 70vh; overflow-y: auto; }
+    .log-box { background: var(--color-primary-dark); color: #d8f3dc; padding: 1rem; border-radius: var(--radius); overflow-x: auto; font-family: ui-monospace, monospace; font-size: 0.8rem; line-height: 1.4; white-space: pre-wrap; word-break: break-all; max-height: 70vh; overflow-y: auto; }
     .log-box.error { background: #3d0f0f; color: #f8d7da; }
-    .meta { font-size: 0.85rem; color: #52796f; margin-bottom: 0.75rem; }
+    .meta { font-size: 0.85rem; color: var(--color-muted); margin-bottom: 0.75rem; }
   </style>
 </head>
 <body>
   <%- include('partials/nav') %>
-  <main>
+  <main id="main">
     <div class="back"><a href="/settings">← Settings</a></div>
     <h1>Logs: <%= label %></h1>
     <p class="meta">Unit: <code><%= unit %></code> · Last 300 lines<%= typeof priority !== 'undefined' && priority === 'err' ? ' (errors only)' : '' %> from journalctl</p>

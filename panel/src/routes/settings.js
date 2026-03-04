@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
   if (req.session.serviceError) delete req.session.serviceError;
   const dbPath = getDbPath();
   const hasMysqlPassword = !!getSetting(db, 'mysql_root_password');
-  res.render('settings', { state, nginxSites, phpPoolDir, mailPath, mysqlRootPassword, saved, settingsError, settingsInstalled, installedServices, serviceRestarted, serviceError, dbPath, hasMysqlPassword });
+  res.render('settings', { layout: false, state, nginxSites, phpPoolDir, mailPath, mysqlRootPassword, saved, settingsError, settingsInstalled, installedServices, serviceRestarted, serviceError, dbPath, hasMysqlPassword });
 });
 
 router.get('/services/logs', async (req, res) => {
@@ -63,7 +63,7 @@ router.get('/services/logs', async (req, res) => {
   if (req.get('Accept') && req.get('Accept').includes('application/json')) {
     return res.json({ ok: result.ok, output, label, unit });
   }
-  res.render('settings-logs', { unit, label, output, error: !result.ok, priority: priority || 'all' });
+  res.render('settings-logs', { layout: false, unit, label, output, error: !result.ok, priority: priority || 'all' });
 });
 
 router.post('/services/restart', async (req, res) => {

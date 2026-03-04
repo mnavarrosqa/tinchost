@@ -292,7 +292,7 @@ router.get('/', async (req, res) => {
   const phpVersions = (state?.php_versions || '8.2').split(',').filter(Boolean);
   const listWarning = req.session.sitesListWarning || null;
   if (req.session.sitesListWarning) delete req.session.sitesListWarning;
-  res.render('sites/list', { sites, phpVersions, user: req.session?.user, listWarning });
+  res.render('sites/list', { title: 'Sites – UPGS Panel', sites, phpVersions, user: req.session?.user, listWarning });
 });
 
 router.get('/new', async (req, res) => {
@@ -300,7 +300,7 @@ router.get('/new', async (req, res) => {
   const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
   const phpVersions = (state?.php_versions || '8.2').split(',').filter(Boolean);
   const nodeVersion = getNodeVersion();
-  res.render('sites/form', { site: null, phpVersions, nodeVersion });
+  res.render('sites/form', { layout: false, site: null, phpVersions, nodeVersion });
 });
 
 router.post('/', async (req, res) => {
@@ -312,14 +312,14 @@ router.post('/', async (req, res) => {
     const db = await getDb();
     const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
     const phpVersions = (state?.php_versions || '8.2').split(',').filter(Boolean);
-    return res.render('sites/form', { site: null, phpVersions, nodeVersion: getNodeVersion(), error: 'Node app requires a valid port (1–65535).' });
+    return res.render('sites/form', { layout: false, site: null, phpVersions, nodeVersion: getNodeVersion(), error: 'Node app requires a valid port (1–65535).' });
   }
   const docrootPath = docroot || `/var/www/${domain}`;
   const db = await getDb();
   try {
     if (ssl) {
       try { await sslManager.obtainCert(domain); } catch (e) {
-        return res.render('sites/form', { site: null, phpVersions: (db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get()?.php_versions || '8.2').split(',').filter(Boolean), nodeVersion: getNodeVersion(), error: 'SSL: ' + e.message });
+        return res.render('sites/form', { layout: false, site: null, phpVersions: (db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get()?.php_versions || '8.2').split(',').filter(Boolean), nodeVersion: getNodeVersion(), error: 'SSL: ' + e.message });
       }
     }
     db.prepare('INSERT INTO sites (domain, docroot, php_version, ssl, ftp_enabled, app_type, node_port, htaccess_compat) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
@@ -346,7 +346,7 @@ router.post('/', async (req, res) => {
     siteManager.reloadNginx();
   } catch (e) {
     const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
-    return res.render('sites/form', { site: null, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), nodeVersion: getNodeVersion(), error: e.message });
+    return res.render('sites/form', { layout: false, site: null, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), nodeVersion: getNodeVersion(), error: e.message });
   }
   if (req.session.createDocrootWarning) {
     req.session.sitesListWarning = req.session.createDocrootWarning;
@@ -363,7 +363,7 @@ router.get('/:id/edit', async (req, res) => {
   const phpVersions = (state?.php_versions || '8.2').split(',').filter(Boolean);
   const error = req.session.siteEditError || null;
   if (req.session.siteEditError) delete req.session.siteEditError;
-  res.render('sites/form', { site, phpVersions, error, nodeVersion: getNodeVersion() });
+  res.render('sites/form', { layout: false, site, phpVersions, error, nodeVersion: getNodeVersion() });
 });
 
 router.get('/:id', async (req, res) => {
@@ -466,7 +466,7 @@ router.get('/:id', async (req, res) => {
   const phpModulesError = req.query.php_modules === 'error' && req.query.msg ? decodeURIComponent(req.query.msg) : null;
   const phpRestartError = req.query.php_restart_error ? decodeURIComponent(req.query.php_restart_error) : null;
 
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, sslInstalled, sslInstallError, wordpress, wp_folder, phpOptionsSaved, phpModulesSaved, phpModulesError, phpRestartError, phpModules, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, repoUpdated, repoError, pullOk, pullError, nodePm2Status, nodePm2Name, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeDeleted, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError, serverIp, serverIpv6, dnsResolvedA, dnsResolvedAAAA, dnsPointsHere });
+  res.render('sites/show', { layout: false, site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: errorMsg, reset: req.query.reset, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials, panelDbPath, existingDbUsers, sslStatus, renew, sslRemoved, sslError, sslInstalled, sslInstallError, wordpress, wp_folder, phpOptionsSaved, phpModulesSaved, phpModulesError, phpRestartError, phpModules, databaseSizes, installedScripts, docrootSizeFormatted, cloneOk, cloneError, repoUpdated, repoError, pullOk, pullError, nodePm2Status, nodePm2Name, envContent, npmOk, npmError, envOk, envError, nodeStarted, nodeRestarted, nodeStopped, nodeDeleted, nodeError, currentEnvSubfolder, scriptUninstallOk, scriptUninstallError, serverIp, serverIpv6, dnsResolvedA, dnsResolvedAAAA, dnsPointsHere });
 });
 
 router.post('/:id/ssl/renew', async (req, res) => {
@@ -876,7 +876,7 @@ router.get('/:id/files', async (req, res) => {
   const pathSegments = relativePath ? relativePath.split(path.sep).filter(Boolean) : [];
   const parentPath = pathSegments.length > 0 ? pathSegments.slice(0, -1).join(path.sep) : '';
   const queryError = req.query.error === 'invalid' ? 'Invalid path or name.' : (req.query.error === 'upload' ? 'Upload failed.' : null);
-  res.render('sites/files', { site, currentPath: relativePath, pathSegments, parentPath, entries, error: errorMsg || queryError, pathSep: path.sep, user: req.session.user });
+  res.render('sites/files', { layout: false, site, currentPath: relativePath, pathSegments, parentPath, entries, error: errorMsg || queryError, pathSep: path.sep, user: req.session.user });
 });
 
 router.get('/:id/files/download', async (req, res) => {
@@ -1152,13 +1152,13 @@ router.post('/:id', async (req, res) => {
   const portNum = node_port != null && node_port !== '' ? parseInt(node_port, 10) : null;
   if (appKind === 'node' && (portNum == null || isNaN(portNum) || portNum < 1 || portNum > 65535)) {
     const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
-    return res.render('sites/form', { site: { ...site, domain: domain || site.domain, docroot: docroot || site.docroot, php_version: site.php_version, app_type: 'node' }, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), nodeVersion: getNodeVersion(), error: 'Node app requires a valid port (1–65535).' });
+    return res.render('sites/form', { layout: false, site: { ...site, domain: domain || site.domain, docroot: docroot || site.docroot, php_version: site.php_version, app_type: 'node' }, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), nodeVersion: getNodeVersion(), error: 'Node app requires a valid port (1–65535).' });
   }
   const dom = domain || site.domain;
   if (ssl && !site.ssl) {
     try { await sslManager.obtainCert(dom); } catch (e) {
       const state = db.prepare('SELECT php_versions FROM wizard_state WHERE id = 1').get();
-      return res.render('sites/form', { site: { ...site, domain: dom, docroot: docroot || site.docroot, php_version: php_version || site.php_version, app_type: appKind, node_port: appKind === 'node' ? portNum : site.node_port }, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), nodeVersion: getNodeVersion(), error: 'SSL: ' + e.message });
+      return res.render('sites/form', { layout: false, site: { ...site, domain: dom, docroot: docroot || site.docroot, php_version: php_version || site.php_version, app_type: appKind, node_port: appKind === 'node' ? portNum : site.node_port }, phpVersions: (state?.php_versions || '8.2').split(',').filter(Boolean), nodeVersion: getNodeVersion(), error: 'SSL: ' + e.message });
     }
   }
   db.prepare('UPDATE sites SET domain = ?, docroot = ?, php_version = ?, ssl = ?, ftp_enabled = ?, app_type = ?, node_port = ?, htaccess_compat = ? WHERE id = ?').run(
@@ -1216,7 +1216,7 @@ router.post('/:id/databases', async (req, res) => {
     const dbPath = getDbPath();
     const errorMsg = 'MySQL root password not set in Settings. Set it in Settings and click Save. If you already did, set DATABASE_PATH to this panel database path and restart the panel: ' + dbPath;
     const existingDbUsersErr = db.prepare('SELECT id, username FROM db_users ORDER BY username').all();
-    return res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: false, error: errorMsg, reset: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials: null, newFtpCredentials: null, panelDbPath: dbPath, existingDbUsers: existingDbUsersErr });
+    return res.render('sites/show', { layout: false, site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: false, error: errorMsg, reset: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials: null, newFtpCredentials: null, panelDbPath: dbPath, existingDbUsers: existingDbUsersErr });
   }
   const priv = (privileges === 'READ_ONLY' || privileges === 'READ_WRITE') ? privileges : 'ALL';
   settings.mysql_root_password = settings.mysql_root_password || mysqlPassword;
@@ -1270,7 +1270,7 @@ router.post('/:id/databases', async (req, res) => {
   `).all(site.id);
   const ftpUsers = ftpManager.getFtpUsersBySite(db, site.id);
   const existingDbUsersSuccess = db.prepare('SELECT id, username FROM db_users ORDER BY username').all();
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials: null, existingDbUsers: existingDbUsersSuccess });
+  res.render('sites/show', { layout: false, site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!getSetting(db, 'mysql_root_password'), error: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials, newFtpCredentials: null, existingDbUsers: existingDbUsersSuccess });
 });
 
 
@@ -1336,7 +1336,7 @@ router.post('/:id/ftp-users', async (req, res) => {
   const settings = getSettings(db);
   const newFtpCredentials = { username: String(username).trim(), password };
   const existingDbUsersFtp = db.prepare('SELECT id, username FROM db_users ORDER BY username').all();
-  res.render('sites/show', { site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!(settings && settings.mysql_root_password), error: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials: null, newFtpCredentials, existingDbUsers: existingDbUsersFtp });
+  res.render('sites/show', { layout: false, site, siteDatabases, databaseGrants, ftpUsers, hasMysqlPassword: !!(settings && settings.mysql_root_password), error: null, user: req.session.user, privilegeOptions: Object.keys(PRIVILEGE_SETS), newDbCredentials: null, newFtpCredentials, existingDbUsers: existingDbUsersFtp });
 });
 
 router.post('/:id/ftp-users/:uid/reset-password', async (req, res) => {

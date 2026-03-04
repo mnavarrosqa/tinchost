@@ -4,114 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Set up admin – UPGS Panel</title>
+  <link rel="stylesheet" href="/css/panel.css">
   <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      margin: 0;
-      min-height: 100vh;
-      background: #eef5ef;
-      color: #1b4332;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem 1rem;
-    }
-    .card {
-      max-width: 420px;
-      width: 100%;
-      background: #fff;
-      border: 1px solid #b7d4bc;
-      border-radius: 8px;
-      padding: 2rem;
-      box-shadow: 0 2px 8px rgba(45, 106, 79, 0.08);
-    }
-    .brand {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #2d6a4f;
-      letter-spacing: 0.02em;
-      margin-bottom: 0.25rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .brand .ic {
-      width: 28px;
-      height: 28px;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .headline {
-      font-size: 1.15rem;
-      font-weight: 600;
-      color: #1b4332;
-      margin-bottom: 0.35rem;
-    }
-    .tagline {
-      font-size: 0.9rem;
-      color: #52796f;
-      margin-bottom: 1.25rem;
-    }
-    .notice {
-      font-size: 0.85rem;
-      color: #52796f;
-      background: #f0f7f1;
-      border: 1px solid #b7d4bc;
-      border-radius: 6px;
-      padding: 0.75rem 1rem;
-      margin-bottom: 1.5rem;
-    }
-    .setup-form label {
-      display: block;
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: #1b4332;
-      margin-bottom: 0.35rem;
-    }
-    .setup-form input {
-      width: 100%;
-      padding: 0.6rem 0.75rem;
-      margin-bottom: 1rem;
-      font-size: 1rem;
-      font-family: inherit;
-      color: #1b4332;
-      background: #fff;
-      border: 1px solid #b7d4bc;
-      border-radius: 6px;
-    }
-    .setup-form input:focus {
-      outline: none;
-      border-color: #2d6a4f;
-      box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15);
-    }
-    .setup-form input::placeholder {
-      color: #95b5a8;
-    }
-    .setup-form button {
-      width: 100%;
-      padding: 0.65rem 1rem;
-      font-size: 1rem;
-      font-weight: 600;
-      font-family: inherit;
-      color: #fff;
-      background: #2d6a4f;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-top: 0.25rem;
-    }
-    .setup-form button:hover {
-      background: #1b4332;
-    }
-    .setup-form button:focus {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.25);
-    }
+    body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; }
+    .card { max-width: 420px; width: 100%; padding: 2rem; box-shadow: 0 2px 8px rgba(45, 106, 79, 0.08); }
+    .brand { font-size: 1.5rem; font-weight: 700; color: var(--color-primary); letter-spacing: 0.02em; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
+    .brand .ic { width: 28px; height: 28px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .headline { font-size: 1.15rem; font-weight: 600; color: var(--color-text); margin-bottom: 0.35rem; }
+    .tagline { font-size: 0.9rem; color: var(--color-muted); margin-bottom: 1.25rem; }
+    .notice { font-size: 0.85rem; color: var(--color-muted); background: #f0f7f1; }
+    .setup-form label { display: block; font-size: 0.9rem; font-weight: 500; color: var(--color-text); margin-bottom: 0.35rem; }
+    .setup-form input { width: 100%; padding: 0.6rem 0.75rem; margin-bottom: 1rem; font-size: 1rem; max-width: none; }
+    .setup-form input:focus { box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15); }
+    .setup-form input::placeholder { color: #95b5a8; }
+    .setup-form button { width: 100%; padding: 0.65rem 1rem; font-size: 1rem; font-weight: 600; margin-top: 0.25rem; }
+    .setup-form button:hover { background: var(--color-primary-dark); }
+    .setup-form button:focus { box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.25); }
   </style>
 </head>
 <body>

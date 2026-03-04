@@ -1,59 +1,33 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard – UPGS Panel</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #eef5ef; color: #1b4332; }
-    <%- include('partials/nav-styles') %>
-    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fff; min-height: 80vh; border: 1px solid #b7d4bc; border-top: none; }
-    h1 { margin-top: 0; color: #1b4332; font-size: 1.5rem; }
-    .intro { color: #52796f; margin-bottom: 1.5rem; }
-    .card { border: 1px solid #b7d4bc; border-radius: 6px; padding: 1.25rem; margin-bottom: 1rem; background: #fff; }
-    .card h2 { margin: 0 0 0.75rem 0; color: #2d6a4f; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
-    .card h2 .ic { width: 20px; height: 20px; color: #2d6a4f; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .card p { margin: 0.5rem 0; color: #1b4332; }
-    .card a { color: #2d6a4f; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; }
-    .card a:hover { color: #1b4332; text-decoration: underline; }
-    .card a .ic { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .card ul { margin: 0; padding: 0; list-style: none; }
-    .card li { padding: 0.35rem 0; border-bottom: 1px solid #e8f5e9; }
-    .card li:last-child { border-bottom: none; }
-    .server-meta { display: flex; flex-wrap: wrap; gap: 1rem 2rem; margin-bottom: 1rem; color: #52796f; font-size: 0.95rem; }
-    .server-meta strong { color: #1b4332; }
+<style>
+    .server-meta { display: flex; flex-wrap: wrap; gap: 1rem 2rem; margin-bottom: 1rem; color: var(--color-muted); font-size: 0.95rem; }
+    .server-meta strong { color: var(--color-text); }
     .metric { margin-bottom: 1rem; }
-    .metric-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.35rem; font-size: 0.9rem; color: #1b4332; }
-    .metric-label span:last-child { color: #52796f; font-size: 0.85rem; }
-    .bar-track { height: 0.75rem; background: #e8f5e9; border-radius: 4px; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.2s ease; }
-    .bar-fill.load { background: #2d6a4f; }
-    .bar-fill.load.warn { background: #b7a53a; }
-    .bar-fill.load.high { background: #9b2226; }
-    .bar-fill.mem, .bar-fill.disk, .bar-fill.swap { background: #2d6a4f; }
-    .bar-fill.mem.warn, .bar-fill.disk.warn, .bar-fill.swap.warn { background: #b7a53a; }
-    .bar-fill.mem.high, .bar-fill.disk.high, .bar-fill.swap.high { background: #9b2226; }
-    .server-status { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 999px; background: #e8f5e9; color: #2d6a4f; font-size: 0.8rem; font-weight: 500; }
-    .server-status-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #2d6a4f; animation: pulse 2s ease-in-out infinite; flex-shrink: 0; }
+    .metric-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.35rem; font-size: 0.9rem; color: var(--color-text); }
+    .metric-label span:last-child { color: var(--color-muted); font-size: 0.85rem; }
+    .bar-track { height: 0.75rem; background: var(--color-border-light); border-radius: var(--radius-sm); overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: var(--radius-sm); transition: width 0.2s ease; }
+    .bar-fill.load { background: var(--color-primary); }
+    .bar-fill.load.warn { background: var(--color-warn-border); }
+    .bar-fill.load.high { background: var(--color-danger); }
+    .bar-fill.mem, .bar-fill.disk, .bar-fill.swap { background: var(--color-primary); }
+    .bar-fill.mem.warn, .bar-fill.disk.warn, .bar-fill.swap.warn { background: var(--color-warn-border); }
+    .bar-fill.mem.high, .bar-fill.disk.high, .bar-fill.swap.high { background: var(--color-danger); }
+    .server-status { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 999px; background: var(--color-border-light); color: var(--color-primary); font-size: 0.8rem; font-weight: 500; }
+    .server-status-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--color-primary); animation: pulse 2s ease-in-out infinite; flex-shrink: 0; }
     .server-status-text { white-space: nowrap; }
-    .server-status-hint { color: #52796f; font-weight: normal; }
+    .server-status-hint { color: var(--color-muted); font-weight: normal; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .quick-links { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 0.5rem; }
     @media (min-width: 640px) { .quick-links { grid-template-columns: repeat(3, 1fr); } }
-    .quick-link { display: flex; flex-direction: column; padding: 1.25rem; border: 1px solid #b7d4bc; border-radius: 8px; background: #f8fcf9; color: #1b4332; text-decoration: none; transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; min-height: 0; }
-    .quick-link:hover { border-color: #2d6a4f; background: #fff; box-shadow: 0 2px 8px rgba(45, 106, 79, 0.12); }
-    .quick-link:focus { outline: 2px solid #2d6a4f; outline-offset: 2px; }
-    .quick-link-icon-wrap { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 10px; background: #d8f3dc; color: #2d6a4f; margin-bottom: 1rem; flex-shrink: 0; }
+    .quick-link { display: flex; flex-direction: column; padding: 1.25rem; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: #f8fcf9; color: var(--color-text); text-decoration: none; transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; min-height: 0; }
+    .quick-link:hover { border-color: var(--color-primary); background: #fff; box-shadow: 0 2px 8px rgba(45, 106, 79, 0.12); }
+    .quick-link:focus { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+    .quick-link-icon-wrap { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 10px; background: #d8f3dc; color: var(--color-primary); margin-bottom: 1rem; flex-shrink: 0; }
     .quick-link-icon-wrap svg { width: 24px; height: 24px; display: block; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .quick-link-title { font-weight: 600; font-size: 1rem; color: #1b4332; margin-bottom: 0.35rem; }
-    .quick-link-desc { font-size: 0.875rem; color: #52796f; line-height: 1.4; min-height: 2.6em; }
+    .quick-link-title { font-weight: 600; font-size: 1rem; color: var(--color-text); margin-bottom: 0.35rem; }
+    .quick-link-desc { font-size: 0.875rem; color: var(--color-muted); line-height: 1.4; min-height: 2.6em; }
   </style>
-</head>
-<body>
-  <%- include('partials/nav') %>
-  <main>
-    <h1>Hello, <%= user.username %></h1>
+<h1>Hello, <%= user.username %></h1>
     <p class="intro">UPGS Panel. Manage sites, databases, and mail from the menu.</p>
     <% if (typeof serverInfo !== 'undefined' && serverInfo) { %>
     <div class="card" id="server-card">
@@ -120,9 +94,8 @@
         </a>
       </div>
     </div>
-  </main>
-  <% if (typeof serverInfo !== 'undefined' && serverInfo) { %>
-  <script>
+<% if (typeof serverInfo !== 'undefined' && serverInfo) { %>
+<script>
   (function() {
     var card = document.getElementById('server-card');
     if (!card) return;
@@ -176,7 +149,5 @@
     setInterval(fetchServerInfo, 4000);
     setTimeout(fetchServerInfo, 1000);
   })();
-  </script>
-  <% } %>
-</body>
-</html>
+</script>
+<% } %>

@@ -9,16 +9,51 @@
     TAB_IDS.forEach(function(tabId) {
       var panel = document.getElementById("panel-" + tabId);
       var trigger = document.getElementById("tab-" + tabId);
-      if (panel) panel.classList.toggle("is-active", tabId === id);
-      if (trigger) trigger.classList.toggle("is-active", tabId === id);
+      if (panel) {
+        panel.classList.toggle("is-active", tabId === id);
+        panel.setAttribute("aria-hidden", tabId !== id);
+      }
+      if (trigger) {
+        trigger.classList.toggle("is-active", tabId === id);
+        trigger.setAttribute("aria-selected", tabId === id);
+        trigger.setAttribute("tabindex", tabId === id ? "0" : "-1");
+      }
     });
     window.location.hash = id;
   }
   document.addEventListener("click", function(e) {
-    var trigger = e.target.closest(".tabs-trigger");
+    var trigger = e.target.closest(".tabs-trigger[data-tab]");
     if (trigger && trigger.dataset.tab) {
       e.preventDefault();
       switchTab(trigger.dataset.tab);
+    }
+  });
+  document.addEventListener("keydown", function(e) {
+    var trigger = e.target.closest(".tabs-trigger[data-tab]");
+    if (!trigger || !trigger.dataset.tab) return;
+    var list = trigger.closest(".tabs-list");
+    if (!list) return;
+    var tabs = Array.prototype.filter.call(list.querySelectorAll(".tabs-trigger[data-tab]"), function(t) { return t.offsetParent !== null; });
+    var idx = tabs.indexOf(trigger);
+    if (idx < 0) return;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      var next = tabs[idx + 1] || tabs[0];
+      next.focus();
+      switchTab(next.dataset.tab);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      var prev = tabs[idx - 1] || tabs[tabs.length - 1];
+      prev.focus();
+      switchTab(prev.dataset.tab);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      tabs[0].focus();
+      switchTab(tabs[0].dataset.tab);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      tabs[tabs.length - 1].focus();
+      switchTab(tabs[tabs.length - 1].dataset.tab);
     }
   });
   window.addEventListener("hashchange", function() { switchTab(getTabFromHash()); });

@@ -11,7 +11,7 @@ router.get('/setup', async (req, res) => {
   const db = await getDb();
   const count = db.prepare('SELECT COUNT(*) as c FROM users').get();
   if (count.c > 0) return res.redirect('/login');
-  res.render('setup');
+  res.render('setup', { layout: false });
 });
 
 router.post('/setup', async (req, res) => {
