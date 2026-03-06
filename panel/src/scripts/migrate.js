@@ -1,5 +1,7 @@
-try { require('dotenv').config(); } catch (_) { /* dotenv optional */ }
 const path = require('path');
+// Run from panel root so require('better-sqlite3') and dotenv resolve (works from repo root or panel/)
+process.chdir(path.resolve(__dirname, '..', '..'));
+try { require('dotenv').config(); } catch (_) { /* dotenv optional */ }
 const fs = require('fs');
 const Database = require('better-sqlite3');
 const { getDbPath } = require('../config/database');
