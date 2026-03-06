@@ -37,51 +37,6 @@ db.exec(`
   );
   INSERT OR IGNORE INTO wizard_state (id) VALUES (1);
 `);
-try {
-  db.exec("ALTER TABLE wizard_state ADD COLUMN php_fpm_config TEXT DEFAULT 'default'");
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec("ALTER TABLE wizard_state ADD COLUMN database_config TEXT DEFAULT 'default'");
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec("ALTER TABLE wizard_state ADD COLUMN node_version TEXT");
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec('ALTER TABLE databases ADD COLUMN site_id INTEGER REFERENCES sites(id)');
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec('ALTER TABLE db_users ADD COLUMN password_plain TEXT');
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec('ALTER TABLE ftp_users ADD COLUMN password_plain TEXT');
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec('ALTER TABLE ftp_users ADD COLUMN default_route TEXT DEFAULT ""');
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec('ALTER TABLE ftp_users ADD COLUMN crypt_hash TEXT');
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec('ALTER TABLE sites ADD COLUMN php_options TEXT');
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec("ALTER TABLE sites ADD COLUMN app_type TEXT DEFAULT 'php'");
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec('ALTER TABLE sites ADD COLUMN node_port INTEGER');
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec('ALTER TABLE sites ADD COLUMN clone_repo_url TEXT');
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec('ALTER TABLE sites ADD COLUMN clone_branch TEXT');
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec('ALTER TABLE sites ADD COLUMN clone_subfolder TEXT');
-} catch (_) { /* column may already exist */ }
-try {
-  db.exec('ALTER TABLE sites ADD COLUMN htaccess_compat INTEGER DEFAULT 0');
-} catch (_) { /* column may already exist */ }
 db.exec(`
 
   CREATE TABLE IF NOT EXISTS sites (
@@ -156,9 +111,30 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
-try {
-  db.exec("ALTER TABLE db_grants ADD COLUMN privileges TEXT DEFAULT 'ALL'");
-} catch (_) { /* column may already exist */ }
+// Add columns to existing tables (no-op if already present)
+try { db.exec("ALTER TABLE wizard_state ADD COLUMN php_fpm_config TEXT DEFAULT 'default'"); } catch (_) {}
+try { db.exec("ALTER TABLE wizard_state ADD COLUMN database_config TEXT DEFAULT 'default'"); } catch (_) {}
+try { db.exec("ALTER TABLE wizard_state ADD COLUMN node_version TEXT"); } catch (_) {}
+try { db.exec('ALTER TABLE databases ADD COLUMN site_id INTEGER REFERENCES sites(id)'); } catch (_) {}
+try { db.exec('ALTER TABLE db_users ADD COLUMN password_plain TEXT'); } catch (_) {}
+try { db.exec('ALTER TABLE ftp_users ADD COLUMN password_plain TEXT'); } catch (_) {}
+try { db.exec('ALTER TABLE ftp_users ADD COLUMN default_route TEXT DEFAULT ""'); } catch (_) {}
+try { db.exec('ALTER TABLE ftp_users ADD COLUMN crypt_hash TEXT'); } catch (_) {}
+try { db.exec('ALTER TABLE sites ADD COLUMN php_options TEXT'); } catch (_) {}
+try { db.exec("ALTER TABLE sites ADD COLUMN app_type TEXT DEFAULT 'php'"); } catch (_) {}
+try { db.exec('ALTER TABLE sites ADD COLUMN node_port INTEGER'); } catch (_) {}
+try { db.exec('ALTER TABLE sites ADD COLUMN clone_repo_url TEXT'); } catch (_) {}
+try { db.exec('ALTER TABLE sites ADD COLUMN clone_branch TEXT'); } catch (_) {}
+try { db.exec('ALTER TABLE sites ADD COLUMN clone_subfolder TEXT'); } catch (_) {}
+try { db.exec('ALTER TABLE sites ADD COLUMN htaccess_compat INTEGER DEFAULT 0'); } catch (_) {}
+try { db.exec("ALTER TABLE db_grants ADD COLUMN privileges TEXT DEFAULT 'ALL'"); } catch (_) {}
+// Defensive: ensure sites has app_type (fixes DBs created when ALTER ran before CREATE)
+const siteCols = db.prepare("SELECT name FROM pragma_table_info('sites')").all().map(r => r.name);
+if (siteCols.includes('app_type') === false) {
+  db.exec("ALTER TABLE sites ADD COLUMN app_type TEXT DEFAULT 'php'");
+}
+if (siteCols.includes('node_port') === false) db.exec('ALTER TABLE sites ADD COLUMN node_port INTEGER');
+if (siteCols.includes('htaccess_compat') === false) db.exec('ALTER TABLE sites ADD COLUMN htaccess_compat INTEGER DEFAULT 0');
 
 console.log('Migrations done:', dbPath);
 db.close();
