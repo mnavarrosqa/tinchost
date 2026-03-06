@@ -90,6 +90,13 @@ db.exec(`
     enabled INTEGER DEFAULT 1,
     ssl INTEGER DEFAULT 0,
     ftp_enabled INTEGER DEFAULT 0,
+    php_options TEXT,
+    app_type TEXT DEFAULT 'php',
+    node_port INTEGER,
+    clone_repo_url TEXT,
+    clone_branch TEXT,
+    clone_subfolder TEXT,
+    htaccess_compat INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
